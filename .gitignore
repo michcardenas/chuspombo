@@ -1,0 +1,16 @@
+/node_modules
+/vendor
+/public/storage
+/public/images
+/storage/*.key
+/storage/app/public
+/storage/framework
+/storage/logs
+/bootstrap/cache/*.php
+.env
+.env.example
+/.idea
+/.vscode
+/composer.lock
+/package-lock.json
+/yarn.lock

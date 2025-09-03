@@ -1,0 +1,1025 @@
+
+:root {
+    --hostella-primary: #1a1a1a;
+    --hostella-secondary: #FFD700;
+    --hostella-light: #f8f9fa;
+    --hostella-dark:#000000;
+    --hostella-accent: #D4AF37;
+}
+body {
+    font-family: 'Poppins', sans-serif;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+a {
+    text-decoration: none;
+}
+
+/* Navegación */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 999; 
+    height: 80px; 
+  }
+.navbar-scrolled {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.nav-link {
+    font-weight: 500;
+    position: relative;
+}
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--bs-primary);
+}
+
+
+.hostella-social-nav {
+    gap: 10px;
+}
+
+/* Íconos de redes sociales */
+.hostella-social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: #ffffff;
+    background-color: #f0f0f0;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.hostella-social-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.1);
+    transform: scale(0);
+    transition: transform 0.3s ease;
+    border-radius: 50%;
+}
+
+.hostella-social-icon:hover::before {
+    transform: scale(1);
+}
+
+/* Colores específicos para cada red social */
+.hostella-social-icon.instagram {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
+
+.hostella-social-icon.facebook {
+    background-color: #3b5998;
+}
+
+/* Botón de WhatsApp */
+.hostella-whatsapp-btn {
+    display: flex;
+    align-items: center;
+    background-color: #25D366;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(37, 211, 102, 0.3);
+}
+
+.hostella-whatsapp-btn:hover {
+    background-color: #128C7E;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.hostella-whatsapp-btn i {
+    margin-right: 6px;
+    font-size: 1rem;
+}
+
+/* Media queries para responsive */
+
+/* Botones */
+.btn {
+    border-radius: 0.25rem;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #010066;
+    border-color: #3f51b5;
+}
+
+.btn-primary:hover {
+    background-color: #303f9f;
+    border-color: #303f9f;
+}
+
+.btn-outline-primary {
+    color: #3f51b5;
+    border-color: #3f51b5;
+}
+
+.btn-outline-primary:hover {
+    background-color: #3f51b5;
+    border-color: #3f51b5;
+    color: white;
+}
+
+/* Cards */
+.card {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Hero Section */
+.hero-section {
+    height: 80vh;
+    min-height: 500px;
+}
+
+.hero-image {
+    background-size: cover;
+    background-position: center;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+/* Search Box */
+.search-box {
+    background: rgba(255, 255, 255, 0.8); /* Blanco con 80% de opacidad */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Property Cards */
+.property-card {
+    transition: transform 0.3s;
+}
+
+.property-card:hover {
+    transform: translateY(-5px);
+}
+
+
+footer {
+    background-color: #1a1a1a;
+}
+
+footer a {
+    transition: all 0.3s ease;
+}
+
+footer a:hover {
+    color: white !important;
+}
+
+/* 🔹 Contenedor del carrusel - MÁS GRANDE */
+.carousel-container {
+    position: relative;
+    max-width: 100%;
+    height: 700px; /* Aumentado de 550px a 700px */
+    overflow: hidden;
+}
+
+/* 🔹 Mantener las imágenes del mismo tamaño - MÁS GRANDES */
+.carousel-image {
+    width: 100%;
+    height: 700px; /* Corregido: era "580" sin px, ahora 700px */
+    object-fit: cover;
+}
+
+/* 🔹 Contenido superpuesto en el centro */
+.carousel-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.1); /* Fondo semi-transparente */
+    padding: 30px;
+    border-radius: 10px;
+}
+
+.search-box-overlay {
+    margin: 10px;
+}
+
+/* 🔹 Ajustes para texto */
+.carousel-overlay h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.carousel-overlay h2 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+body {
+    padding-top: 80px; /* Ajusta según la altura del navbar */
+}
+
+.property-carousel-img {
+    height: 450px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* 🔹 Ajustes responsive para carrusel más grande */
+@media (max-width: 1200px) {
+    .carousel-container {
+        height: 600px;
+    }
+    .carousel-image {
+        height: 600px;
+    }
+}
+
+@media (max-width: 768px) {
+    .carousel-container {
+        height: 450px; /* Más grande que antes en móvil */
+    }
+    .carousel-image {
+        height: 450px;
+    }
+    .property-carousel-img {
+        height: 250px;
+    }
+    .carousel-overlay h1 {
+        font-size: 2rem;
+    }
+    .carousel-overlay h2 {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .carousel-container {
+        height: 350px;
+    }
+    .carousel-image {
+        height: 350px;
+    }
+    .carousel-overlay h1 {
+        font-size: 1.5rem;
+    }
+}
+.card.p-4 {
+    text-align: center;
+}
+
+.btn.btn-lg {
+    width: 100%;
+}
+
+/* 🔹 Ajustes responsive */
+@media (max-width: 768px) {
+    .carousel-overlay h1 {
+        font-size: 1.8rem;
+    }
+
+    .carousel-overlay h2 {
+        font-size: 1rem;
+    }
+}
+
+
+  /* Ajuste de imágenes del carrusel */
+  .carousel-img {
+    height: 400px;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+/* Diseño de Ver Más */
+.see-more {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Imagen dentro del modal */
+#modalImage {
+    max-width: 90vw;
+    max-height: 90vh;
+    cursor: zoom-in;
+    transition: transform 0.3s ease;
+}
+
+/* Zoom al hacer clic */
+#modalImage.zoomed {
+    transform: scale(1.5);
+    cursor: zoom-out;
+}
+
+/* Botones de navegación más pequeños y discretos */
+.custom-control {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.custom-control:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.small-control {
+    width: 40px;
+    height: 40px;
+}
+
+#prevImage {
+    left: 15px;
+}
+
+#nextImage {
+    right: 15px;
+}
+
+/* Botón de cerrar discreto */
+.btn-close-white {
+    filter: invert(1);
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    z-index: 20;
+}
+.see-more {
+    cursor: pointer;
+    font-weight: bold;
+}
+.calendar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;  /* Centra el calendario horizontalmente */
+    justify-content: center;  /* Centra verticalmente si es necesario */
+    width: 100%;
+}
+  /* 📌 Hace que el formulario baje con el scroll */
+  .sticky-form {
+    position: sticky;
+    top: 80px; /* Ajusta según la altura del navbar */
+    z-index: 10;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#calendar {
+    width: 100%;
+    max-width: 320px;
+}
+.animated-button {
+    position: relative;
+    display: inline-block;
+    padding: 12px 24px;
+    border: none;
+    font-size: 16px;
+    background-color: inherit;
+    border-radius: 100px;
+    font-weight: 600;
+    color: #010066;
+    box-shadow: 0 0 0 2px #010066;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.animated-button span:last-child {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    background-color: #010066;
+    border-radius: 50%;
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.23, 1, 0.320, 1);
+}
+
+.animated-button span:first-child {
+    position: relative;
+    z-index: 1;
+}
+
+.animated-button:hover {
+    box-shadow: 0 0 0 5px #01006630;
+    color: #ffffff;
+}
+
+.animated-button:active {
+    scale: 0.95;
+}
+
+.animated-button:hover span:last-child {
+    width: 150px;
+    height: 150px;
+    opacity: 1;
+}
+.button-explore {
+    cursor: pointer;
+    background-color: #FFD700;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+  }
+  .button-explore span {
+    color: #1a2a43;
+    font-weight: 700;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s ease;
+  }
+  .button-explore::after {
+    display: block;
+    content: "";
+    background-color: #ffffff;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    position: absolute;
+    top: 100%;
+    transform: translateX(-40%);
+    transition: all 0.3s ease;
+  }
+  .button-explore:hover::after {
+    top: -50%;
+  }
+  .button-explore:hover span {
+    color: #1a2a43;
+    letter-spacing: 2px;
+  }
+  .button-explore:hover {
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+  }
+  
+  /* Estilo para otros botones que puedas usar en la página */
+  .button {
+    cursor: pointer;
+    background-color: transparent;
+    padding: 10px 25px;
+    border: solid 2px #FFD700;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: 0.3s ease;
+  }
+  .button span {
+    color: #ffffff;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-section {
+    background-color: #1e2b3d; /* Color más similar al que tienes en tu web */
+    color: white;
+    padding: 5rem 0;
+    margin-bottom: 0; /* Elimina el margen inferior */
+  }
+  .footer{
+    background-color: #1a1e24; /* Color del footer actual */
+    color: white;
+    padding-top: 3rem;
+    margin-top: 0; /* Elimina el margen superior */
+  }
+  /* Colores de la marca */
+
+
+/* Estilos generales de la sección */
+.bg-light {
+    background-color: #f8f9fa;
+}
+.text-blue {
+    color: #000066;
+}
+
+/* Tarjetas de características */
+.feature-card {
+    padding: 30px 20px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.feature-card:hover {
+    background-color: white;
+    box-shadow: 0 10px 30px rgba(1, 0, 102, 0.1);
+    transform: translateY(-5px);
+}
+
+.feature-icon {
+    background: linear-gradient(135deg, var(--hostella-primary), var(--hostella-accent));
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 4px 15px rgba(1, 0, 102, 0.2);
+}
+
+.feature-title {
+    color: var(--hostella-dark);
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.feature-text {
+    color: #6c757d;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Botón personalizado para Hostella */
+.hostella-button {
+    background-color: var(--hostella-secondary);
+    color: var(--hostella-primary);
+    font-weight: 600;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 30px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    cursor: pointer;
+}
+
+.hostella-button:hover {
+    background-color: var(--hostella-primary);
+    color: white;
+    box-shadow: 0 6px 20px rgba(1, 0, 102, 0.4);
+}
+
+.hostella-button span {
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.chuspombo-footer {
+    background-image: url('/images/footer.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: bottom;
+    color: #fff; /* Para asegurar que el texto sea legible */
+    position: relative;
+    z-index: 1;
+}
+
+/* Logo y marca */
+.logo-container {
+    display: inline-block;
+   
+    padding: 5px;
+    margin-bottom: 15px;
+}
+
+.footer-logo {
+    height: 140px;
+    width: auto;
+    display: block;
+}
+
+.footer-description {
+    color: var(--chuspombo-gray);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-top: 15px;
+}
+
+/* Encabezados */
+.footer-heading {
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin-bottom: 20px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.footer-heading::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--chuspombo-secondary), transparent);
+}
+
+/* Enlaces */
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li {
+    margin-bottom: 12px;
+}
+
+.footer-links a {
+    color: var(--chuspombo-gray);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    padding-left: 15px;
+}
+
+.footer-links a::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--chuspombo-secondary);
+    font-weight: bold;
+}
+
+.footer-links a:hover {
+    color: #ffffff;
+    padding-left: 20px;
+}
+
+/* Información de contacto */
+.contact-info {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.contact-info li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.icon-wrapper {
+    background: linear-gradient(135deg, var(--chuspombo-primary), var(--chuspombo-accent));
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.contact-info li span {
+    color: var(--chuspombo-gray);
+}
+
+/* Redes sociales */
+.social-links {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.social-links a {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.social-links a:hover {
+    background-color: var(--chuspombo-secondary);
+    color: var(--chuspombo-primary);
+    transform: translateY(-3px);
+}
+
+/* Divisor */
+.footer-divider {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+    margin: 30px 0;
+}
+
+/* Sección inferior */
+.footer-bottom {
+    padding-top: 10px;
+}
+
+.copyright, .developed-by {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--chuspombo-gray);
+}
+
+
+
+/* properties */
+
+
+.property-img {
+    height: 200px;
+    object-fit: cover;
+}
+
+/* Estilos modernos para el banner de Chuspombo */
+
+.chuspombo-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 100%);
+    z-index: 1;
+}
+
+.chuspombo-hero-content {
+    position: relative;
+    z-index: 2;
+    padding-top: 120px;
+    color: #fff;
+}
+
+.chuspombo-main-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 1s ease-out;
+}
+
+.chuspombo-subtitle {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 1.2s ease-out;
+}
+
+.chuspombo-description {
+    font-size: 1.3rem;
+    font-weight: 400;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    max-width: 600px;
+    animation: fadeInUp 1.4s ease-out;
+}
+
+
+.featured-property {
+    padding: 60px 0;
+}
+
+.text-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Distribuye uniformemente los elementos */
+    align-items: flex-start; /* Alinea el texto a la izquierda */
+    text-align: left; /* Evita el centrado del texto */
+    height: 100%; /* Ajusta la altura del contenedor */
+    gap: 10px; /* Espacio entre elementos */
+}
+.text-section p {
+    font-size: 1rem;
+    margin-bottom: 5px;
+}
+
+.text-section .stars {
+    font-size: 18px;
+    color: #1a1a1a;
+    margin-bottom: 5px;
+}
+
+.property-title {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #1a1a1a; /* Negro oscuro */
+}
+
+.btn-primary {
+    background-color: #1a1a1a;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-top: auto; /* Envía el botón hacia abajo */
+}
+
+.images-section {
+    position: relative;
+    display: flex;
+    gap: 10px;
+}
+
+.image-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.small-image {
+    width: 190px;
+    height: 154px;
+    border-radius: 40px;
+    object-fit: cover;
+    position: absolute;
+    top: -40px;
+    left: -85px;
+    border: 5px solid white;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.large-image {
+    width: 100%;
+    border-radius: 15px;
+    object-fit: cover;
+}
+.gallery-container {
+    position: relative; /* Permite que el botón se posicione dentro de este contenedor */
+}
+
+.view-images-btn {
+    position: absolute;
+    bottom: 15px; /* Ajusta la distancia desde la parte inferior */
+    right: 15px; /* Ajusta la distancia desde la parte derecha */
+    background-color: #1a1a1a; /* Negro como Chuspombo */
+    color: white;
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    border: none;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease-in-out;
+}
+.view-images-btn:hover {
+    background-color: #000000; /* Negro más oscuro al pasar el mouse */
+}
+.description-section {
+    font-size: 1rem;
+    color: #444;
+}
+
+.see-more-link {
+    display: inline-block;
+    margin-top: 8px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.see-more-link:hover {
+    text-decoration: underline;
+}
+text-blue{
+    color: #1a1a1a;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 576px) {
+    .chuspombo-social-icon {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .chuspombo-whatsapp-btn {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+    .chuspombo-hero-banner {
+        height: 350px;
+    }
+    
+    .chuspombo-hero-content {
+        padding-top: 60px;
+    }
+    
+    .chuspombo-main-title {
+        font-size: 1.8rem;
+    }
+    
+    .chuspombo-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .chuspombo-description {
+        font-size: 1rem;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chuspombo-hero-banner {
+        height: 400px;
+    }
+    
+    .chuspombo-hero-content {
+        padding-top: 80px;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .chuspombo-main-title {
+        font-size: 2.2rem;
+    }
+    
+    .chuspombo-subtitle {
+        font-size: 1.5rem;
+    }
+    
+    .chuspombo-description {
+        font-size: 1.1rem;
+    }
+    .footer-heading::after {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .footer-heading, .contact-info, .footer-links {
+        text-align: center;
+    }
+    
+    .footer-links a {
+        padding-left: 0;
+    }
+    
+    .footer-links a::before {
+        display: none;
+    }
+    
+    .contact-info li {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .social-links {
+        justify-content: center;
+    }
+}
