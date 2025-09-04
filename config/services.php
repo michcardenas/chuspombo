@@ -44,4 +44,10 @@ return [
         'secret' => env('STRIPE_SECRET'),
     ],
 
+    'smoobu' => [
+    'key'           => env('SMOOBU_API_KEY'),
+    'base_url'      => env('SMOOBU_BASE_URL', 'https://login.smoobu.com/api'),
+    'webhook_token' => env('SMOOBU_WEBHOOK_TOKEN'),
+],
+
 ];
