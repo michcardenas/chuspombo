@@ -12,9 +12,9 @@
     $existingImages = collect();
 
     for ($i = 1; $i <= 100; $i++) {
-        $imagePath = public_path("images/CHUSPOMBO-APARTAMENTOS-{$i}.png");
+        $imagePath = public_path("images/CHUSPOMBO-APARTAMENTOS-{$i}.webp");
         if (file_exists($imagePath)) {
-            $existingImages->push(asset("images/CHUSPOMBO-APARTAMENTOS-{$i}.png"));
+            $existingImages->push(asset("images/CHUSPOMBO-APARTAMENTOS-{$i}.webp"));
         }
     }
 
@@ -59,11 +59,11 @@
                             <div class="row g-3 justify-content-center">
                                 <div class="col-md-4">
                                     <label for="checkin" class="form-label">Llegada</label>
-                                    <input type="date" class="form-control" id="checkin" name="checkin">
+                                    <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
                                 </div>
                                 <div class="col-md-4">
                                     <label for="checkout" class="form-label">Salida</label>
-                                    <input type="date" class="form-control" id="checkout" name="checkout">
+                                    <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
                                     <button type="submit" class="btn btn-primary w-100">Buscar</button>
@@ -78,15 +78,6 @@
 @else
     <p class="text-center text-danger">No se encontraron imágenes de Chuspombo Apartamentos.</p>
 @endif
-
-{{-- DEBUG opcional
-<div class="container mt-3">
-    <p>Imágenes encontradas: {{ $existingImages->count() }}</p>
-    @foreach($existingImages as $img)
-        <small>{{ basename($img) }}</small><br>
-    @endforeach
-</div>
---}}
 
 <!-- Featured Properties (Smoobu) -->
 <section class="py-5">
@@ -141,8 +132,8 @@
                             </div>
                         </div>
                         <div class="card-footer bg-white border-top-0">
-                            {{-- Para Smoobu usamos un filtro por apartment_id en el índice --}}
-                            <a href="{{ route('properties.index', ['apartment_id' => $property['_id']]) }}"
+                            {{-- Vamos directo al detalle (show) para el calendario/booking por apartamento --}}
+                            <a href="{{ route('properties.show', $property['_id']) }}"
                                class="btn btn-outline-primary w-100">Ver disponibilidad</a>
                         </div>
                     </div>
@@ -246,7 +237,7 @@
                         @endfor
                     </div>
                     <h2 class="property-title">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
-                    <a href="{{ route('properties.index', ['apartment_id' => $property['_id']]) }}" class="btn btn-primary">Ver disponibilidad</a>
+                    <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary">Ver disponibilidad</a>
                 </div>
 
                 <!-- Columna de imágenes -->

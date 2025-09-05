@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Services\SmoobuClient;
+use App\Models\SmoobuApartmentMeta;
+use App\Models\SmoobuApartmentImage;
 
 class HomeController extends Controller
 {
@@ -16,64 +18,57 @@ class HomeController extends Controller
         $this->smoobu = $smoobu;
     }
 
-/**
- * Mostrar la página de inicio
- */
 public function index()
 {
     try {
-        $api = $this->smoobu; // Inyectado en el constructor
+        $api = $this->smoobu;
 
-        // 1) Traer apartamentos (cache 5 min)
-        $apartments = Cache::remember('smoobu.apartments', 300, function () use ($api) {
-            return $api->apartments(); // [['id'=>..., 'name'=>...], ...]
-        });
+        // 1) Traer apartamentos desde Smoobu (cache 5 min), como hacías originalmente
+        $apartments = Cache::remember('smoobu.apartments', 300, fn () => $api->apartments());
 
-        // Hasta 12 para portada
+        // Limitar a 12 para portada
         $apts = collect($apartments)->take(12)->values();
-        $ids  = $apts->pluck('id')->all();
+        $ids  = $apts->pluck('id')->filter()->map(fn($i) => (int)$i)->all();
 
-        // 2) Detalle por apartment (para bedrooms/bathrooms/location y fallback de precios)
+        // 2) Cargar detalles de Smoobu (fallbacks para location/rooms/prices)
         $details = [];
         foreach ($ids as $aid) {
             $details[$aid] = Cache::remember("smoobu.apartment.$aid", 300, function () use ($api, $aid) {
                 try {
                     return $api->apartment((int)$aid);
                 } catch (\Throwable $e) {
-                    \Log::warning('No se pudo obtener detalle de apartment', ['id' => $aid, 'e' => $e->getMessage()]);
+                    Log::warning('No se pudo obtener detalle de apartment', ['id' => $aid, 'e' => $e->getMessage()]);
                     return [];
                 }
             });
         }
 
-        // 3) Rates: hoy -> +7 días  (tu shape: data[aptId][YYYY-MM-DD]['price'])
-        $start = now()->toDateString();
-        $end   = now()->addDays(7)->toDateString();
-
+        // 3) Rates promedio 7 días (fallback 30 días) — como antes
         $ratesByApt = [];
         try {
             if (!empty($ids)) {
+                $start = now()->toDateString();
+                $end   = now()->addDays(7)->toDateString();
+
                 $resp   = $api->rates($start, $end, $ids);
                 $matrix = $resp['data'] ?? [];
 
                 foreach ($ids as $aid) {
-                    $dateRows = $matrix[$aid] ?? [];
-                    $prices   = [];
-                    foreach ($dateRows as $row) {
-                        $p = $row['price'] ?? null;
+                    $rows   = $matrix[$aid] ?? [];
+                    $prices = [];
+                    foreach ($rows as $r) {
+                        $p = $r['price'] ?? null;
                         if (is_numeric($p) && $p > 0) $prices[] = (float)$p;
                     }
-                    $ratesByApt[$aid] = count($prices)
-                        ? round(array_sum($prices) / count($prices))
-                        : null;
+                    $ratesByApt[$aid] = count($prices) ? round(array_sum($prices) / count($prices)) : null;
                 }
             }
         } catch (\Throwable $e) {
-            \Log::warning('No se pudieron obtener rates (7d)', ['e' => $e->getMessage()]);
+            Log::warning('No se pudieron obtener rates (7d)', ['e' => $e->getMessage()]);
             $ratesByApt = [];
         }
 
-        // 4) Si todos quedaron null, intenta con +30 días
+        // Fallback: 30 días si todo quedó null/0
         if (!empty($ids) && empty(array_filter($ratesByApt, fn($v) => is_numeric($v) && $v > 0))) {
             try {
                 $start2 = now()->toDateString();
@@ -85,50 +80,80 @@ public function index()
                 foreach ($ids as $aid) {
                     if (isset($ratesByApt[$aid]) && $ratesByApt[$aid] > 0) continue;
 
-                    $dateRows = $matrix2[$aid] ?? [];
-                    $prices   = [];
-                    foreach ($dateRows as $row) {
-                        $p = $row['price'] ?? null;
+                    $rows   = $matrix2[$aid] ?? [];
+                    $prices = [];
+                    foreach ($rows as $r) {
+                        $p = $r['price'] ?? null;
                         if (is_numeric($p) && $p > 0) $prices[] = (float)$p;
                     }
-                    $avg = count($prices) ? round(array_sum($prices) / count($prices)) : null;
-                    $ratesByApt[$aid] = $avg;
+                    $ratesByApt[$aid] = count($prices) ? round(array_sum($prices) / count($prices)) : null;
                 }
             } catch (\Throwable $e) {
-                \Log::warning('No se pudieron obtener rates (30d)', ['e' => $e->getMessage()]);
+                Log::warning('No se pudieron obtener rates (30d)', ['e' => $e->getMessage()]);
             }
         }
 
-        // 5) Mapear a la estructura que tu Blade espera (con bedrooms/bathrooms reales)
-        $featuredProperties = $apts->map(function ($apt) use ($details, $ratesByApt) {
-            $id   = $apt['id'] ?? null;
-            $name = trim($apt['name'] ?? 'Propiedad');
+        // 4) Cargar overrides locales (meta + imágenes) para esos IDs
+        $metas = SmoobuApartmentMeta::with(['images' => function ($q) {
+                $q->where('is_active', true)->orderBy('sort_order');
+            }])
+            ->whereIn('apartment_id', $ids)
+            ->get()
+            ->keyBy('apartment_id');
 
-            $d      = $details[$id] ?? [];
-            $loc    = $d['location'] ?? [];
-            $rooms  = $d['rooms']    ?? [];
-            // Fallbacks defensivos por si el esquema de tu cuenta difiere
-            $bedrooms  = $rooms['bedrooms']      ?? $d['bedrooms']        ?? $d['numberOfBedrooms']   ?? 0;
-            $bathrooms = $rooms['bathrooms']     ?? $d['bathrooms']       ?? $d['numberOfBathrooms']  ?? 0;
+        // 5) Mapear al shape que espera la vista: API + overrides locales
+        $featuredProperties = $apts->map(function ($apt) use ($details, $ratesByApt, $metas) {
+            $id = (int)($apt['id'] ?? 0);
+            $d  = $details[$id] ?? [];
+            /** @var SmoobuApartmentMeta|null $m */
+            $m  = $metas->get($id);
 
-            // Imagen local opcional
-            $img = $this->firstExistingAsset([
-                "images/smoobu/{$id}.webp",
-                "images/smoobu/{$id}.jpg",
-                "images/smoobu/{$id}.png",
-            ]) ?? asset('images/property-placeholder.jpg');
+            // Título
+            $name = trim($m->title ?? ($d['name'] ?? ($apt['name'] ?? 'Propiedad')));
 
-            // Precio final: rate promedio -> minimal -> maximal -> null si <= 0
-            $raw   = $ratesByApt[$id] ?? ($d['price']['minimal'] ?? ($d['price']['maximal'] ?? null));
-            $price = (is_numeric($raw) && $raw > 0) ? (int) round($raw) : null;
+            // Ubicación
+            $loc     = $d['location'] ?? [];
+            $city    = $m->city ?? ($loc['city'] ?? null);
+            $country = $m->country ?? ($loc['country'] ?? 'República Dominicana');
+
+            // Rooms (preferir valores locales si están seteados)
+            $roomsApi           = $d['rooms'] ?? [];
+            $bedroomsFromApi    = $roomsApi['bedrooms']      ?? ($d['bedrooms']       ?? $d['numberOfBedrooms']   ?? 0);
+            $bathroomsFromApi   = $roomsApi['bathrooms']     ?? ($d['bathrooms']      ?? $d['numberOfBathrooms']  ?? 0);
+            $bedrooms           = isset($m) && $m->bedrooms  !== null ? (int)$m->bedrooms  : (int)$bedroomsFromApi;
+            $bathrooms          = isset($m) && $m->bathrooms !== null ? (float)$m->bathrooms : (float)$bathroomsFromApi;
+
+            // Imagen (galería local -> cover local -> archivo local por convención -> placeholder)
+            $firstImagePath = $m?->images?->first()?->path;
+            $thumb = $firstImagePath
+                ? asset($firstImagePath)
+                : ( $m?->cover_image_path
+                    ? asset($m->cover_image_path)
+                    : ($this->firstExistingAsset([
+                        "images/smoobu/{$id}.webp",
+                        "images/smoobu/{$id}.jpg",
+                        "images/smoobu/{$id}.png",
+                      ]) ?? asset('images/property-placeholder.jpg'))
+                  );
+
+            // Precio (override local > rates promedio > minimal/maximal API > null)
+            $priceOverride = $m?->base_price_override;
+            $apiMinimal    = data_get($d, 'price.minimal');
+            $apiMaximal    = data_get($d, 'price.maximal');
+
+            $raw = (is_numeric($priceOverride) && $priceOverride > 0)
+                ? (float)$priceOverride
+                : ($ratesByApt[$id] ?? $apiMinimal ?? $apiMaximal ?? null);
+
+            $price = (is_numeric($raw) && $raw > 0) ? (int)round($raw) : null;
 
             return [
                 '_id'      => $id,
                 'title'    => $name,
-                'picture'  => ['thumbnail' => $img],
+                'picture'  => ['thumbnail' => $thumb],
                 'address'  => [
-                    'city'    => $loc['city'] ?? null,
-                    'country' => $loc['country'] ?? 'República Dominicana',
+                    'city'    => $city,
+                    'country' => $country,
                 ],
                 'bedrooms'  => $bedrooms,
                 'bathrooms' => $bathrooms,
@@ -137,8 +162,8 @@ public function index()
             ];
         })->values()->all();
 
-        // 6) Imágenes destacadas para la sección "featured-property"
-        $featuredImages = $this->getFeaturedImagesFromLocal($featuredProperties);
+        // 6) Imágenes destacadas para "featured-property" desde DB
+        $featuredImages = $this->getFeaturedImagesFromMetas($metas);
 
         // 7) Página/SEO
         $paginaModel = \App\Models\Pagina::with('meta')->find(1);
@@ -157,7 +182,7 @@ public function index()
             'seo'                => $seo,
         ]);
     } catch (\Throwable $e) {
-        \Illuminate\Support\Facades\Log::error('Error al obtener propiedades Smoobu', ['e' => $e->getMessage()]);
+        Log::error('Error al cargar portada (API + DB)', ['e' => $e->getMessage()]);
 
         $paginaModel = \App\Models\Pagina::with('meta')->find(1);
         if (!$paginaModel) {
@@ -179,46 +204,46 @@ public function index()
 
 
 
-    /**
-     * Devuelve hasta 2 imágenes para la sección "featured-property".
-     * Busca primero imágenes locales por ID de Smoobu y si no hay, usa placeholder.
-     */
-    private function getFeaturedImagesFromLocal(array $featuredProperties): array
-    {
-        $images = [];
+/**
+ * Devuelve hasta 2 imágenes para la sección "featured-property" usando la galería de DB.
+ * Si ninguna meta tiene imágenes, aplica fallbacks.
+ *
+ * @param \Illuminate\Support\Collection|array $metas
+ */
+private function getFeaturedImagesFromMetas($metas): array
+{
+    // Normaliza a colección
+    $collection = collect($metas);
 
-        // 1) Intentar imágenes por ID (images/smoobu/{id}.*)
-        foreach ($featuredProperties as $p) {
-            $id = $p['_id'] ?? null;
-            if (!$id) continue;
+    // Toma la primera meta con imágenes activas
+    $firstWithImages = $collection->first(function ($m) {
+        return $m->images && $m->images->count() > 0;
+    });
 
-            $candidate = $this->firstExistingAsset([
-                "images/smoobu/{$id}-1.jpg",
-                "images/smoobu/{$id}-1.png",
-                "images/smoobu/{$id}-1.webp",
-                "images/smoobu/{$id}.jpg",
-                "images/smoobu/{$id}.png",
-                "images/smoobu/{$id}.webp",
-            ]);
-
-            if ($candidate) $images[] = $candidate;
-            if (count($images) >= 2) break;
-        }
-
-        // 2) Si no alcanzan, tomar de tu set genérico
-        if (count($images) < 2) {
-            $fallbacks = [
-                'images/property-placeholder.jpg',
-                'images/property-placeholder-2.jpg',
-            ];
-            foreach ($fallbacks as $f) {
-                $images[] = asset($f);
-                if (count($images) >= 2) break;
-            }
-        }
-
-        return array_slice($images, 0, 2);
+    $images = [];
+    if ($firstWithImages) {
+        $images = $firstWithImages->images->take(2)
+            ->map(fn($img) => asset($img->path))
+            ->values()
+            ->all();
     }
+
+    // Fallbacks si no alcanzan 2
+    if (count($images) < 2) {
+        $fallbacks = [
+            asset('images/property-placeholder.jpg'),
+            asset('images/property-placeholder-2.jpg'),
+        ];
+        foreach ($fallbacks as $f) {
+            if (count($images) >= 2) break;
+            $images[] = $f;
+        }
+    }
+
+    return array_slice($images, 0, 2);
+}
+
+
 
     /**
      * Devuelve asset() del primer archivo existente en /public según lista de rutas relativas
