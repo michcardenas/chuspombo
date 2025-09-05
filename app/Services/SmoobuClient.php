@@ -13,8 +13,6 @@ class SmoobuClient
             ->acceptJson();
     }
 
-    
-
     /** Propiedades (listar IDs y nombres) */
     public function apartments(): array
     {

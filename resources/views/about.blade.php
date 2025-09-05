@@ -13,7 +13,7 @@
     foreach ($availableNumbers as $number) {
         if (count($randomImages) >= $imagesNeeded) break;
         
-        $testImage = "CHUSPOMBO-APARTAMENTOS-{$number}.png";
+        $testImage = "CHUSPOMBO-APARTAMENTOS-{$number}.webp";
         if (file_exists(public_path("images/{$testImage}"))) {
             $randomImages[] = asset("images/{$testImage}");
         }
