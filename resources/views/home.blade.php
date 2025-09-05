@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Hostella - Villas exclusivas en República Dominicana')
+@section('title', 'Chuspombo - Apartamentos y villas en Galicia, España')
 
-@section('meta_description', 'Descubre las villas y propiedades más exclusivas en República Dominicana con Hostella, tu socio confiable para experiencias de lujo inolvidables.')
+@section('meta_description', 'Descubre apartamentos y villas exclusivas en Galicia, España con Chuspombo, tu socio confiable para experiencias de lujo inolvidables.')
 
 @section('content')
 <!-- Hero Section -->
@@ -49,7 +49,7 @@
             </h1>
 
             <h2 class="lead text-white">
-                {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en los mejores destinos de República Dominicana' }}
+                {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
             </h2>
 
             <div class="search-box-overlay">
@@ -79,16 +79,16 @@
     <p class="text-center text-danger">No se encontraron imágenes de Chuspombo Apartamentos.</p>
 @endif
 
-<!-- Featured Properties (Smoobu) -->
+<!-- Featured Properties -->
 <section class="py-5">
     <div class="container">
         <div class="row mb-4">
             <div class="col-md-8">
                 <h2 class="fw-bold">
-                    {{ $pagina->h2_propiedades ?? 'Propiedades destacadas en República Dominicana' }}
+                    {{ $pagina->h2_propiedades ?? 'Propiedades destacadas en Galicia, España' }}
                 </h2>
                 <p class="text-muted">
-                    {{ $pagina->p_propiedades ?? 'Descubre nuestras propiedades exclusivas en los destinos más deseados.' }}
+                    {{ $pagina->p_propiedades ?? 'Descubre nuestras propiedades exclusivas en los destinos más deseados de Galicia.' }}
                 </p>
             </div>
             <div class="col-md-4 text-md-end">
@@ -115,7 +115,7 @@
                             <h5 class="card-title">{{ $property['title'] }}</h5>
                             <p class="card-text text-muted">
                                 <i class="fas fa-map-marker-alt me-1"></i>
-                                {{ $location !== '' ? $location : 'República Dominicana' }}
+                                {{ $location !== '' ? $location : 'Galicia, España' }}
                             </p>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -124,7 +124,7 @@
                                 </div>
                                 <strong>
                                     @if(is_numeric($price))
-                                        US${{ $price }}/noche
+                                        €{{ $price }}/noche
                                     @else
                                         Consultar
                                     @endif
@@ -153,10 +153,10 @@
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
                 <h2 class="fw-bold" style="color: #1c2d41;">
-                    {{ $pagina->h2_chuspombo ?? 'Experiencias de lujo en República Dominicana' }}
+                    {{ $pagina->h2_chuspombo ?? 'Experiencias de lujo en Galicia, España' }}
                 </h2>
                 <p class="text-muted">
-                    {{ $pagina->p_chuspombo ?? '¿Por qué elegir nuestras propiedades en República Dominicana?' }}
+                    {{ $pagina->p_chuspombo ?? '¿Por qué elegir nuestras propiedades en Galicia, España?' }}
                 </p>
             </div>
         </div>
@@ -178,9 +178,9 @@
                                 ];
 
                                 $defaultContent = [
-                                    1 => 'En las mejores zonas turísticas del país, cerca de playas, centros históricos y gastronomía de alto nivel.',
+                                    1 => 'En las mejores zonas turísticas de la región, cerca de playas, centros históricos y gastronomía de alto nivel.',
                                     2 => 'Propiedades equipadas con todas las comodidades modernas para una estancia perfecta.',
-                                    3 => 'Vive como local con acceso a cultura, tradiciones y paisajes únicos de República Dominicana.'
+                                    3 => 'Vive como local con acceso a cultura, tradiciones y paisajes únicos de Galicia, España.'
                                 ];
                             @endphp
 
@@ -227,7 +227,7 @@
             <div class="row align-items-center">
                 <!-- Columna de texto -->
                 <div class="col-md-6 text-section">
-                    <p class="text-muted">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en República Dominicana.' }}</p>
+                    <p class="text-muted">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
                     <div class="stars">
                         @php
                             $rating = $property['rating'] ?? 5;
@@ -254,16 +254,16 @@
     </section>
 @endif
 
-<!-- Por qué los huéspedes confían en Hostella -->
+<!-- Por qué los huéspedes confían en Chuspombo -->
 <section class="py-5 bg-light">
     <div class="container">
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
                 <h2 class="fw-bold">
-                    {{ $pagina->h2_confiar ?? '¿Por qué elegir Hostella?' }}
+                    {{ $pagina->h2_confiar ?? '¿Por qué elegir Chuspombo?' }}
                 </h2>
                 <p class="text-muted">
-                    {{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en República Dominicana.' }}
+                    {{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en Galicia, España.' }}
                 </p>
             </div>
         </div>
@@ -316,7 +316,7 @@
         <div class="row text-center mt-5">
             <div class="col-lg-12">
                 <a href="{{ route('about') }}" class="animated-button">
-                    <span>Descubre más sobre República Dominicana</span>
+                    <span>Descubre más sobre Galicia</span>
                     <span></span>
                 </a>
             </div>
