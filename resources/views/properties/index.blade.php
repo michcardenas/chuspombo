@@ -39,8 +39,8 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-8 col-md-10">
-                    <h1 class="chuspombo-main-title">{{ $paginapropiedades->h1 ?? 'Descubre República Dominicana' }}</h1>
-                    <h2 class="chuspombo-subtitle">{{ $paginapropiedades->h2_1 ?? 'Villas y apartamentos exclusivos' }}</h2>
+                    <h1 class="chuspombo-main-title">{{ $paginapropiedades->h1 ?? 'Descubre Galicia, España' }}</h1>
+                    <h2 class="chuspombo-subtitle">{{ $paginapropiedades->h2_1 ?? 'Apartamentos y villas exclusivas' }}</h2>
                 </div>
             </div>
         </div>
@@ -56,8 +56,8 @@
                 @php
                     $thumb = $property['picture']['thumbnail'] ?? asset('images/property-placeholder.jpg');
                     $title = $property['title'] ?? 'Apartamento';
-                    $city  = $property['address']['city'] ?? null;
-                    $country = $property['address']['country'] ?? 'República Dominicana';
+                    $city  = $property['address']['city'] ?? 'Galicia';
+                    $country = $property['address']['country'] ?? 'España';
                     $location = trim(($city ? $city : '') . ($city ? ', ' : '') . $country);
                     $bedrooms = $property['bedrooms'] ?? 0;
                     $bathrooms = $property['bathrooms'] ?? 0;
@@ -79,7 +79,7 @@
                             <div class="mt-2 text-end">
                                 <strong>
                                     @if(is_numeric($price))
-                                        US${{ $price }}/noche
+                                        €{{ $price }}/noche
                                     @else
                                         Consultar
                                     @endif

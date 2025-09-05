@@ -18,7 +18,7 @@ class HomeController extends Controller
         $this->smoobu = $smoobu;
     }
 
-public function index()
+   public function index()
 {
     try {
         $api = $this->smoobu;
@@ -43,7 +43,7 @@ public function index()
             });
         }
 
-        // 3) Rates promedio 7 días (fallback 30 días) — como antes
+        // 3) Rates promedio 7 días (fallback 30 días)
         $ratesByApt = [];
         try {
             if (!empty($ids)) {
@@ -111,10 +111,10 @@ public function index()
             // Título
             $name = trim($m->title ?? ($d['name'] ?? ($apt['name'] ?? 'Propiedad')));
 
-            // Ubicación
+            // Ubicación (por defecto Galicia, España)
             $loc     = $d['location'] ?? [];
-            $city    = $m->city ?? ($loc['city'] ?? null);
-            $country = $m->country ?? ($loc['country'] ?? 'República Dominicana');
+            $city    = $m->city ?? ($loc['city'] ?? 'Galicia');
+            $country = $m->country ?? ($loc['country'] ?? 'España');
 
             // Rooms (preferir valores locales si están seteados)
             $roomsApi           = $d['rooms'] ?? [];
@@ -204,44 +204,45 @@ public function index()
 
 
 
-/**
- * Devuelve hasta 2 imágenes para la sección "featured-property" usando la galería de DB.
- * Si ninguna meta tiene imágenes, aplica fallbacks.
- *
- * @param \Illuminate\Support\Collection|array $metas
- */
-private function getFeaturedImagesFromMetas($metas): array
-{
-    // Normaliza a colección
-    $collection = collect($metas);
 
-    // Toma la primera meta con imágenes activas
-    $firstWithImages = $collection->first(function ($m) {
-        return $m->images && $m->images->count() > 0;
-    });
+    /**
+     * Devuelve hasta 2 imágenes para la sección "featured-property" usando la galería de DB.
+     * Si ninguna meta tiene imágenes, aplica fallbacks.
+     *
+     * @param \Illuminate\Support\Collection|array $metas
+     */
+    private function getFeaturedImagesFromMetas($metas): array
+    {
+        // Normaliza a colección
+        $collection = collect($metas);
 
-    $images = [];
-    if ($firstWithImages) {
-        $images = $firstWithImages->images->take(2)
-            ->map(fn($img) => asset($img->path))
-            ->values()
-            ->all();
-    }
+        // Toma la primera meta con imágenes activas
+        $firstWithImages = $collection->first(function ($m) {
+            return $m->images && $m->images->count() > 0;
+        });
 
-    // Fallbacks si no alcanzan 2
-    if (count($images) < 2) {
-        $fallbacks = [
-            asset('images/property-placeholder.jpg'),
-            asset('images/property-placeholder-2.jpg'),
-        ];
-        foreach ($fallbacks as $f) {
-            if (count($images) >= 2) break;
-            $images[] = $f;
+        $images = [];
+        if ($firstWithImages) {
+            $images = $firstWithImages->images->take(2)
+                ->map(fn($img) => asset($img->path))
+                ->values()
+                ->all();
         }
-    }
 
-    return array_slice($images, 0, 2);
-}
+        // Fallbacks si no alcanzan 2
+        if (count($images) < 2) {
+            $fallbacks = [
+                asset('images/property-placeholder.jpg'),
+                asset('images/property-placeholder-2.jpg'),
+            ];
+            foreach ($fallbacks as $f) {
+                if (count($images) >= 2) break;
+                $images[] = $f;
+            }
+        }
+
+        return array_slice($images, 0, 2);
+    }
 
 
 
