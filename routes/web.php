@@ -8,6 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PropertiesController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PaginaController;
+use App\Http\Controllers\Admin\SmoobuApartmentController;
 use App\Http\Controllers\StripeController;
 
 
@@ -52,18 +53,7 @@ Route::post('/book/{propertyId}', [ReservationController::class, 'store'])->name
 // about
 Route::get('/nosotros', [App\Http\Controllers\AboutController::class, 'index'])->name('about');
 
-// Rutas de prueba para Guesty API
-Route::prefix('guesty-test')->group(function () {
-    Route::get('/base-urls', [App\Http\Controllers\GuestyTestController::class, 'testBaseUrl']);
-    Route::get('/auth', [App\Http\Controllers\GuestyTestController::class, 'testAuthUrl']);
-    Route::get('/token', [App\Http\Controllers\GuestyTestController::class, 'validateToken']);
-});
 
-// En routes/web.php
-Route::prefix('token-test')->group(function () {
-    Route::get('/status', [App\Http\Controllers\TokenTestController::class, 'testTokenSystem']);
-    Route::get('/refresh', [App\Http\Controllers\TokenTestController::class, 'manualRefreshToken']);
-});
 
 
 Route::post('/properties/{id}/confirm-reservation', [PropertiesController::class, 'confirmReservation'])->name('properties.confirm-reservation');
@@ -85,6 +75,13 @@ Route::middleware('auth')->get('/admin/pagina/propiedades', [PaginaController::c
 Route::middleware('auth')->get('/admin/pagina/propiedades/edit', [PaginaController::class, 'editPropiedades'])->name('admin.pagina.propiedades.edit');
 Route::middleware('auth')->post('/admin/pagina/propiedades/update', [PaginaController::class, 'updatePropiedades'])->name('admin.pagina.propiedades.update');
 
+Route::middleware(['auth'])->prefix('admin/apartments')->name('admin.apartments.')->group(function () {
+    Route::get('{apartment}/edit', [SmoobuApartmentController::class, 'edit'])->name('edit');
+    Route::post('{apartment}', [SmoobuApartmentController::class, 'update'])->name('update');
+    Route::delete('images/{image}', [SmoobuApartmentController::class, 'destroyImage'])->name('images.destroy');
+});
+Route::post('/properties/check-availability', [\App\Http\Controllers\PropertiesController::class, 'checkAvailability'])
+    ->name('properties.checkAvailability');
 
 Route::post('/stripe/pagar', [StripeController::class, 'pagar'])->name('stripe.pagar');
 Route::get('/stripe/success', [StripeController::class, 'success'])->name('stripe.success');

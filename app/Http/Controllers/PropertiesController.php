@@ -3,691 +3,431 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\GuestyService;
 use Illuminate\Support\Facades\Log;
-use App\Models\PropertyPayment;
-use Stripe\Stripe;
-use Stripe\PaymentIntent;
+use Illuminate\Support\Facades\Cache;
+use App\Services\SmoobuClient;
+use App\Models\SmoobuApartmentMeta;
+use App\Models\SmoobuApartmentImage;
 use Carbon\Carbon;
 
 class PropertiesController extends Controller
 {
-    protected $guestyService;
+    /** @var \App\Services\SmoobuClient */
+    protected SmoobuClient $smoobu;
 
-    public function __construct(GuestyService $guestyService)
+    public function __construct(SmoobuClient $smoobu)
     {
-        $this->guestyService = $guestyService;
+        $this->smoobu = $smoobu;
     }
 
     /**
-     * Lista todas las propiedades con filtros opcionales.
+     * Lista todas las propiedades con filtros opcionales (Smoobu).
      */
-public function index(Request $request)
-{
-    try {
-        // 1) Página + SEO (igual que antes)
-        $pagina = \App\Models\Pagina::with('meta')->find(2);
-        if (!$pagina) {
-            $paginapropiedades = new \App\Models\Pagina();
-            $seo = new \App\Models\PaginaMeta();
-        } else {
-            $paginapropiedades = $pagina;
-            $seo = $pagina->meta ?? new \App\Models\PaginaMeta();
-        }
-
-        // 2) Smoobu: obtener apartamentos (con cache corto)
-        $api = app(\App\Services\SmoobuClient::class);
-        $apartments = \Illuminate\Support\Facades\Cache::remember('smoobu.apartments', 300, function () use ($api) {
-            return $api->apartments(); // [['id'=>..., 'name'=>...], ...]
-        });
-
-        $apartments = collect($apartments);
-
-        // Filtro opcional por apartment_id (si viene de la URL)
-        if ($request->filled('apartment_id')) {
-            $apartments = $apartments->where('id', (int)$request->input('apartment_id'));
-        }
-
-        // (Opcional) rango de fechas para precio; si no hay, no calculamos
-        $checkin  = $request->date('checkin');
-        $checkout = $request->date('checkout');
-
-        $ratesByApt = [];
-        if ($checkin && $checkout && $apartments->count() > 0) {
-            try {
-                $ids = $apartments->pluck('id')->values()->all();
-                $ratesResponse = $api->rates($checkin->format('Y-m-d'), $checkout->format('Y-m-d'), $ids);
-
-                // Mapeo defensivo súper simple: si la respuesta trae días/precios, promediar
-                $ratesByApt = [];
-                $rows = $ratesResponse['rates'] ?? $ratesResponse ?? [];
-                foreach ($rows as $row) {
-                    $aptId  = $row['apartmentId'] ?? ($row['apartment']['id'] ?? ($row['id'] ?? null));
-                    if (!$aptId) continue;
-                    $daily  = $row['days'] ?? $row['daily'] ?? [];
-                    $prices = [];
-                    foreach ($daily as $d) {
-                        if (isset($d['price']) && is_numeric($d['price']))      $prices[] = (float)$d['price'];
-                        elseif (isset($d['amount']) && is_numeric($d['amount'])) $prices[] = (float)$d['amount'];
-                    }
-                    $avg = count($prices) ? round(array_sum($prices) / max(count($prices), 1)) : null;
-                    $ratesByApt[$aptId] = $avg;
-                }
-            } catch (\Throwable $e) {
-                // Si falla rates, seguimos sin precio
-                $ratesByApt = [];
+    public function index(Request $request)
+    {
+        try {
+            // Página + SEO (igual que antes)
+            $pagina = \App\Models\Pagina::with('meta')->find(2);
+            if (!$pagina) {
+                $paginapropiedades = new \App\Models\Pagina();
+                $seo = new \App\Models\PaginaMeta();
+            } else {
+                $paginapropiedades = $pagina;
+                $seo = $pagina->meta ?? new \App\Models\PaginaMeta();
             }
-        }
 
-        // 3) Mapear al formato que la vista espera
-        $properties = $apartments->map(function ($apt) use ($ratesByApt) {
-            $id   = $apt['id'] ?? null;
-            $name = trim($apt['name'] ?? 'Propiedad');
+            // Smoobu: obtener apartamentos (cache corto)
+            $api = $this->smoobu;
+            $apartments = Cache::remember('smoobu.apartments', 300, function () use ($api) {
+                return $api->apartments(); // [['id'=>..., 'name'=>...], ...]
+            });
 
-            // Imagen local opcional por ID; si no, placeholder
-            $thumb = (function () use ($id) {
-                foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.png"] as $rel) {
-                    if (file_exists(public_path($rel))) return asset($rel);
+            $apartments = collect($apartments);
+
+            // Filtro por apartment_id si viene en la URL
+            if ($request->filled('apartment_id')) {
+                $apartments = $apartments->where('id', (int)$request->input('apartment_id'));
+            }
+
+            // Rango de fechas opcional para precio (promedio simple de rates)
+            $checkin  = $request->date('checkin');
+            $checkout = $request->date('checkout');
+
+            $ratesByApt = [];
+            if ($checkin && $checkout && $apartments->count() > 0) {
+                try {
+                    $ids = $apartments->pluck('id')->values()->all();
+                    $ratesResponse = $api->rates($checkin->format('Y-m-d'), $checkout->format('Y-m-d'), $ids);
+
+                    // Estructura típica que hemos visto: ['data' => [aptId => ['Y-m-d' => ['price'=>...]]]]
+                    $byId = $ratesResponse['data'] ?? [];
+                    foreach ($byId as $aptId => $days) {
+                        $prices = [];
+                        foreach ($days as $day => $info) {
+                            $p = $info['price'] ?? null;
+                            if (is_numeric($p) && $p > 0) $prices[] = (float)$p;
+                        }
+                        $ratesByApt[$aptId] = count($prices) ? round(array_sum($prices) / count($prices)) : null;
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('No se pudieron obtener rates en index()', ['e' => $e->getMessage()]);
+                    $ratesByApt = [];
                 }
-                return asset('images/property-placeholder.jpg');
-            })();
+            }
 
-            return [
-                '_id'    => $id,
-                'title'  => $name,
-                'picture'=> ['thumbnail' => $thumb],
-                'address'=> ['city' => null, 'country' => 'República Dominicana'],
-                'bedrooms'  => 0,
-                'bathrooms' => 0,
-                'prices'    => ['basePrice' => $ratesByApt[$id] ?? null], // si no hay rates → null (la vista mostrará "Consultar")
-                'rating'    => 5,
-            ];
-        })->values()->all();
+            // Mapear al formato que la vista espera
+            $properties = $apartments->map(function ($apt) use ($ratesByApt) {
+                $id   = $apt['id'] ?? null;
+                $name = trim($apt['name'] ?? 'Propiedad');
 
-        return view('properties.index', [
-            'properties'        => $properties,
-            'filters'           => $request->all(),
-            'paginapropiedades' => $paginapropiedades,
-            'seo'               => $seo
-        ]);
-    } catch (\Exception $e) {
-        return view('properties.index', [
-            'properties'        => [],
-            'filters'           => $request->all(),
-            'paginapropiedades' => new \App\Models\Pagina(),
-            'seo'               => new \App\Models\PaginaMeta(),
-            'error'             => 'No se pudieron cargar las propiedades. Inténtelo de nuevo más tarde.'
-        ]);
+                // Imagen local por ID; fallback a placeholder
+                $thumb = (function () use ($id) {
+                    foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.png"] as $rel) {
+                        if (file_exists(public_path($rel))) return asset($rel);
+                    }
+                    return asset('images/property-placeholder.jpg');
+                })();
+
+                return [
+                    '_id'      => $id,
+                    'title'    => $name,
+                    'picture'  => ['thumbnail' => $thumb],
+                    'address'  => ['city' => null, 'country' => 'República Dominicana'],
+                    'bedrooms' => 0,
+                    'bathrooms' => 0,
+                    'prices'   => ['basePrice' => $ratesByApt[$id] ?? null], // si null → la vista muestra "Consultar"
+                    'rating'   => 5,
+                ];
+            })->values()->all();
+
+            return view('properties.index', [
+                'properties'        => $properties,
+                'filters'           => $request->all(),
+                'paginapropiedades' => $paginapropiedades,
+                'seo'               => $seo
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en index properties:', ['e' => $e->getMessage()]);
+            return view('properties.index', [
+                'properties'        => [],
+                'filters'           => $request->all(),
+                'paginapropiedades' => new \App\Models\Pagina(),
+                'seo'               => new \App\Models\PaginaMeta(),
+                'error'             => 'No se pudieron cargar las propiedades. Inténtelo de nuevo más tarde.'
+            ]);
+        }
     }
-}
 
-
+    /**
+     * Detalle de propiedad (Smoobu).
+     */
     public function show($id)
     {
         try {
-            // Obtener propiedad desde Guesty
-            $property = $this->guestyService->getListing($id);
+            $api = $this->smoobu;
+            $id  = (int) $id;
 
-            if (!$property || empty($property)) {
+            // Detalle (cache 5 min)
+            $detail = Cache::remember("smoobu.apartment.$id", 300, fn() => $api->apartment($id));
+            if (empty($detail)) {
                 return redirect()->route('properties.index')->with('error', 'Propiedad no encontrada.');
             }
 
-            // Obtener calendario de disponibilidad desde Guesty
-            $from = now()->subDays(30)->format('Y-m-d');
-            $to = now()->addDays(30)->format('Y-m-d');
-            $calendar = $this->guestyService->getListingCalendar($id, $from, $to);
+            // Overrides locales (meta + galería)
+            $meta    = SmoobuApartmentMeta::find($id);
+            $imagesQ = SmoobuApartmentImage::where('apartment_id', $id)
+                ->where('is_active', true)->orderBy('sort_order')->get();
+            $gallery = $imagesQ->map(fn($i) => asset($i->path))->values()->all();
 
-            // Fechas ocupadas en Guesty
-            $bookedDates = collect($calendar)
-                ->filter(fn($day) => $day['status'] === 'booked')
-                ->pluck('date')
-                ->values()
-                ->toArray();
+            // Precio: promedio rates 7d -> 30d | override | minimal | maximal
+            $priceFromRates = null;
+            try {
+                $start = now()->toDateString();
+                $end   = now()->addDays(7)->toDateString();
+                $resp  = $api->rates($start, $end, [$id]);
+                $rows  = $resp['data'][$id] ?? [];
+                $nums  = [];
+                foreach ($rows as $r) {
+                    $p = $r['price'] ?? null;
+                    if (is_numeric($p) && $p > 0) $nums[] = (float) $p;
+                }
+                if (count($nums)) $priceFromRates = (int) round(array_sum($nums) / count($nums));
 
-            // ✅ Agregar fechas ocupadas por pagos locales
-            $pagos = PropertyPayment::where('listing_id', $id)
-                ->where('payment_status', 'succeeded') // o 'COMPLETED' según cómo lo guardes
-                ->get(['check_in', 'check_out']);
-
-            foreach ($pagos as $pago) {
-                $fechas = $this->obtenerFechasOcupadas($pago->check_in, $pago->check_out);
-                $bookedDates = array_merge($bookedDates, $fechas);
+                if (!$priceFromRates) {
+                    $start2 = now()->toDateString();
+                    $end2   = now()->addDays(30)->toDateString();
+                    $resp2  = $api->rates($start2, $end2, [$id]);
+                    $rows2  = $resp2['data'][$id] ?? [];
+                    $nums2  = [];
+                    foreach ($rows2 as $r) {
+                        $p = $r['price'] ?? null;
+                        if (is_numeric($p) && $p > 0) $nums2[] = (float) $p;
+                    }
+                    if (count($nums2)) $priceFromRates = (int) round(array_sum($nums2) / count($nums2));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('No se pudieron obtener rates para show()', ['id' => $id, 'e' => $e->getMessage()]);
             }
 
-            // Eliminar duplicados y reindexar
-            $bookedDates = array_values(array_unique($bookedDates));
+            $priceOverride = $meta?->base_price_override;
+            $priceMinimal  = $detail['price']['minimal'] ?? null;
+            $priceMaximal  = $detail['price']['maximal'] ?? null;
 
-            // Obtener reviews desde Guesty
-            $response = $this->guestyService->getListingReviews($id, 10);
-            $reviews = $response['data'] ?? [];
+            $finalPrice = $priceOverride
+                ?? $priceFromRates
+                ?? $priceMinimal
+                ?? $priceMaximal
+                ?? null;
 
-            return view('properties.show', compact('property', 'bookedDates', 'reviews'));
-        } catch (\Exception $e) {
-            \Log::error('Error en show(): ' . $e->getMessage());
+            // Campos principales
+            $title   = $meta?->title ?: ($detail['name'] ?? 'Propiedad');
+            $city    = $meta?->city ?? ($detail['location']['city'] ?? null);
+            $country = $meta?->country ?? ($detail['location']['country'] ?? 'República Dominicana');
+            $desc    = $meta?->description ?? ($detail['description'] ?? null);
+
+            // Habitaciones / baños
+            $rooms = $detail['rooms'] ?? [];
+            $bedrooms  = is_numeric($meta?->bedrooms)  ? (int)$meta->bedrooms  : (
+                (isset($rooms['bedrooms']) && is_numeric($rooms['bedrooms'])) ? (int)$rooms['bedrooms'] : ((isset($detail['bedrooms']) && is_numeric($detail['bedrooms'])) ? (int)$detail['bedrooms'] : 0)
+            );
+            $bathrooms = is_numeric($meta?->bathrooms) ? (float)$meta->bathrooms : (
+                (isset($rooms['bathrooms']) && is_numeric($rooms['bathrooms'])) ? (float)$rooms['bathrooms'] : ((isset($detail['bathrooms']) && is_numeric($detail['bathrooms'])) ? (float)$detail['bathrooms'] : 0.0)
+            );
+
+            $beds        = $detail['beds'] ?? ($rooms['beds'] ?? null);
+            $accommodates = $detail['accommodates'] ?? null;
+
+            // Galería (local por ID -> fallback -> placeholder)
+            if (empty($gallery)) {
+                foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.png"] as $rel) {
+                    if (file_exists(public_path($rel))) {
+                        $gallery[] = asset($rel);
+                        break;
+                    }
+                }
+            }
+            if (empty($gallery)) {
+                $gallery[] = asset('images/property-placeholder.jpg');
+            }
+
+            // Booking URL (iframe Smoobu) - opcional
+            $bookingBase = config('services.smoobu.booking_base_url'); // ej: https://bookings.smoobu.com/es/TU_CUENTA
+            $bookingUrl  = $bookingBase
+                ? rtrim($bookingBase, '/') . '?apartmentId=' . urlencode($id) . '&lang=es&iframe=true'
+                : null;
+
+            // === Calendar verification (para el Single Calendar Widget) ===
+            $calendarVerification =
+                ($meta && !empty($meta->calendar_verification)) ? $meta->calendar_verification : (config('services.smoobu.calendar_verifications')[$id] ?? null)
+                ?? config('services.smoobu.default_calendar_verification');
+
+            // Payload para la vista
+            $property = [
+                '_id'    => $id,
+                'title'  => $title,
+                'gallery' => $gallery,
+                'pictures' => collect($gallery)->map(fn($u) => ['original' => $u, 'thumbnail' => $u])->values()->all(),
+                'address' => [
+                    'full'    => trim(($city ?: '') . (($city && $country) ? ', ' : '') . ($country ?: '')),
+                    'city'    => $city,
+                    'country' => $country,
+                ],
+                'bedrooms'     => $bedrooms,
+                'bathrooms'    => $bathrooms,
+                'beds'         => $beds,
+                'accommodates' => $accommodates,
+                'prices'       => [
+                    'basePrice' => (is_numeric($finalPrice) && $finalPrice > 0) ? (int)round($finalPrice) : null,
+                    'currency'  => 'USD',
+                ],
+                'description'            => $desc,
+                'amenities'              => $detail['amenities'] ?? [],
+                'bookingUrl'             => $bookingUrl,
+                'calendar_verification'  => $calendarVerification, // <<<<<< aquí va el token para el widget
+            ];
+
+            $reviews = []; // sin Guesty
+
+            return view('properties.show', compact('property', 'reviews'));
+        } catch (\Throwable $e) {
+            Log::error('Error en show() Smoobu: ' . $e->getMessage(), ['id' => $id]);
             return redirect()->route('properties.index')->with('error', 'No se pudo cargar la propiedad.');
         }
     }
 
-
     /**
-     * Retorna un array de fechas ocupadas entre check-in y check-out (excluyendo el check-out).
+     * Utilidad de fechas (se mantiene por compatibilidad).
      */
     private function obtenerFechasOcupadas($checkIn, $checkOut): array
     {
         $fechas = [];
         $inicio = \Carbon\Carbon::parse($checkIn);
-        $fin = \Carbon\Carbon::parse($checkOut); // ✅ Ya no se hace subDay()
-
+        $fin    = \Carbon\Carbon::parse($checkOut);
         $periodo = \Carbon\CarbonPeriod::create($inicio, $fin);
-
         foreach ($periodo as $fecha) {
             $fechas[] = $fecha->format('Y-m-d');
         }
-
         return $fechas;
     }
 
-
-
-    /**
-     * Crear una reserva en Guesty API.
+    /* ============================
+     * Acciones antiguas de Guesty
+     * ============================
+     * Se mantienen las firmas, pero ya no hacen llamadas a Guesty.
+     * En su lugar devuelven respuesta informando que el flujo va por Smoobu.
      */
+
     public function createReservation(Request $request, $id)
     {
-        $request->validate([
-            'guest.name' => 'required|string|max:255',
-            'guest.email' => 'required|email',
-            'guest.phone' => 'nullable|string|max:20',
-            'checkIn' => 'required|date',
-            'checkOut' => 'required|date|after:checkIn',
-            'policy.policyId' => 'required|string',
-            'payment.method' => 'required|string|in:credit_card,paypal',
-            'payment.amount' => 'required|numeric|min:0',
-        ]);
-
-        try {
-            $reservationData = [
-                'reservation' => [
-                    'listingId' => $id,
-                    'checkInDate' => $request->checkIn,
-                    'checkOutDate' => $request->checkOut,
-                    'numGuests' => $request->input('guests', 1),
-                ],
-                'guest' => [
-                    'fullName' => $request->input('guest.name'),
-                    'email' => $request->input('guest.email'),
-                    'phone' => $request->input('guest.phone', null),
-                ],
-                'policy' => [
-                    'policyId' => $request->input('policy.policyId'),
-                    'privacy' => ['isAccepted' => true],
-                    'termsAndConditions' => ['isAccepted' => true],
-                    'marketing' => ['isAccepted' => false],
-                ],
-                'payment' => [
-                    'method' => $request->input('payment.method'),
-                    'amount' => $request->input('payment.amount'),
-                ]
-            ];
-
-            $response = $this->guestyService->createReservation($reservationData);
-
-            if (isset($response['error'])) {
-                return back()->with('error', 'Error en la reserva: ' . $response['error']['message']);
-            }
-
-            return redirect()->route('properties.show', $id)->with('success', 'Reserva realizada con éxito.');
-        } catch (\Exception $e) {
-            \Log::error('Error en la reserva: ' . $e->getMessage());
-            return back()->with('error', 'No se pudo procesar la reserva. Inténtelo más tarde.');
-        }
+        return back()->with('info', 'La reserva ahora se realiza desde el portal de Smoobu.');
     }
+
     public function calculatePrice(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'listingId' => 'required|string',
-                'checkIn' => 'required|date',
-                'checkOut' => 'required|date',
-                'guestsCount' => 'required|integer|min:1'
-            ]);
-
-            // Crear una cotización formal
-            $quoteData = $this->guestyService->createReservationQuote(
-                $validated['listingId'],
-                $validated['checkIn'],
-                $validated['checkOut'],
-                $validated['guestsCount']
-            );
-
-            // Registrar la respuesta completa para depuración
-            \Log::info("Respuesta completa de Guesty:", $quoteData);
-
-            // Verificar la estructura mínima necesaria
-            if (!isset($quoteData['_id'])) {
-                return response()->json([
-                    'error' => 'No se pudo obtener la cotización: Falta ID',
-                    'data' => $quoteData // Incluir los datos recibidos para depuración
-                ], 422);
-            }
-
-            // Construir respuesta con los datos disponibles
-            $response = [
-                'quoteId' => $quoteData['_id']
-            ];
-
-            // Agregar datos adicionales si están disponibles
-            if (isset($quoteData['expiresAt'])) {
-                $response['expiresAt'] = $quoteData['expiresAt'];
-            }
-
-            // Extraer la información de precios desde la estructura anidada
-            if (
-                isset($quoteData['rates']) &&
-                isset($quoteData['rates']['ratePlans']) &&
-                !empty($quoteData['rates']['ratePlans']) &&
-                isset($quoteData['rates']['ratePlans'][0]['ratePlan']['money'])
-            ) {
-
-                $response['money'] = $quoteData['rates']['ratePlans'][0]['ratePlan']['money'];
-            }
-
-            // Extraer información de precios por día si está disponible
-            if (isset($quoteData['rates']['ratePlans'][0]['days'])) {
-                $response['days'] = $quoteData['rates']['ratePlans'][0]['days'];
-            }
-
-            return response()->json($response);
-        } catch (\Exception $e) {
-            \Log::error("Error al calcular precio: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return response()->json([
+            'error' => 'El cálculo de precio se gestiona desde el portal de reservas de Smoobu.'
+        ], 400);
     }
-    // En PropertiesController.php
+
     public function redirectToPortal(Request $request)
     {
-        $validated = $request->validate([
-            'quoteId' => 'required|string',
-        ]);
-
-        $quoteId = $validated['quoteId'];
-        $returnUrl = route('home'); // o donde quieras redirigir tras el pago
-
-        // Obtener la URL de pago desde el servicio Guesty
-        $paymentUrl = $this->guestyService->getGuestyPayUrl($quoteId, $returnUrl);
-
-        return redirect()->away($paymentUrl);
+        // Redirige al booking de Smoobu si hay apartmentId
+        $bookingBase = config('services.smoobu.booking_base_url');
+        $apartmentId = $request->input('listingId');
+        if ($bookingBase && $apartmentId) {
+            $url = rtrim($bookingBase, '/') . '?apartmentId=' . urlencode($apartmentId) . '&lang=es';
+            return redirect()->away($url);
+        }
+        return back()->with('info', 'No se pudo construir el portal de Smoobu.');
     }
 
-    // En GuestyService.php (método para obtener la URL del portal)
+    // Método antes llamado desde Guesty; mantenemos para no romper rutas
     public function getGuestPortalUrl($quoteId, $returnUrl)
     {
-        try {
-            $response = $this->client->post("reservations/quotes/{$quoteId}/guest-portal-link", [
-                'json' => [
-                    'returnUrl' => $returnUrl
-                ]
-            ]);
-
-            $data = json_decode($response->getBody(), true);
-            return $data['portalUrl']; // Asegúrate de verificar la estructura exacta de la respuesta
-        } catch (\Exception $e) {
-            \Log::error('Error al obtener URL del portal de Guesty: ' . $e->getMessage());
-            throw new \Exception('No se pudo obtener el enlace al portal de reservas: ' . $e->getMessage());
-        }
+        abort(404, 'No disponible: migrado a Smoobu.');
     }
-
 
     public function createQuote(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'listingId' => 'required|string',
-                'checkIn' => 'required|date',
-                'checkOut' => 'required|date',
-                'guestsCount' => 'required|integer|min:1',
-                'coupon' => 'nullable|string'
-            ]);
-
-            // Crear una cotización formal que se usará para la reserva
-            $quoteData = $this->guestyService->createReservationQuote(
-                $validated['listingId'],
-                $validated['checkIn'],
-                $validated['checkOut'],
-                $validated['guestsCount'],
-                $validated['coupon'] ?? null
-            );
-
-            if (!isset($quoteData['_id'])) {
-                return response()->json(['error' => 'No se pudo crear la cotización'], 422);
-            }
-
-            return response()->json([
-                'quoteId' => $quoteData['_id'],
-                'expiresAt' => $quoteData['expiresAt'] ?? null,
-                'money' => $quoteData['money'] ?? null,
-                'message' => 'Cotización creada exitosamente'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return response()->json([
+            'error' => 'La creación de cotizaciones directas no está disponible. Use el calendario de Smoobu.'
+        ], 400);
     }
+
     public function showReservationForm($id)
     {
-        try {
-            $property = $this->guestyService->getListing($id);
-
-            if (!$property || empty($property)) {
-                return redirect()->route('properties.index')->with('error', 'Propiedad no encontrada.');
-            }
-
-            return view('properties.reservation', compact('property'));
-        } catch (\Exception $e) {
-            return redirect()->route('properties.index')->with('error', 'No se pudo cargar la propiedad. Inténtelo más tarde.');
+        // Antes mostraba form propio; ahora redirigimos al booking Smoobu
+        $bookingBase = config('services.smoobu.booking_base_url');
+        if ($bookingBase) {
+            $url = rtrim($bookingBase, '/') . '?apartmentId=' . urlencode($id) . '&lang=es';
+            return redirect()->away($url);
         }
+        return redirect()->route('properties.show', $id)
+            ->with('info', 'Configura services.smoobu.booking_base_url para usar el portal de reservas.');
     }
+
     public function reserve(Request $request, $id)
     {
-        try {
-            // Datos de la reserva
-            $data = [
-                "policy" => [
-                    "privacy" => ["isAccepted" => true],
-                    "termsAndConditions" => ["isAccepted" => true],
-                    "marketing" => ["isAccepted" => true]
-                ],
-                "guest" => [
-                    "fullName" => $request->guest_name,
-                    "email" => $request->guest_email
-                ],
-                "reservation" => [
-                    "listingId" => $id,
-                    "checkinDate" => $request->checkin_date,
-                    "checkoutDate" => $request->checkout_date,
-                    "numberOfGuests" => $request->guests
-                ]
-            ];
-
-            // Llamamos al servicio para crear la reserva
-            $response = $this->guestyService->createReservation($data);
-
-            return redirect()->route('properties.show', $id)->with('success', 'Reserva realizada con éxito.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'No se pudo procesar la reserva. Inténtelo de nuevo.');
-        }
+        return back()->with('info', 'La reserva se completa en el portal de Smoobu.');
     }
 
     public function confirmReservation(Request $request, $id)
     {
-        // Validar datos de entrada
-        $validated = $request->validate([
-            'checkIn' => 'required|date',
-            'checkOut' => 'required|date|after:checkIn',
-            'guestsCount' => 'required|integer|min:1',
-            'quoteId' => 'required|string',
-            'reservationData' => 'required|string',
-        ]);
-
-        try {
-            // Obtener información de la propiedad
-            $property = $this->guestyService->getListing($id);
-
-            if (!$property) {
-                return redirect()->route('properties.index')
-                    ->with('error', 'Propiedad no encontrada.');
-            }
-
-            // Decodificar los datos de la reserva
-            $quoteData = json_decode($validated['reservationData'], true);
-
-            // Renderizar vista de confirmación con datos
-            return view('properties.confirm-reservation', [
-                'property' => $property,
-                'checkIn' => $validated['checkIn'],
-                'checkOut' => $validated['checkOut'],
-                'guestsCount' => $validated['guestsCount'],
-                'quoteId' => $validated['quoteId'],
-                'quoteData' => $quoteData,
-            ]);
-        } catch (\Exception $e) {
-            return redirect()->route('properties.show', $id)
-                ->with('error', 'Error al cargar los datos de reserva: ' . $e->getMessage());
-        }
+        return back()->with('info', 'La confirmación de reserva se realiza en Smoobu.');
     }
 
     public function showPaymentForm(Request $request, $propertyId, $quoteId)
     {
-        try {
-            // Obtener información de la propiedad y la cotización
-            $property = $this->guestyService->getListing($propertyId);
-            $quote = $this->guestyService->getQuoteById($quoteId);
-
-            Log::info('📍 Propiedad obtenida:', ['property' => $property]);
-            Log::info('📦 Quote recibido:', ['quote' => $quote]);
-
-            if (!$property || !$quote) {
-                Log::error('❌ No se encontró propiedad o quote.');
-                return redirect()->route('properties.index')->with('error', 'No se encontraron los datos necesarios.');
-            }
-
-            // Acceder al subtotal del pago
-            $ratePlans = $quote['rates']['ratePlans'] ?? [];
-            $money = $ratePlans[0]['ratePlan']['money'] ?? null;
-
-            if (!$money || !isset($money['subTotalPrice'])) {
-                Log::error('❌ El array "money" o "subTotalPrice" no está definido en quote["rates"]["ratePlans"][0]["ratePlan"]', ['quote' => $quote]);
-                return redirect()->route('properties.index')->with('error', 'La información de la cotización es incompleta.');
-            }
-
-            // Datos del huésped y reserva (desde el formulario previo)
-            $guestName       = $request->input('guestName') ?? ($quote['guest']['fullName'] ?? '');
-            $guestEmail      = $request->input('guestEmail') ?? ($quote['guest']['email'] ?? '');
-            $guestPhone      = $request->input('guestPhone') ?? '';
-            $checkIn         = $request->input('checkIn') ?? ($quote['checkInDateLocalized'] ?? '');
-            $checkOut        = $request->input('checkOut') ?? ($quote['checkOutDateLocalized'] ?? '');
-            $guestsCount     = $request->input('guestsCount') ?? '';
-            $reservationData = $request->input('reservationData') ?? null;
-
-            // Configurar Stripe
-            Stripe::setApiKey(config('services.stripe.secret'));
-
-            $paymentIntent = PaymentIntent::create([
-                'amount' => intval($money['subTotalPrice'] * 100), // en centavos
-                'currency' => $money['currency'] ?? 'usd',
-                'automatic_payment_methods' => ['enabled' => true],
-                'metadata' => [
-                    'listing_id'    => $propertyId,
-                    'quote_id'      => $quoteId,
-                    'guest_name'    => $guestName,
-                    'guest_email'   => $guestEmail,
-                    'guest_phone'   => $guestPhone,
-                    'check_in'      => $checkIn,
-                    'check_out'     => $checkOut,
-                    'guests_count'  => $guestsCount,
-                ],
-            ]);
-
-            Log::info('✅ PaymentIntent creado correctamente', ['intent' => $paymentIntent->id]);
-
-            // Mostrar la vista con datos necesarios
-            return view('properties.payment-form', [
-                'clientSecret'    => $paymentIntent->client_secret,
-                'stripeKey'       => config('services.stripe.key'),
-                'property'        => $property,
-                'quoteId'         => $quoteId,
-                'totalPrice'      => $money['subTotalPrice'],
-                'currency'        => $money['currency'] ?? 'USD',
-                'checkIn'         => $checkIn,
-                'checkOut'        => $checkOut,
-                'guestName'       => $guestName,
-                'guestEmail'      => $guestEmail,
-                'guestPhone'      => $guestPhone,
-                'guestsCount'     => $guestsCount,
-                'reservationData' => $reservationData,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('❌ Error en showPaymentForm(): ' . $e->getMessage(), ['exception' => $e]);
-            return redirect()->route('properties.index')->with('error', 'Error al cargar el formulario de pago.');
-        }
+        return redirect()->route('properties.show', $propertyId)
+            ->with('info', 'El pago se gestiona directamente en Smoobu.');
     }
-
 
     public function tokenizeCard(Request $request, $id)
     {
-        Log::info('👉 Iniciando tokenización de tarjeta para propiedad ID: ' . $id);
-        Log::debug('📨 Datos recibidos en el request', $request->all());
-
-
-        $validated = $request->validate([
-            'card_number' => 'required|string',
-            'exp_month' => 'required|string',
-            'exp_year' => 'required|string',
-            'cvc' => 'required|string',
-            'name' => 'required|string',
-            'address_line1' => 'required|string',
-            'city' => 'required|string',
-            'postal_code' => 'required|string',
-            'country' => 'required|string',
-            'amount' => 'required|numeric',
-            'currency' => 'required|string',
-            'listing_id' => 'required|string',
-            'payment_provider_id' => 'required|string',
-        ]);
-
-        Log::info('✅ Datos validados para tokenización', $validated);
-
-        $payload = [
-            "paymentProviderId" => $validated['payment_provider_id'],
-            "listingId" => $validated['listing_id'],
-            "card" => [
-                "number" => $validated['card_number'],
-                "exp_month" => $validated['exp_month'],
-                "exp_year" => $validated['exp_year'],
-                "cvc" => $validated['cvc'],
-            ],
-            "billing_details" => [
-                "name" => $validated['name'],
-                "address" => [
-                    "line1" => $validated['address_line1'],
-                    "city" => $validated['city'],
-                    "postal_code" => $validated['postal_code'],
-                    "country" => $validated['country'],
-                ],
-            ],
-            "threeDS" => [
-                "amount" => $validated['amount'],
-                "currency" => $validated['currency'],
-                "successURL" => route('payment.success'),
-                "failureURL" => route('payment.failure'),
-            ],
-            "merchantData" => [
-                "transactionId" => uniqid("Reserva-"),
-                "transactionDescription" => "Reserva desde plataforma",
-                "transactionDate" => now()->toIso8601String(),
-            ]
-        ];
-
-        Log::info('📦 Payload preparado para GuestyPay', $payload);
-
-        try {
-            $response = app(GuestyService::class)->tokenizeCard($payload);
-            Log::info('✅ Respuesta recibida desde GuestyPay', $response);
-
-            if (isset($response['threeDS']['authURL'])) {
-                Log::info('➡️ Redirigiendo a 3DS authURL');
-                return redirect()->away($response['threeDS']['authURL']);
-            }
-
-            Log::info('🎉 Tokenización completada sin 3DS. Token: ' . $response['_id']);
-            return redirect()->route('payment.success')->with('token_id', $response['_id']);
-        } catch (\Exception $e) {
-            Log::error('❌ Error durante la tokenización: ' . $e->getMessage());
-            return redirect()->route('payment.failure')->with('error', $e->getMessage());
-        }
+        return redirect()->route('properties.show', $id)
+            ->with('info', 'La tokenización/pago se realiza en Smoobu.');
     }
 
-
-    /**
-     * Procesa la información del huésped y la reserva.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
     public function processReservation(Request $request)
     {
-        // Validar datos del formulario
-        $validated = $request->validate([
-            'listingId' => 'required|string',
-            'checkIn' => 'required|date',
-            'checkOut' => 'required|date|after:checkIn',
-            'guestsCount' => 'required|integer|min:1',
-            'quoteId' => 'required|string',
-            'totalPrice' => 'required|numeric',
-            'currency' => 'required|string',
-            'guestName' => 'required|string|max:255',
-            'guestEmail' => 'required|email|max:255',
-            'guestPhone' => 'nullable|string|max:20',
-        ]);
-
-        try {
-            // Aquí puedes integrar con el API de Guesty para crear una reserva
-            // o redirigir al usuario al portal de pago de Guesty
-
-            // Ejemplo: Preparar datos para enviar a Guesty
-            $reservationData = [
-                'listingId' => $validated['listingId'],
-                'checkInDateLocalized' => $validated['checkIn'],
-                'checkOutDateLocalized' => $validated['checkOut'],
-                'guestsCount' => $validated['guestsCount'],
-                'quoteId' => $validated['quoteId'],
-                'guest' => [
-                    'fullName' => $validated['guestName'],
-                    'email' => $validated['guestEmail'],
-                    'phone' => $validated['guestPhone'] ?? '',
-                ],
-                // Otros datos necesarios según el API de Guesty
-            ];
-
-            // Aquí realizarías la llamada al API de Guesty para crear la reserva
-            // o generarías un enlace de pago
-            // $reservation = $this->guestyService->createReservation($reservationData);
-
-            // Por ahora, redireccionamos al portal de Guesty
-            return redirect()->route('properties.redirect-to-portal', [
-                'listingId' => $validated['listingId'],
-                'quoteId' => $validated['quoteId'],
-                'guest' => json_encode([
-                    'fullName' => $validated['guestName'],
-                    'email' => $validated['guestEmail'],
-                    'phone' => $validated['guestPhone'] ?? '',
-                ])
-            ]);
-        } catch (\Exception $e) {
-            return back()->withInput()
-                ->with('error', 'Error al procesar la reserva: ' . $e->getMessage());
-        }
+        return back()->with('info', 'La creación de reservas se hace en Smoobu.');
     }
 
     public function processPayment(Request $request, $id)
     {
-        $request->validate([
-            'source_id' => 'required|string',
-            'totalPrice' => 'required|numeric|min:1',
+        return back()->with('info', 'El pago se realiza en el portal de Smoobu.');
+    }
+
+    public function checkAvailability(Request $request)
+    {
+        $validated = $request->validate([
+            'apartmentId' => 'required|integer',
+            'checkIn'     => 'required|date',
+            'checkOut'    => 'required|date|after:checkIn',
+            'guestsCount' => 'nullable|integer|min:1'
         ]);
 
         try {
-            $square = app(\App\Services\SquarePaymentService::class);
+            $aptId   = (int) $validated['apartmentId'];
+            $start   = Carbon::parse($validated['checkIn']);
+            $endExcl = Carbon::parse($validated['checkOut']);          // check-out
+            $endIncl = $endExcl->copy()->subDay();                      // noches: hasta el día previo
 
-            $result = $square->createPayment(
-                sourceId: $request->source_id,
-                amountCents: intval($request->totalPrice * 100),
-                currency: $request->currency ?? 'USD',
-                note: 'Pago de reserva propiedad ' . $id
-            );
+            // Llamada a Smoobu (incluimos ambos extremos, por si la API devuelve inclusivo)
+            $resp = $this->smoobu->rates($start->toDateString(), $endIncl->toDateString(), [$aptId]);
 
-            return redirect()->route('properties.show', $id)->with('success', 'Pago realizado exitosamente.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Error al procesar el pago: ' . $e->getMessage());
+            $calendar = $resp['data'][$aptId] ?? [];
+            if (empty($calendar)) {
+                return response()->json([
+                    'ok' => true,
+                    'available' => false,
+                    'hasPrices' => false,
+                    'reason' => 'No hay tarifas para ese rango.'
+                ]);
+            }
+
+            $available = true;
+            $hasPrices = true;
+            $total     = 0.0;
+            $breakdown = [];
+
+            // Recorremos cada noche entre checkIn y checkOut-1
+            $cursor = $start->copy();
+            while ($cursor->lte($endIncl)) {
+                $d = $cursor->toDateString();
+                $row = $calendar[$d] ?? null;
+
+                if (!$row || (int)($row['available'] ?? 0) !== 1) {
+                    $available = false;
+                }
+
+                $price = $row['price'] ?? null;
+                if (!is_numeric($price)) {
+                    $hasPrices = false;
+                    $price = 0;
+                } else {
+                    $total += (float) $price;
+                }
+
+                $breakdown[] = [
+                    'date'      => $d,
+                    'available' => (int)($row['available'] ?? 0),
+                    'price'     => (float)$price,
+                ];
+                $cursor->addDay();
+            }
+
+            return response()->json([
+                'ok'         => true,
+                'available'  => $available && $hasPrices,
+                'hasPrices'  => $hasPrices,
+                'totalPrice' => round($total, 2),
+                'currency'   => 'USD',
+                'breakdown'  => $breakdown,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('checkAvailability error', ['e' => $e->getMessage()]);
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
         }
     }
 }

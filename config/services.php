@@ -31,14 +31,6 @@ return [
     ],
 
 
-    'guesty' => [
-        'base_url' => env('GUESTY_API_BASE_URL', 'https://booking.guesty.com/api'),
-        'access_token' => env('GUESTY_API_ACCESS_TOKEN'),
-        'token_type' => env('GUESTY_API_TOKEN_TYPE', 'Bearer'),
-        'client_id' => env('GUESTY_CLIENT_ID'),
-        'client_secret' => env('GUESTY_CLIENT_SECRET'),
-    ],
-
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
@@ -48,6 +40,10 @@ return [
     'key'           => env('SMOOBU_API_KEY'),
     'base_url'      => env('SMOOBU_BASE_URL', 'https://login.smoobu.com/api'),
     'webhook_token' => env('SMOOBU_WEBHOOK_TOKEN'),
+    'booking_base_url' => env('SMOOBU_BOOKING_BASE_URL'),
+    'calendar_base_url'     => env('SMOOBU_CAL_BASE', 'https://login.smoobu.com'),
+    'calendar_locale'       => env('SMOOBU_CAL_LOCALE', 'es'),
+    'calendar_verification' => env('SMOOBU_CAL_VERIFICATION'),
 ],
 
 ];

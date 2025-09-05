@@ -13,15 +13,7 @@ class Kernel extends ConsoleKernel
      * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
      * @return void
      */
-    protected function schedule(Schedule $schedule)
-{
-    // Sincronizar propiedades de Guesty cada 6 horas
-    $schedule->command('guesty:sync-properties')->everyFourHours();
     
-    // Refrescar el token de Guesty cada 23 horas
-    $schedule->command('guesty:refresh-token')->dailyAt('02:00');
-}
-
     /**
      * Register the commands for the application.
      *
