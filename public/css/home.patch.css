@@ -1,0 +1,186 @@
+/* ====== PATCH RESPONSIVE CHUS POMBO (HOME) ====== */
+/* 1) Unifica body y evita doble declaración */
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  padding-top: 80px; /* navbar fijo */
+}
+
+/* 2) Carrusel fluido (sin alturas rígidas) */
+.carousel-container {
+  position: relative;
+  max-width: 100%;
+  height: clamp(320px, 60vh, 700px); /* adapta a pantalla */
+  overflow: hidden;
+}
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* mantiene proporción sin estirar */
+}
+
+/* Fondo fijo para el contenedor del navbar (opcional) */
+.navbar {
+  background-color: #fff; /* o rgba(255,255,255,.95) */
+}
+
+/* Menú colapsado con fondo cuando está abierto (móvil) */
+@media (max-width: 991.98px) { /* breakpoint de Bootstrap lg */
+  .navbar .navbar-collapse {
+    background: #fff;                /* el “fondo” que falta */
+    width: 100vw;                    /* cubrir todo el ancho */
+    position: fixed;                 /* despegar del flujo */
+    top: 80px;                       /* altura de tu navbar */
+    left: 0;
+    padding: 12px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    z-index: 1000;
+  }
+  .navbar .nav-link {
+    padding: .75rem 0;
+  }
+}
+
+/* 3) Overlay del hero con tipografías fluidas */
+.carousel-overlay {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 16px 24px;
+  border-radius: 10px;
+}
+.carousel-overlay h1 {
+  font-size: clamp(1.4rem, 3vw + 1rem, 2.5rem);
+  font-weight: 700;
+}
+.carousel-overlay h2 {
+  font-size: clamp(0.95rem, 1.2vw + 0.7rem, 1.2rem);
+  margin-bottom: 10px;
+}
+.search-box-overlay { margin: 10px; }
+.search-box {
+  background: rgba(255, 255, 255, 0.82);
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+  backdrop-filter: saturate(120%) blur(2px);
+}
+
+/* 4) Limita efectos hover solo en dispositivos con puntero */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover { box-shadow: 0 10px 20px rgba(0,0,0,.1); }
+  .property-card:hover { transform: translateY(-5px); }
+}
+
+/* 5) Botones: mantener primario azul global y negro SOLO en la sección destacada */
+.btn {
+  border-radius: 0.25rem;
+  padding: 0.5rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.btn-primary { /* azul global */
+  background-color: #010066;
+  border-color: #3f51b5;
+}
+.btn-primary:hover {
+  background-color: #303f9f;
+  border-color: #303f9f;
+}
+.btn-outline-primary {
+  color: #3f51b5;
+  border-color: #3f51b5;
+}
+.btn-outline-primary:hover {
+  background-color: #3f51b5;
+  border-color: #3f51b5;
+  color: #fff;
+}
+/* Negro solo en CTA de “Propiedad destacada” */
+.featured-property .btn-primary {
+  background-color: #1a1a1a;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.featured-property .btn-primary:hover { filter: brightness(0.9); }
+
+/* 6) Tarjetas de propiedades */
+.card {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.property-card { transition: transform .3s; }
+
+/* 7) Sección de Propiedad Destacada (imágenes robustas) */
+.images-section { display: flex; gap: 10px; }
+.image-wrapper { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.large-image {
+  width: 100%;
+  border-radius: 15px;
+  object-fit: cover;
+  aspect-ratio: 16/10; /* evita “saltos” de layout */
+}
+/* “Foto pequeña” superpuesta: controla desbordes */
+.small-image {
+  width: 190px; height: 154px; border-radius: 40px; object-fit: cover;
+  position: absolute; top: -40px; left: -85px;
+  border: 5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,.1);
+}
+
+/* 8) Feature cards (por qué elegirnos) */
+.feature-card {
+  padding: 24px 18px;
+  border-radius: 10px;
+  transition: .3s;
+  height: 100%;
+}
+.feature-card:hover {
+  background-color: #fff;
+  box-shadow: 0 10px 30px rgba(1,0,102,.1);
+  transform: translateY(-5px);
+}
+.feature-title { color: var(--hostella-dark); margin-bottom: 14px; font-weight: 600; }
+.feature-text  { color: #6c757d; font-size: .95rem; line-height: 1.6; }
+
+/* 9) Botón animado CTA: accesible al foco */
+.animated-button:focus-visible {
+  outline: 3px solid #01006655;
+  outline-offset: 3px;
+}
+
+/* 10) Breakpoints específicos */
+@media (max-width: 992px) {
+  .images-section { gap: 8px; }
+  .small-image { top: -25px; left: -40px; width: 150px; height: 120px; }
+}
+
+@media (max-width: 768px) {
+  .carousel-container { height: clamp(300px, 55vh, 480px); }
+  .carousel-overlay { padding: 14px; }
+  .images-section { flex-direction: column; }
+  .small-image {
+    position: static;           /* deja de superponer en móvil */
+    width: 100%; height: auto;  /* ocupa el ancho */
+    border-radius: 12px; border-width: 3px;
+  }
+  .large-image { aspect-ratio: 4/3; }
+}
+
+@media (max-width: 576px) {
+  .search-box { padding: 12px; border-radius: 8px; }
+}
+
+/* 11) Reduce animaciones si el usuario lo pide */
+@media (prefers-reduced-motion: reduce) {
+  .card, .property-card, .animated-button { transition: none !important; }
+}
+/* ====== FIN PATCH ====== */
