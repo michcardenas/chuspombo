@@ -44,6 +44,31 @@ body {
   }
 }
 
+/* Altura y padding global para no tapar el contenido */
+.chus-nav { min-height: 72px; }
+body { padding-top: 72px; }
+
+/* Logo adaptable */
+.chus-logo { height: 40px; width: 40px; object-fit: cover; border-radius: 50%; }
+
+/* Estilos del offcanvas móvil */
+.chus-offcanvas {
+  background: #fff;
+  /* que abra debajo del navbar sin superponer el logo */
+  margin-top: 72px;                     /* = altura del navbar */
+  height: auto;                         /* se autoajusta al contenido */
+  max-height: calc(100vh - 72px);       /* no sobrepasa la pantalla */
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+.chus-offcanvas .nav-link { font-weight: 500; color: #6b7280; } /* gray-500 */
+.chus-offcanvas .nav-link.active,
+.chus-offcanvas .nav-link:hover { color: #010066; }
+
+/* Desktop mantiene el menú clásico */
+@media (min-width: 992px) {
+  .chus-offcanvas { display: none; }
+}
+
 /* 3) Overlay del hero con tipografías fluidas */
 .carousel-overlay {
   position: absolute;
