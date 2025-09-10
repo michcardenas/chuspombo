@@ -81,40 +81,25 @@
             height: 100%;
         }
 
+        /* Overlay por encima visualmente, pero sin bloquear clics */
         .hero-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.2));
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 10;
+            pointer-events: none; /* no atrapa clics */
         }
-
-        .hero-content {
-            text-align: center;
-            color: white;
-            max-width: 1000px;
-            padding: 0 20px;
+        .hero-content { 
+            text-align: center; 
+            color: white; 
+            max-width: 1000px; 
+            padding: 0 20px; 
         }
-
-        .hero-title {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .hero-subtitle {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        .search-card {
+        .search-card { 
+            pointer-events: auto; /* el filtro sí es clickeable */
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 15px;
@@ -124,13 +109,26 @@
             margin: 0 auto;
         }
 
-        /* Carousel controls */
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .hero-subtitle {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Controles del carrusel: centrados y lejos del filtro */
         .carousel-control-prev,
         .carousel-control-next {
             z-index: 5;
             width: 5%;
+            top: 50%;
+            transform: translateY(-50%);
         }
-
         .carousel-control-prev:focus,
         .carousel-control-next:focus,
         .carousel-control-prev:hover,
@@ -138,7 +136,6 @@
             outline: none;
             box-shadow: none;
         }
-
         .carousel-control-prev-icon,
         .carousel-control-next-icon {
             background-color: rgba(0,0,0,0.5);
@@ -146,62 +143,35 @@
             padding: 20px;
         }
 
-        /* Remove blue borders */
+        /* Quitar bordes azules / focus */
         .carousel:focus,
+        .carousel *:focus,
         .carousel-control-prev:focus,
-        .carousel-control-next:focus {
+        .carousel-control-next:focus,
+        .hero-section button:focus {
             outline: none !important;
             box-shadow: none !important;
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
-            .hero-section {
-                height: 60vh;
-                min-height: 400px;
-            }
-            
-            .hero-title {
-                font-size: 2.5rem;
-            }
-            
-            .hero-subtitle {
-                font-size: 1.1rem;
-                margin-bottom: 1.5rem;
-            }
-            
-            .search-card {
-                padding: 1.5rem;
-                margin: 0 15px;
-                max-width: none;
-            }
-
-            .carousel-control-prev,
-            .carousel-control-next {
-                z-index: 5;
-                width: 8%;
-            }
+        @media (max-width: 1200px) {
+            .search-card { max-width: 100%; }
         }
-
-        @media (max-width: 576px) {
-            .hero-title {
-                font-size: 2rem;
-                margin-bottom: 0.5rem;
-            }
-
-            .hero-subtitle {
-                margin-bottom: 1rem;
-            }
-            
-            .search-card {
-                padding: 1rem;
-                margin: 0 10px;
-            }
-
+        @media (max-width: 992px) {
+            /* Evitar solapamiento: ocultar controles en tablets y abajo */
             .carousel-control-prev,
-            .carousel-control-next {
-                display: none;
-            }
+            .carousel-control-next { display: none; }
+        }
+        @media (max-width: 768px) {
+            .hero-section { height: 60vh; min-height: 400px; }
+            .hero-title { font-size: 2.5rem; }
+            .hero-subtitle { font-size: 1.1rem; margin-bottom: 1.5rem; }
+            .search-card { padding: 1.5rem; margin: 0 15px; }
+        }
+        @media (max-width: 576px) {
+            .hero-title { font-size: 2rem; margin-bottom: 0.5rem; }
+            .hero-subtitle { margin-bottom: 1rem; }
+            .search-card { padding: 1rem; margin: 0 10px; }
         }
     </style>
 
@@ -214,15 +184,13 @@
                     </div>
                 @endforeach
             </div>
-            
+
             @if(count($propertyImages) > 1)
-                <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Anterior">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
                 </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Siguiente">
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
                 </button>
             @endif
         </div>
@@ -232,7 +200,6 @@
                 <h1 class="hero-title">
                     {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
                 </h1>
-                
                 <p class="hero-subtitle">
                     {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
                 </p>
@@ -240,16 +207,15 @@
                 <div class="search-card">
                     <form action="{{ route('properties.index') }}" method="GET">
                         <div class="row g-3 justify-content-center">
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label for="property_type" class="form-label fw-semibold text-dark">Tipo de propiedad</label>
-                                <select class="form-select form-select-lg" id="property_type" name="property_type">
-                                    <option value="">Todos los tipos</option>
-                                    <option value="apartment">Apartamento</option>
-                                    <option value="villa">Villa</option>
-                                    <option value="house">Casa</option>
-                                    <option value="studio">Estudio</option>
-                                </select>
+                            <!-- Campo fijo: Apartamento -->
+                            <div class="col-xl-3 col-lg-4 col-md-6 d-flex align-items-end">
+                                <div class="w-100">
+                                    <label class="form-label fw-semibold text-dark d-block">Tipo de propiedad</label>
+                                    <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
+                                    <input type="hidden" name="property_type" value="apartment">
+                                </div>
                             </div>
+
                             <div class="col-xl-3 col-lg-4 col-md-6">
                                 <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
                                 <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
@@ -266,6 +232,7 @@
                         </div>
                     </form>
                 </div>
+
             </div>
         </div>
     </section>
@@ -291,7 +258,7 @@
                 </p>
             </div>
             <div class="col-md-4 text-md-end">
-                <a href="{{ route('properties.index') }}" class="btn btn-outline-primary">Ver todos</a>
+                <a href="{{ route('properties.index', ['property_type' => 'apartment']) }}" class="btn btn-outline-primary">Ver todos</a>
             </div>
         </div>
 
