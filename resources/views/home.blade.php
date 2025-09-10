@@ -58,164 +58,160 @@
 
 @if($propertyImages->count() > 0)
     <style>
-        /* Banner con altura fija independiente de las imágenes */
-        .carousel-container {
-            height: clamp(320px, 55vh, 680px);
+        /* Hero Banner Styles */
+        .hero-section {
+            height: 80vh;
+            min-height: 500px;
+            max-height: 800px;
             position: relative;
             overflow: hidden;
         }
 
-        .carousel-container .carousel,
-        .carousel-container .carousel-inner,
-        .carousel-container .carousel-item {
+        .hero-section .carousel,
+        .hero-section .carousel-inner,
+        .hero-section .carousel-item {
             height: 100%;
-            width: 100%;
         }
 
-        .carousel-image {
+        .hero-section .carousel-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             object-position: center;
-            display: block;
         }
 
-        .carousel-overlay {
-            position: absolute; 
+        .hero-overlay {
+            position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.2));
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1.5rem;
-            background: linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,.15));
             z-index: 10;
         }
 
-        .carousel-overlay .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
+        .hero-content {
+            text-align: center;
+            color: white;
+            max-width: 800px;
+            padding: 0 20px;
         }
 
-        .search-box-overlay {
-            margin-top: 2rem;
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
-        .search-box-overlay .search-box { 
-            background: rgba(255,255,255,.95); 
+        .hero-subtitle {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .search-card {
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 15px;
+            padding: 2rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        /* Asegurar que los controles del carousel estén visibles */
         .carousel-control-prev,
         .carousel-control-next {
             z-index: 15;
         }
 
-        /* Estilos para el texto del banner */
-        .banner-title {
-            font-size: clamp(1.5rem, 4vw, 3.5rem);
-            font-weight: bold;
-            color: white;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .banner-subtitle {
-            font-size: clamp(1rem, 2vw, 1.25rem);
-            color: white;
-            margin-bottom: 2rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        /* Mejorar la responsividad en móviles */
+        /* Responsive */
         @media (max-width: 768px) {
-            .carousel-container {
-                height: clamp(280px, 45vh, 400px);
+            .hero-section {
+                height: 60vh;
+                min-height: 400px;
             }
             
-            .carousel-overlay {
-                padding: 1rem;
+            .hero-title {
+                font-size: 2.5rem;
             }
-
-            .search-box-overlay .search-box {
-                padding: 1.5rem !important;
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .search-card {
+                padding: 1.5rem;
+                margin: 0 10px;
             }
         }
 
         @media (max-width: 576px) {
-            .carousel-overlay {
-                padding: 0.75rem;
+            .hero-title {
+                font-size: 2rem;
             }
-
-            .banner-title {
-                margin-bottom: 0.5rem;
-            }
-
-            .banner-subtitle {
-                margin-bottom: 1.5rem;
+            
+            .search-card {
+                padding: 1rem;
             }
         }
     </style>
 
-    <div class="carousel-container">
-        <div id="carouselProperties" class="carousel slide" data-bs-ride="carousel">
+    <section class="hero-section">
+        <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
             <div class="carousel-inner">
                 @foreach($propertyImages as $index => $img)
                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                        <img src="{{ $img['url'] }}" class="carousel-image" alt="{{ $img['alt'] }}">
+                        <img src="{{ $img['url'] }}" class="d-block w-100" alt="{{ $img['alt'] }}">
                     </div>
                 @endforeach
             </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#carouselProperties" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Anterior</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#carouselProperties" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Siguiente</span>
-            </button>
+            
+            @if(count($propertyImages) > 1)
+                <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            @endif
         </div>
 
-        <div class="carousel-overlay">
-            <div class="container text-center">
-                <h1 class="banner-title">
+        <div class="hero-overlay">
+            <div class="hero-content">
+                <h1 class="hero-title">
                     {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
                 </h1>
-
-                <h2 class="banner-subtitle">
+                
+                <p class="hero-subtitle">
                     {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
-                </h2>
+                </p>
 
-                <div class="search-box-overlay">
-                    <div class="search-box p-4 shadow-lg rounded">
-                        <form action="{{ route('properties.index') }}" method="GET">
-                            <div class="row g-3 justify-content-center align-items-end">
-                                <div class="col-lg-4 col-md-6">
-                                    <label for="checkin" class="form-label fw-semibold">Llegada</label>
-                                    <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
-                                </div>
-                                <div class="col-lg-4 col-md-6">
-                                    <label for="checkout" class="form-label fw-semibold">Salida</label>
-                                    <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                                </div>
-                                <div class="col-lg-4 col-md-12">
-                                    <button type="submit" class="btn btn-primary btn-lg w-100">
-                                        <i class="fas fa-search me-2"></i>Buscar
-                                    </button>
-                                </div>
+                <div class="search-card">
+                    <form action="{{ route('properties.index') }}" method="GET">
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
+                                <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
                             </div>
-                        </form>
-                    </div>
+                            <div class="col-md-5">
+                                <label for="checkout" class="form-label fw-semibold text-dark">Fecha de salida</label>
+                                <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                                    <i class="fas fa-search me-2"></i>Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 @else
     <div class="container py-5">
         <div class="alert alert-warning text-center" role="alert">
@@ -255,26 +251,28 @@
                 @endphp
 
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card h-100 property-card">
-                        <img src="{{ $thumb }}" class="card-img-top" alt="{{ $property['title'] }}">
+                    <div class="card h-100 property-card border-0 shadow-sm">
+                        <div class="position-relative">
+                            <img src="{{ $thumb }}" class="card-img-top" alt="{{ $property['title'] }}" style="height: 250px; object-fit: cover;">
+                        </div>
                         <div class="card-body">
                             <h5 class="card-title">{{ $property['title'] }}</h5>
-                            <p class="card-text text-muted">
+                            <p class="card-text text-muted mb-3">
                                 <i class="fas fa-map-marker-alt me-1"></i>
                                 {{ $location !== '' ? $location : 'Galicia, España' }}
                             </p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                                <div class="text-muted">
                                     <i class="fas fa-bed me-1"></i> {{ $bedrooms }}
                                     <i class="fas fa-bath ms-2 me-1"></i> {{ $bathrooms }}
                                 </div>
-                                <strong>
+                                <div class="fw-bold text-primary">
                                     @if(is_numeric($price))
-                                        €{{ $price }}/noche
+                                        €{{ number_format($price, 0, ',', '.') }}/noche
                                     @else
                                         Consultar
                                     @endif
-                                </strong>
+                                </div>
                             </div>
                         </div>
                         <div class="card-footer bg-white border-top-0">
@@ -284,7 +282,10 @@
                 </div>
             @empty
                 <div class="col-12 text-center py-5">
-                    <p>No hay propiedades disponibles en este momento.</p>
+                    <div class="text-muted">
+                        <i class="fas fa-home fa-3x mb-3"></i>
+                        <p>No hay propiedades disponibles en este momento.</p>
+                    </div>
                 </div>
             @endforelse
         </div>
@@ -292,7 +293,7 @@
 </section>
 
 <!-- Why Choose Us -->
-<section class="py-5" style="background-color: #f8f9fa; background-image: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+<section class="py-5 bg-light">
     <div class="container">
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
@@ -308,7 +309,7 @@
         <div class="row g-4">
             @for ($i = 1; $i <= 3; $i++)
                 <div class="col-lg-4">
-                    <div class="benefit-card h-100 border-0 shadow-sm">
+                    <div class="card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             @php
                                 $imageField = 'card1_image_' . $i;
@@ -330,9 +331,9 @@
 
                             @if (!empty($pagina->$imageField))
                                 <img src="{{ asset('images/' . $pagina->$imageField) }}" alt="Imagen tarjeta {{ $i }}"
-                                     class="mb-4 img-fluid" style="max-height: 120px; object-fit: contain; width: 100%; max-width: 100%;">
+                                     class="mb-4 img-fluid" style="max-height: 120px; object-fit: contain;">
                             @else
-                                <div class="feature-icon text-white rounded-circle mb-4">
+                                <div class="feature-icon bg-primary text-white rounded-circle mb-4 d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
                                     @if ($i === 1)
                                         <i class="fas fa-map-marker-alt fa-2x"></i>
                                     @elseif ($i === 2)
@@ -343,7 +344,7 @@
                                 </div>
                             @endif
 
-                            <h4 class="card-title">{{ $pagina->$titleField ?? $defaultTitles[$i] }}</h4>
+                            <h4 class="card-title mb-3">{{ $pagina->$titleField ?? $defaultTitles[$i] }}</h4>
                             <p class="text-muted">{{ $pagina->$contentField ?? $defaultContent[$i] }}</p>
                         </div>
                     </div>
@@ -356,22 +357,34 @@
 <!-- Sección de Propiedad Destacada -->
 @if(count($featuredProperties) > 0)
     @php $property = $featuredProperties[0]; @endphp
-    <section class="featured-property py-5">
+    <section class="py-5">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-6 text-section">
-                    <p class="text-muted">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
-                    <div class="stars">
+                <div class="col-md-6 mb-4 mb-md-0">
+                    <p class="text-muted mb-2">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
+                    <div class="mb-3">
                         @php $rating = $property['rating'] ?? 5; @endphp
-                        @for ($i = 0; $i < $rating; $i++) ★ @endfor
+                        @for ($i = 0; $i < $rating; $i++) 
+                            <i class="fas fa-star text-warning"></i>
+                        @endfor
                     </div>
-                    <h2 class="property-title">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
-                    <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary">Ver disponibilidad</a>
+                    <h2 class="fw-bold mb-4">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
+                    <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary btn-lg">Ver disponibilidad</a>
                 </div>
-                <div class="col-md-6 images-section">
-                    <div class="image-wrapper">
-                        <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}" class="small-image" alt="Interior propiedad">
-                        <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}" class="large-image" alt="Vista exterior">
+                <div class="col-md-6">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}" 
+                                 class="img-fluid rounded shadow" 
+                                 alt="Interior propiedad"
+                                 style="height: 200px; width: 100%; object-fit: cover;">
+                        </div>
+                        <div class="col-6">
+                            <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}" 
+                                 class="img-fluid rounded shadow" 
+                                 alt="Vista exterior"
+                                 style="height: 200px; width: 100%; object-fit: cover;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -389,7 +402,7 @@
             </div>
         </div>
 
-        <div class="row g-4 text-center">
+        <div class="row g-4">
             @for ($i = 4; $i <= 7; $i++)
                 <div class="col-lg-3 col-md-6">
                     @php
@@ -410,33 +423,35 @@
                         ];
                     @endphp
 
-                    <div class="feature-card h-100 p-4 border-0 shadow-sm bg-white rounded">
-                        @if (!empty($pagina->{$image}))
-                            <img src="{{ asset('images/' . $pagina->{$image}) }}" alt="Imagen tarjeta {{ $i }}"
-                                 style="max-height: 100px; object-fit: contain; width: 100%; max-width: 100%;" class="mb-4">
-                        @else
-                            <div class="feature-icon rounded-circle text-white mb-4 bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                @switch($i)
-                                    @case(4) <i class="fas fa-broom fa-2x"></i> @break
-                                    @case(5) <i class="fas fa-concierge-bell fa-2x"></i> @break
-                                    @case(6) <i class="fas fa-map-marked-alt fa-2x"></i> @break
-                                    @case(7) <i class="fas fa-euro-sign fa-2x"></i> @break
-                                @endswitch
-                            </div>
-                        @endif
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body text-center p-4">
+                            @if (!empty($pagina->{$image}))
+                                <img src="{{ asset('images/' . $pagina->{$image}) }}" alt="Imagen tarjeta {{ $i }}"
+                                     style="max-height: 100px; object-fit: contain;" class="mb-4">
+                            @else
+                                <div class="feature-icon rounded-circle text-white mb-4 bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                    @switch($i)
+                                        @case(4) <i class="fas fa-broom fa-2x"></i> @break
+                                        @case(5) <i class="fas fa-concierge-bell fa-2x"></i> @break
+                                        @case(6) <i class="fas fa-map-marked-alt fa-2x"></i> @break
+                                        @case(7) <i class="fas fa-euro-sign fa-2x"></i> @break
+                                    @endswitch
+                                </div>
+                            @endif
 
-                        <h5 class="feature-title">{{ $pagina->{$title} ?? $defaultTitles2[$i] }}</h5>
-                        <p class="feature-text text-muted">{{ $pagina->{$content} ?? $defaultContent2[$i] }}</p>
+                            <h5 class="fw-bold mb-3">{{ $pagina->{$title} ?? $defaultTitles2[$i] }}</h5>
+                            <p class="text-muted">{{ $pagina->{$content} ?? $defaultContent2[$i] }}</p>
+                        </div>
                     </div>
                 </div>
             @endfor
         </div>
 
         <div class="row text-center mt-5">
-            <div class="col-lg-12">
-                <a href="{{ route('about') }}" class="animated-button">
-                    <span>Descubre más sobre Galicia</span>
-                    <span></span>
+            <div class="col-12">
+                <a href="{{ route('about') }}" class="btn btn-outline-primary btn-lg">
+                    Descubre más sobre Galicia
+                    <i class="fas fa-arrow-right ms-2"></i>
                 </a>
             </div>
         </div>
