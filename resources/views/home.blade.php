@@ -9,38 +9,66 @@
 @php
     $imagesToShow = 5;
 
-    // 1) Buscar imágenes en featuredProperties
-    $candidates = collect($featuredProperties ?? [])
-        ->flatMap(function ($p) {
+    // Validaciones de URL de imagen
+    $validExt = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
+    $skipSubstr = ['placeholder', 'default', 'noimage', 'missing', 'image-not-found'];
+
+    // Helper: extraer URLs de imágenes válidas desde una propiedad
+    $extractImages = function ($p) use ($validExt, $skipSubstr) {
+        $urls = [];
+
+        if (!empty($p['picture']) && is_array($p['picture'])) {
+            foreach (['banner','large','url','original','full','thumbnail'] as $k) {
+                if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) {
+                    $urls[] = $p['picture'][$k];
+                }
+            }
+        }
+
+        foreach (['pictures','gallery','images'] as $listKey) {
+            if (!empty($p[$listKey]) && is_array($p[$listKey])) {
+                foreach ($p[$listKey] as $u) {
+                    if (is_string($u)) $urls[] = $u;
+                }
+            }
+        }
+
+        return collect($urls)
+            ->filter(fn ($u) => is_string($u) && $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
+            ->reject(function ($u) use ($skipSubstr) {
+                $lu = strtolower($u);
+                foreach ($skipSubstr as $s) {
+                    if (str_contains($lu, $s)) return true; // descarta placeholders
+                }
+                return false;
+            })
+            ->values()
+            ->all();
+    };
+
+    // 1) Solo considerar propiedades que tengan al menos una imagen válida
+    $propsWithImages = collect($featuredProperties ?? [])->filter(
+        fn ($p) => count($extractImages($p)) > 0
+    );
+
+    // 2) Construir la lista de candidatos SOLO con imágenes válidas
+    $candidates = $propsWithImages
+        ->flatMap(function ($p) use ($extractImages) {
             $title = $p['title'] ?? 'Propiedad Chuspombo';
-            $urls = [];
-
-            if (!empty($p['picture']) && is_array($p['picture'])) {
-                foreach (['banner','large','url','original','full','thumbnail'] as $k) {
-                    if (!empty($p['picture'][$k])) $urls[] = $p['picture'][$k];
-                }
-            }
-
-            foreach (['pictures','gallery','images'] as $listKey) {
-                if (!empty($p[$listKey]) && is_array($p[$listKey])) {
-                    foreach ($p[$listKey] as $u) $urls[] = $u;
-                }
-            }
-
-            return collect($urls)
-                ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)$/i', $u))
-                ->map(fn ($u) => ['url' => $u, 'alt' => $title]);
+            return collect($extractImages($p))->map(fn ($u) => ['url' => $u, 'alt' => $title]);
         })
         ->unique('url')
         ->sortBy(function ($img) {
             $u = $img['url'];
+            // Prioriza posibles banners/hero
             return preg_match('/banner|hero|cover/i', $u) ? 0 : 1;
         })
         ->values();
 
+    // 3) Selección final para el carrusel
     $propertyImages = $candidates->take(20)->shuffle()->take($imagesToShow)->values();
 
-    // 2) Fallback a public_html/images si no hay
+    // 4) Fallback a /public_html/images si no se consiguió nada
     if ($propertyImages->isEmpty()) {
         $fallback = collect();
         for ($i = 1; $i <= 100; $i++) {
@@ -55,6 +83,7 @@
         $propertyImages = $fallback->shuffle()->take($imagesToShow)->values();
     }
 @endphp
+
 
 @if($propertyImages->count() > 0)
     <style>
