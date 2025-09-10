@@ -7,12 +7,12 @@
 @section('content')
 <!-- Hero Section -->
 @php
-    // Mostrar imágenes locales si existen
     $imagesToShow = 5;
     $existingImages = collect();
 
     for ($i = 1; $i <= 100; $i++) {
-        $imagePath = public_path("images/CHUSPOMBO-APARTAMENTOS-{$i}.webp");
+        $imagePath = base_path("public_html/images/CHUSPOMBO-APARTAMENTOS-{$i}.webp");
+
         if (file_exists($imagePath)) {
             $existingImages->push(asset("images/CHUSPOMBO-APARTAMENTOS-{$i}.webp"));
         }
