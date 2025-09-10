@@ -9,51 +9,38 @@
 @php
     $imagesToShow = 5;
 
-    // 1) Recolecta URLs desde featuredProperties sin exigir extensión
-    $all = collect($featuredProperties ?? [])
+    // 1) Buscar imágenes en featuredProperties
+    $candidates = collect($featuredProperties ?? [])
         ->flatMap(function ($p) {
             $title = $p['title'] ?? 'Propiedad Chuspombo';
             $urls = [];
 
-            // Posibles campos sueltos
             if (!empty($p['picture']) && is_array($p['picture'])) {
-                foreach (['banner','hero','cover','large','url','original','full','thumbnail','small'] as $k) {
+                foreach (['banner','large','url','original','full','thumbnail'] as $k) {
                     if (!empty($p['picture'][$k])) $urls[] = $p['picture'][$k];
                 }
             }
 
-            // Listas comunes (galerías)
             foreach (['pictures','gallery','images'] as $listKey) {
                 if (!empty($p[$listKey]) && is_array($p[$listKey])) {
                     foreach ($p[$listKey] as $u) $urls[] = $u;
                 }
             }
 
-            // Normaliza a array de ['url','alt'] y filtra strings no vacíos
             return collect($urls)
-                ->filter(fn ($u) => is_string($u) && trim($u) !== '')
+                ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)$/i', $u))
                 ->map(fn ($u) => ['url' => $u, 'alt' => $title]);
         })
         ->unique('url')
+        ->sortBy(function ($img) {
+            $u = $img['url'];
+            return preg_match('/banner|hero|cover/i', $u) ? 0 : 1;
+        })
         ->values();
 
-    // 2) Ordena: primero banner/hero/cover/large/original/full; después el resto
-    [$pref, $rest] = $all->partition(function ($img) {
-        return preg_match('/banner|hero|cover|large|original|full/i', $img['url']);
-    });
+    $propertyImages = $candidates->take(20)->shuffle()->take($imagesToShow)->values();
 
-    // 3) De-prioriza thumbnails pero NO los elimina (por si no hay otra cosa)
-    [$nonThumbRest, $thumbRest] = $rest->partition(function ($img) {
-        return !preg_match('/thumb|thumbnail|small|mini/i', $img['url']);
-    });
-
-    // 4) Ensambla candidatos en orden de preferencia
-    $ordered = $pref->concat($nonThumbRest)->concat($thumbRest)->values();
-
-    // 5) Selección final para el hero
-    $propertyImages = $ordered->take(40)->shuffle()->take($imagesToShow)->values();
-
-    // 6) Fallback a public_html/images si quedó vacío
+    // 2) Fallback a public_html/images si no hay
     if ($propertyImages->isEmpty()) {
         $fallback = collect();
         for ($i = 1; $i <= 100; $i++) {
@@ -71,45 +58,69 @@
 
 @if($propertyImages->count() > 0)
     <style>
-      .hero-aspect {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 21 / 9;       /* o comenta y usa height fija */
-        max-height: 720px;
-        min-height: 360px;
-        overflow: hidden;
-      }
-      .hero-slide {
-        width: 100%;
-        height: 100%;
-        background-size: cover;     /* ignora AR de origen */
-        background-position: center;
-        background-repeat: no-repeat;
-      }
-      .carousel-overlay {
-        position: absolute; inset: 0;
-        display: grid; place-items: center;
-        padding: 1.5rem;
-        background: linear-gradient(to top, rgba(0,0,0,.35), rgba(0,0,0,.12));
-      }
-      .search-box-overlay .search-box { background: rgba(255,255,255,.92); }
+        /* Banner con altura fija independiente de las imágenes */
+        .carousel-container {
+            height: clamp(320px, 55vh, 680px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .carousel-container .carousel,
+        .carousel-container .carousel-inner,
+        .carousel-container .carousel-item {
+            height: 100%;
+        }
+
+        .carousel-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+
+        .carousel-overlay {
+            position: absolute; 
+            inset: 0;
+            display: grid; 
+            place-items: center;
+            padding: 1.5rem;
+            background: linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,.15));
+            z-index: 10;
+        }
+
+        .search-box-overlay .search-box { 
+            background: rgba(255,255,255,.9); 
+            backdrop-filter: blur(5px);
+        }
+
+        /* Asegurar que los controles del carousel estén visibles */
+        .carousel-control-prev,
+        .carousel-control-next {
+            z-index: 15;
+        }
+
+        /* Mejorar la responsividad en móviles */
+        @media (max-width: 768px) {
+            .carousel-container {
+                height: clamp(280px, 45vh, 400px);
+            }
+            
+            .carousel-overlay {
+                padding: 1rem;
+            }
+        }
     </style>
 
-    <div class="hero-aspect">
+    <div class="carousel-container">
         <div id="carouselProperties" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
                 @foreach($propertyImages as $index => $img)
                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                        <div class="hero-slide"
-                             style="background-image:url('{{ $img['url'] }}')"
-                             role="img"
-                             aria-label="{{ $img['alt'] }}">
-                            <span class="visually-hidden">{{ $img['alt'] }}</span>
-                        </div>
+                        <img src="{{ $img['url'] }}" class="d-block w-100 carousel-image" alt="{{ $img['alt'] }}">
                     </div>
                 @endforeach
             </div>
-
             <button class="carousel-control-prev" type="button" data-bs-target="#carouselProperties" data-bs-slide="prev">
                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                 <span class="visually-hidden">Anterior</span>
@@ -120,7 +131,6 @@
             </button>
         </div>
 
-        <!-- Contenido superpuesto -->
         <div class="carousel-overlay text-center">
             <div class="container">
                 <h1 class="display-4 fw-bold text-white mb-2">
@@ -151,13 +161,14 @@
                             </form>
                         </div>
                     </div>
-                </div> <!-- /search -->
+                </div> 
             </div>
         </div>
     </div>
 @else
     <p class="text-center text-danger">No se encontraron imágenes para el banner.</p>
 @endif
+
 
 <!-- Featured Properties -->
 <section class="py-5">
@@ -263,11 +274,8 @@
                             @endphp
 
                             @if (!empty($pagina->$imageField))
-                                <img
-                                    src="{{ asset('images/' . $pagina->$imageField) }}"
-                                    alt="Imagen tarjeta {{ $i }}"
-                                    class="mb-4 img-fluid"
-                                    style="max-height: 120px; object-fit: contain; width: 100%; max-width: 100%;">
+                                <img src="{{ asset('images/' . $pagina->$imageField) }}" alt="Imagen tarjeta {{ $i }}"
+                                     class="mb-4 img-fluid" style="max-height: 120px; object-fit: contain; width: 100%; max-width: 100%;">
                             @else
                                 <div class="feature-icon text-white rounded-circle mb-4">
                                     @if ($i === 1)
@@ -280,12 +288,8 @@
                                 </div>
                             @endif
 
-                            <h4 class="card-title">
-                                {{ $pagina->$titleField ?? $defaultTitles[$i] }}
-                            </h4>
-                            <p class="text-muted">
-                                {{ $pagina->$contentField ?? $defaultContent[$i] }}
-                            </p>
+                            <h4 class="card-title">{{ $pagina->$titleField ?? $defaultTitles[$i] }}</h4>
+                            <p class="text-muted">{{ $pagina->$contentField ?? $defaultContent[$i] }}</p>
                         </div>
                     </div>
                 </div>
@@ -296,35 +300,23 @@
 
 <!-- Sección de Propiedad Destacada -->
 @if(count($featuredProperties) > 0)
-    @php
-        $property = $featuredProperties[0];
-    @endphp
-
+    @php $property = $featuredProperties[0]; @endphp
     <section class="featured-property py-5">
         <div class="container">
             <div class="row align-items-center">
-                <!-- Columna de texto -->
                 <div class="col-md-6 text-section">
                     <p class="text-muted">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
                     <div class="stars">
-                        @php
-                            $rating = $property['rating'] ?? 5;
-                        @endphp
-                        @for ($i = 0; $i < $rating; $i++)
-                            ★
-                        @endfor
+                        @php $rating = $property['rating'] ?? 5; @endphp
+                        @for ($i = 0; $i < $rating; $i++) ★ @endfor
                     </div>
                     <h2 class="property-title">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
                     <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary">Ver disponibilidad</a>
                 </div>
-
-                <!-- Columna de imágenes -->
                 <div class="col-md-6 images-section">
                     <div class="image-wrapper">
-                        <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}"
-                             class="small-image" alt="Interior propiedad">
-                        <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}"
-                             class="large-image" alt="Vista exterior">
+                        <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}" class="small-image" alt="Interior propiedad">
+                        <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}" class="large-image" alt="Vista exterior">
                     </div>
                 </div>
             </div>
@@ -337,12 +329,8 @@
     <div class="container">
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
-                <h2 class="fw-bold">
-                    {{ $pagina->h2_confiar ?? '¿Por qué elegir Chuspombo?' }}
-                </h2>
-                <p class="text-muted">
-                    {{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en Galicia, España.' }}
-                </p>
+                <h2 class="fw-bold">{{ $pagina->h2_confiar ?? '¿Por qué elegir Chuspombo?' }}</h2>
+                <p class="text-muted">{{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en Galicia, España.' }}</p>
             </div>
         </div>
 
@@ -353,14 +341,12 @@
                         $title = "card2_title_$i";
                         $content = "card2_content_$i";
                         $image = "card2_image_$i";
-
                         $defaultTitles2 = [
                             4 => 'Limpieza Impecable',
                             5 => 'Atención Personalizada',
                             6 => 'Ubicación Estratégica',
                             7 => 'Precios Justos'
                         ];
-
                         $defaultContent2 = [
                             4 => 'Mantenemos altos estándares de limpieza y desinfección en todas nuestras propiedades.',
                             5 => 'Atención ágil y dedicada para que tu estancia sea memorable.',
