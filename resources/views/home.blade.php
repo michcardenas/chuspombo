@@ -9,36 +9,51 @@
 @php
     $imagesToShow = 5;
 
-    // 1) Buscar imágenes en featuredProperties (prioriza banner/hero/cover y evita thumbnails)
-    $candidates = collect($featuredProperties ?? [])
+    // 1) Recolecta URLs desde featuredProperties sin exigir extensión
+    $all = collect($featuredProperties ?? [])
         ->flatMap(function ($p) {
             $title = $p['title'] ?? 'Propiedad Chuspombo';
             $urls = [];
 
+            // Posibles campos sueltos
             if (!empty($p['picture']) && is_array($p['picture'])) {
-                foreach (['banner','hero','cover','large','url','original','full'] as $k) {
+                foreach (['banner','hero','cover','large','url','original','full','thumbnail','small'] as $k) {
                     if (!empty($p['picture'][$k])) $urls[] = $p['picture'][$k];
                 }
             }
 
+            // Listas comunes (galerías)
             foreach (['pictures','gallery','images'] as $listKey) {
                 if (!empty($p[$listKey]) && is_array($p[$listKey])) {
                     foreach ($p[$listKey] as $u) $urls[] = $u;
                 }
             }
 
+            // Normaliza a array de ['url','alt'] y filtra strings no vacíos
             return collect($urls)
-                ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)$/i', $u))
-                ->reject(fn ($u) => preg_match('/thumb|thumbnail|small|mini/i', $u))
+                ->filter(fn ($u) => is_string($u) && trim($u) !== '')
                 ->map(fn ($u) => ['url' => $u, 'alt' => $title]);
         })
         ->unique('url')
-        ->sortBy(fn ($img) => preg_match('/banner|hero|cover/i', $img['url']) ? 0 : 1)
         ->values();
 
-    $propertyImages = $candidates->take(20)->shuffle()->take($imagesToShow)->values();
+    // 2) Ordena: primero banner/hero/cover/large/original/full; después el resto
+    [$pref, $rest] = $all->partition(function ($img) {
+        return preg_match('/banner|hero|cover|large|original|full/i', $img['url']);
+    });
 
-    // 2) Fallback a public_html/images si no hay
+    // 3) De-prioriza thumbnails pero NO los elimina (por si no hay otra cosa)
+    [$nonThumbRest, $thumbRest] = $rest->partition(function ($img) {
+        return !preg_match('/thumb|thumbnail|small|mini/i', $img['url']);
+    });
+
+    // 4) Ensambla candidatos en orden de preferencia
+    $ordered = $pref->concat($nonThumbRest)->concat($thumbRest)->values();
+
+    // 5) Selección final para el hero
+    $propertyImages = $ordered->take(40)->shuffle()->take($imagesToShow)->values();
+
+    // 6) Fallback a public_html/images si quedó vacío
     if ($propertyImages->isEmpty()) {
         $fallback = collect();
         for ($i = 1; $i <= 100; $i++) {
@@ -56,11 +71,10 @@
 
 @if($propertyImages->count() > 0)
     <style>
-      /* Banner desacoplado del aspect ratio de las imágenes */
       .hero-aspect {
         position: relative;
         width: 100%;
-        aspect-ratio: 21 / 9;     /* Cambia a 16/9 o usa height fija si prefieres */
+        aspect-ratio: 21 / 9;       /* o comenta y usa height fija */
         max-height: 720px;
         min-height: 360px;
         overflow: hidden;
@@ -68,7 +82,7 @@
       .hero-slide {
         width: 100%;
         height: 100%;
-        background-size: cover;   /* Clave: ignora el AR de origen */
+        background-size: cover;     /* ignora AR de origen */
         background-position: center;
         background-repeat: no-repeat;
       }
