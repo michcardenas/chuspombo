@@ -56,6 +56,35 @@
     }
 @endphp
 
+<style>
+  /* Contenedor del hero: fija una relación o altura para todos los slides */
+  .hero-aspect {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 21 / 9;   /* usa 16/9 si prefieres; también puedes quitar y usar height fija */
+    max-height: 720px;      /* opcional */
+    min-height: 360px;      /* opcional */
+    overflow: hidden;
+  }
+
+  /* Cada slide se pinta como background */
+  .hero-slide {
+    width: 100%;
+    height: 100%;
+    background-size: cover;       /* clave: ignora el aspect ratio de origen */
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .carousel-overlay {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    padding: 1.5rem;
+    background: linear-gradient(to top, rgba(0,0,0,.35), rgba(0,0,0,.12));
+  }
+  .search-box-overlay .search-box { background: rgba(255,255,255,.92); }
+</style>
+
 @if($propertyImages->count() > 0)
     <style>
         .carousel-image {
