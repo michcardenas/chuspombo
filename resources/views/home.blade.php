@@ -162,8 +162,8 @@
         <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
             <div class="carousel-inner">
                 @foreach($propertyImages as $index => $img)
-                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                        <img src="{{ $img['url'] }}" class="d-block w-100" alt="{{ $img['alt'] }}">
+                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}" 
+                         style="background-image: url('{{ $img['url'] }}');">
                     </div>
                 @endforeach
             </div>
@@ -193,15 +193,25 @@
                 <div class="search-card">
                     <form action="{{ route('properties.index') }}" method="GET">
                         <div class="row g-3">
-                            <div class="col-md-5">
+                            <div class="col-lg-3 col-md-6">
+                                <label for="property_type" class="form-label fw-semibold text-dark">Tipo de propiedad</label>
+                                <select class="form-select form-select-lg" id="property_type" name="property_type">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="apartment">Apartamento</option>
+                                    <option value="villa">Villa</option>
+                                    <option value="house">Casa</option>
+                                    <option value="studio">Estudio</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-6">
                                 <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
                                 <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-lg-3 col-md-6">
                                 <label for="checkout" class="form-label fw-semibold text-dark">Fecha de salida</label>
                                 <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
                             </div>
-                            <div class="col-md-2 d-flex align-items-end">
+                            <div class="col-lg-3 col-md-6 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
                                     <i class="fas fa-search me-2"></i>Buscar
                                 </button>
