@@ -69,6 +69,7 @@
         .carousel-container .carousel-inner,
         .carousel-container .carousel-item {
             height: 100%;
+            width: 100%;
         }
 
         .carousel-image {
@@ -81,23 +82,55 @@
 
         .carousel-overlay {
             position: absolute; 
-            inset: 0;
-            display: grid; 
-            place-items: center;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 1.5rem;
             background: linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,.15));
             z-index: 10;
         }
 
+        .carousel-overlay .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .search-box-overlay {
+            margin-top: 2rem;
+        }
+
         .search-box-overlay .search-box { 
-            background: rgba(255,255,255,.9); 
-            backdrop-filter: blur(5px);
+            background: rgba(255,255,255,.95); 
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
         /* Asegurar que los controles del carousel estén visibles */
         .carousel-control-prev,
         .carousel-control-next {
             z-index: 15;
+        }
+
+        /* Estilos para el texto del banner */
+        .banner-title {
+            font-size: clamp(1.5rem, 4vw, 3.5rem);
+            font-weight: bold;
+            color: white;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .banner-subtitle {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: white;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
         /* Mejorar la responsividad en móviles */
@@ -109,6 +142,24 @@
             .carousel-overlay {
                 padding: 1rem;
             }
+
+            .search-box-overlay .search-box {
+                padding: 1.5rem !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .carousel-overlay {
+                padding: 0.75rem;
+            }
+
+            .banner-title {
+                margin-bottom: 0.5rem;
+            }
+
+            .banner-subtitle {
+                margin-bottom: 1.5rem;
+            }
         }
     </style>
 
@@ -117,7 +168,7 @@
             <div class="carousel-inner">
                 @foreach($propertyImages as $index => $img)
                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                        <img src="{{ $img['url'] }}" class="d-block w-100 carousel-image" alt="{{ $img['alt'] }}">
+                        <img src="{{ $img['url'] }}" class="carousel-image" alt="{{ $img['alt'] }}">
                     </div>
                 @endforeach
             </div>
@@ -131,44 +182,48 @@
             </button>
         </div>
 
-        <div class="carousel-overlay text-center">
-            <div class="container">
-                <h1 class="display-4 fw-bold text-white mb-2">
+        <div class="carousel-overlay">
+            <div class="container text-center">
+                <h1 class="banner-title">
                     {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
                 </h1>
 
-                <h2 class="lead text-white mb-4">
+                <h2 class="banner-subtitle">
                     {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
                 </h2>
 
                 <div class="search-box-overlay">
-                    <div class="container">
-                        <div class="search-box p-4 shadow rounded">
-                            <form action="{{ route('properties.index') }}" method="GET">
-                                <div class="row g-3 justify-content-center">
-                                    <div class="col-md-4">
-                                        <label for="checkin" class="form-label">Llegada</label>
-                                        <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="checkout" class="form-label">Salida</label>
-                                        <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                                    </div>
-                                    <div class="col-md-4 d-flex align-items-end">
-                                        <button type="submit" class="btn btn-primary w-100">Buscar</button>
-                                    </div>
+                    <div class="search-box p-4 shadow-lg rounded">
+                        <form action="{{ route('properties.index') }}" method="GET">
+                            <div class="row g-3 justify-content-center align-items-end">
+                                <div class="col-lg-4 col-md-6">
+                                    <label for="checkin" class="form-label fw-semibold">Llegada</label>
+                                    <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
                                 </div>
-                            </form>
-                        </div>
+                                <div class="col-lg-4 col-md-6">
+                                    <label for="checkout" class="form-label fw-semibold">Salida</label>
+                                    <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
+                                </div>
+                                <div class="col-lg-4 col-md-12">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="fas fa-search me-2"></i>Buscar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                </div> 
+                </div>
             </div>
         </div>
     </div>
 @else
-    <p class="text-center text-danger">No se encontraron imágenes para el banner.</p>
+    <div class="container py-5">
+        <div class="alert alert-warning text-center" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            No se encontraron imágenes para el banner.
+        </div>
+    </div>
 @endif
-
 
 <!-- Featured Properties -->
 <section class="py-5">
