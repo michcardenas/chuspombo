@@ -5,11 +5,10 @@
 @section('meta_description', 'Descubre apartamentos y villas exclusivas en Galicia, España con Chuspombo, tu socio confiable para experiencias de lujo inolvidables.')
 
 @section('content')
-<!-- Hero Section -->
 @php
     $imagesToShow = 5;
 
-    // 1) Buscar imágenes en featuredProperties
+    // ====== 1) Recolectar imágenes para el carrusel ======
     $candidates = collect($featuredProperties ?? [])
         ->flatMap(function ($p) {
             $title = $p['title'] ?? 'Propiedad Chuspombo';
@@ -40,7 +39,7 @@
 
     $propertyImages = $candidates->take(20)->shuffle()->take($imagesToShow)->values();
 
-    // 2) Fallback a public_html/images si no hay
+    // ====== 2) Fallback a /public_html/images si no hay ======
     if ($propertyImages->isEmpty()) {
         $fallback = collect();
         for ($i = 1; $i <= 100; $i++) {
@@ -54,124 +53,79 @@
         }
         $propertyImages = $fallback->shuffle()->take($imagesToShow)->values();
     }
+
+    // ====== 3) Dataset: solo apartamentos para el bloque del overlay ======
+    $apartments = collect($featuredProperties ?? [])->filter(function ($p) {
+        $type = strtolower($p['type'] ?? $p['property_type'] ?? '');
+        $byType = $type === 'apartment' || $type === 'apartamento';
+        $byCategory = !empty($p['categories']) && is_array($p['categories'])
+            ? collect($p['categories'])->contains(fn($c) => in_array(strtolower($c), ['apartment','apartamento']))
+            : false;
+        $byTitle = !empty($p['title']) && preg_match('/apart(a|e)/i', $p['title']); // "aparta", "aparte", "apartamento", etc.
+        return $byType || $byCategory || $byTitle;
+    })->values();
+
+    $apartmentsToShow = $apartments->take(8);
 @endphp
 
 @if($propertyImages->count() > 0)
     <style>
-        /* Hero Banner Styles */
-        .hero-section {
-            height: 80vh;
-            min-height: 500px;
-            max-height: 800px;
-            position: relative;
-            overflow: hidden;
+        /* ===== Hero Banner ===== */
+        .hero-section{
+            height:80vh;min-height:500px;max-height:800px;position:relative;overflow:hidden;
         }
-
         .hero-section .carousel,
         .hero-section .carousel-inner,
-        .hero-section .carousel-item {
-            height: 100%;
+        .hero-section .carousel-item{height:100%;}
+        .hero-section .carousel-item{
+            background-size:cover;background-position:center;background-repeat:no-repeat;width:100%;height:100%;
         }
 
-        .hero-section .carousel-item {
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            width: 100%;
-            height: 100%;
+        /* Overlay visual, sin bloquear clics salvo la card */
+        .hero-overlay{
+            position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.2));
+            display:flex;align-items:center;justify-content:center;z-index:10;pointer-events:none;
+        }
+        .hero-content{ text-align:center;color:#fff;max-width:1100px;padding:0 20px; }
+        .search-card{
+            pointer-events:auto;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+            border-radius:16px;padding:1.25rem 1.25rem 1.5rem;box-shadow:0 10px 30px rgba(0,0,0,.2);
+            max-width:1100px;margin:0 auto;
         }
 
-        /* Overlay por encima visualmente, pero sin bloquear clics */
-        .hero-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.2));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            pointer-events: none; /* no atrapa clics */
+        .hero-title{font-size:3rem;font-weight:700;margin-bottom:.75rem;text-shadow:2px 2px 4px rgba(0,0,0,.5);}
+        .hero-subtitle{font-size:1.15rem;margin-bottom:1.25rem;text-shadow:1px 1px 2px rgba(0,0,0,.5);}
+
+        /* Carrusel: centrado y sin foco azul */
+        .carousel-control-prev,.carousel-control-next{
+            z-index:5;width:5%;top:50%;transform:translateY(-50%);
         }
-        .hero-content { 
-            text-align: center; 
-            color: white; 
-            max-width: 1000px; 
-            padding: 0 20px; 
+        .carousel-control-prev-icon,.carousel-control-next-icon{
+            background-color:rgba(0,0,0,.5);border-radius:50%;padding:20px;
         }
-        .search-card { 
-            pointer-events: auto; /* el filtro sí es clickeable */
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            max-width: 900px;
-            margin: 0 auto;
+        .carousel:focus,.carousel *:focus,.hero-section button:focus{
+            outline:none!important;box-shadow:none!important;
         }
 
-        .hero-title {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        .hero-subtitle {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
+        /* Cards mini de apartamentos (overlay) */
+        .mini-prop-card{ border:1px solid #eee;border-radius:12px;overflow:hidden;background:#fff;height:100%; }
+        .mini-prop-thumb{ width:100%;height:150px;object-fit:cover;display:block; }
+        .mini-prop-body{ padding:.75rem; text-align:left; }
+        .mini-prop-title{ font-size:.95rem;font-weight:600;margin:0 0 .25rem; }
+        .mini-prop-loc{ font-size:.85rem;color:#6c757d;margin-bottom:.4rem; }
+        .mini-prop-price{ font-weight:700;color:#0d6efd;font-size:.95rem; }
 
-        /* Controles del carrusel: centrados y lejos del filtro */
-        .carousel-control-prev,
-        .carousel-control-next {
-            z-index: 5;
-            width: 5%;
-            top: 50%;
-            transform: translateY(-50%);
+        /* Responsive: evitar solapamiento con los controles */
+        @media (max-width: 992px){
+            .carousel-control-prev,.carousel-control-next{ display:none; } /* sin controles para que no se monten con la card */
+            .hero-title{font-size:2.25rem;}
+            .hero-subtitle{font-size:1rem;margin-bottom:1rem;}
+            .mini-prop-thumb{ height:130px; }
         }
-        .carousel-control-prev:focus,
-        .carousel-control-next:focus,
-        .carousel-control-prev:hover,
-        .carousel-control-next:hover {
-            outline: none;
-            box-shadow: none;
-        }
-        .carousel-control-prev-icon,
-        .carousel-control-next-icon {
-            background-color: rgba(0,0,0,0.5);
-            border-radius: 50%;
-            padding: 20px;
-        }
-
-        /* Quitar bordes azules / focus */
-        .carousel:focus,
-        .carousel *:focus,
-        .carousel-control-prev:focus,
-        .carousel-control-next:focus,
-        .hero-section button:focus {
-            outline: none !important;
-            box-shadow: none !important;
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .search-card { max-width: 100%; }
-        }
-        @media (max-width: 992px) {
-            /* Evitar solapamiento: ocultar controles en tablets y abajo */
-            .carousel-control-prev,
-            .carousel-control-next { display: none; }
-        }
-        @media (max-width: 768px) {
-            .hero-section { height: 60vh; min-height: 400px; }
-            .hero-title { font-size: 2.5rem; }
-            .hero-subtitle { font-size: 1.1rem; margin-bottom: 1.5rem; }
-            .search-card { padding: 1.5rem; margin: 0 15px; }
-        }
-        @media (max-width: 576px) {
-            .hero-title { font-size: 2rem; margin-bottom: 0.5rem; }
-            .hero-subtitle { margin-bottom: 1rem; }
-            .search-card { padding: 1rem; margin: 0 10px; }
+        @media (max-width: 576px){
+            .hero-section{height:60vh;min-height:420px;}
+            .search-card{ padding:1rem; margin:0 8px; }
+            .mini-prop-thumb{ height:120px; }
         }
     </style>
 
@@ -179,12 +133,9 @@
         <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
             <div class="carousel-inner">
                 @foreach($propertyImages as $index => $img)
-                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}" 
-                         style="background-image: url('{{ $img['url'] }}');">
-                    </div>
+                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}" style="background-image:url('{{ $img['url'] }}');"></div>
                 @endforeach
             </div>
-
             @if(count($propertyImages) > 1)
                 <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Anterior">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -197,42 +148,62 @@
 
         <div class="hero-overlay">
             <div class="hero-content">
-                <h1 class="hero-title">
-                    {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
-                </h1>
-                <p class="hero-subtitle">
-                    {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
-                </p>
+                <h1 class="hero-title">{{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}</h1>
+                <p class="hero-subtitle">{{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}</p>
 
+                <!-- ===== Bloque "Apartamento" con listado debajo ===== -->
                 <div class="search-card">
-                    <form action="{{ route('properties.index') }}" method="GET">
-                        <div class="row g-3 justify-content-center">
-                            <!-- Campo fijo: Apartamento -->
-                            <div class="col-xl-3 col-lg-4 col-md-6 d-flex align-items-end">
-                                <div class="w-100">
-                                    <label class="form-label fw-semibold text-dark d-block">Tipo de propiedad</label>
-                                    <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
-                                    <input type="hidden" name="property_type" value="apartment">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h3 class="m-0">Apartamento</h3>
+                        <a href="{{ route('properties.index', ['property_type' => 'apartment']) }}" class="btn btn-outline-primary btn-sm">
+                            Ver todos
+                        </a>
+                    </div>
+
+                    @if($apartmentsToShow->isEmpty())
+                        <p class="text-muted mb-0">No hay apartamentos disponibles por ahora.</p>
+                    @else
+                        <div class="row g-3 mt-1">
+                            @foreach($apartmentsToShow as $p)
+                                @php
+                                    $thumb = $p['picture']['thumbnail'] 
+                                        ?? $p['picture']['url'] 
+                                        ?? ($p['pictures'][0] ?? null)
+                                        ?? asset('images/property-placeholder.jpg');
+                                    $city = $p['address']['city'] ?? '';
+                                    $country = $p['address']['country'] ?? '';
+                                    $location = trim($city . ($city && $country ? ', ' : '') . $country);
+                                    $price = $p['prices']['basePrice'] ?? null;
+                                @endphp
+                                <div class="col-xl-3 col-lg-4 col-md-6">
+                                    <div class="mini-prop-card">
+                                        <img class="mini-prop-thumb" src="{{ $thumb }}" alt="{{ $p['title'] ?? 'Apartamento' }}">
+                                        <div class="mini-prop-body">
+                                            <div class="mini-prop-title">{{ $p['title'] ?? 'Apartamento' }}</div>
+                                            <div class="mini-prop-loc">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                {{ $location !== '' ? $location : 'Galicia, España' }}
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="mini-prop-price">
+                                                    @if(is_numeric($price))
+                                                        €{{ number_format($price, 0, ',', '.') }}/noche
+                                                    @else
+                                                        Consultar
+                                                    @endif
+                                                </div>
+                                                <a href="{{ route('properties.show', $p['_id']) }}" class="btn btn-sm btn-primary">
+                                                    Ver
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
-                                <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
-                            </div>
-                            <div class="col-xl-3 col-lg-4 col-md-6">
-                                <label for="checkout" class="form-label fw-semibold text-dark">Fecha de salida</label>
-                                <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                            </div>
-                            <div class="col-xl-3 col-lg-12 col-md-6 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
-                                    <i class="fas fa-search me-2"></i>Buscar
-                                </button>
-                            </div>
+                            @endforeach
                         </div>
-                    </form>
+                    @endif
                 </div>
-
+                <!-- ===== Fin bloque "Apartamento" ===== -->
             </div>
         </div>
     </section>
@@ -245,7 +216,7 @@
     </div>
 @endif
 
-<!-- Featured Properties -->
+<!-- Featured Properties (se mantiene igual) -->
 <section class="py-5">
     <div class="container">
         <div class="row mb-4">
@@ -258,7 +229,7 @@
                 </p>
             </div>
             <div class="col-md-4 text-md-end">
-                <a href="{{ route('properties.index', ['property_type' => 'apartment']) }}" class="btn btn-outline-primary">Ver todos</a>
+                <a href="{{ route('properties.index') }}" class="btn btn-outline-primary">Ver todos</a>
             </div>
         </div>
 
