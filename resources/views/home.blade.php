@@ -8,27 +8,76 @@
 <!-- Hero Section -->
 @php
     $imagesToShow = 5;
-    $existingImages = collect();
 
-    for ($i = 1; $i <= 100; $i++) {
-        $imagePath = base_path("public_html/images/CHUSPOMBO-APARTAMENTOS-{$i}.webp");
+    // 1) Buscar imágenes en featuredProperties
+    $candidates = collect($featuredProperties ?? [])
+        ->flatMap(function ($p) {
+            $title = $p['title'] ?? 'Propiedad Chuspombo';
+            $urls = [];
 
-        if (file_exists($imagePath)) {
-            $existingImages->push(asset("images/CHUSPOMBO-APARTAMENTOS-{$i}.webp"));
+            if (!empty($p['picture']) && is_array($p['picture'])) {
+                foreach (['banner','large','url','original','full','thumbnail'] as $k) {
+                    if (!empty($p['picture'][$k])) $urls[] = $p['picture'][$k];
+                }
+            }
+
+            foreach (['pictures','gallery','images'] as $listKey) {
+                if (!empty($p[$listKey]) && is_array($p[$listKey])) {
+                    foreach ($p[$listKey] as $u) $urls[] = $u;
+                }
+            }
+
+            return collect($urls)
+                ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)$/i', $u))
+                ->map(fn ($u) => ['url' => $u, 'alt' => $title]);
+        })
+        ->unique('url')
+        ->sortBy(function ($img) {
+            $u = $img['url'];
+            return preg_match('/banner|hero|cover/i', $u) ? 0 : 1;
+        })
+        ->values();
+
+    $propertyImages = $candidates->take(20)->shuffle()->take($imagesToShow)->values();
+
+    // 2) Fallback a public_html/images si no hay
+    if ($propertyImages->isEmpty()) {
+        $fallback = collect();
+        for ($i = 1; $i <= 100; $i++) {
+            $path = base_path("public_html/images/CHUSPOMBO-APARTAMENTOS-{$i}.webp");
+            if (file_exists($path)) {
+                $fallback->push([
+                    'url' => asset("images/CHUSPOMBO-APARTAMENTOS-{$i}.webp"),
+                    'alt' => 'Chuspombo Apartamentos'
+                ]);
+            }
         }
+        $propertyImages = $fallback->shuffle()->take($imagesToShow)->values();
     }
-
-    $randomImages = $existingImages->shuffle()->take($imagesToShow);
 @endphp
 
-@if($randomImages->count() > 0)
+@if($propertyImages->count() > 0)
+    <style>
+        .carousel-image {
+            height: clamp(320px, 55vh, 680px);
+            object-fit: cover;
+            object-position: center;
+        }
+        .carousel-overlay {
+            position: absolute; inset: 0;
+            display: grid; place-items: center;
+            padding: 1.5rem;
+            background: linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,.15));
+        }
+        .search-box-overlay .search-box { background: rgba(255,255,255,.9); }
+    </style>
+
     <div class="carousel-container position-relative">
-        <!-- Carrusel -->
         <div id="carouselProperties" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
-                @foreach($randomImages as $index => $image)
+                @foreach($propertyImages as $index => $img)
                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                        <img src="{{ $image }}" class="d-block w-100 carousel-image" alt="Chuspombo Apartamentos">
+                        <img src="{{ $img['url'] }}" class="d-block w-100 carousel-image" alt="{{ $img['alt'] }}">
                     </div>
                 @endforeach
             </div>
@@ -42,41 +91,42 @@
             </button>
         </div>
 
-        <!-- Contenido superpuesto -->
         <div class="carousel-overlay text-center">
-            <h1 class="display-4 fw-bold text-white">
-                {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
-            </h1>
+            <div class="container">
+                <h1 class="display-4 fw-bold text-white mb-2">
+                    {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
+                </h1>
 
-            <h2 class="lead text-white">
-                {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
-            </h2>
+                <h2 class="lead text-white mb-4">
+                    {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
+                </h2>
 
-            <div class="search-box-overlay">
-                <div class="container">
-                    <div class="search-box p-4 shadow rounded">
-                        <form action="{{ route('properties.index') }}" method="GET">
-                            <div class="row g-3 justify-content-center">
-                                <div class="col-md-4">
-                                    <label for="checkin" class="form-label">Llegada</label>
-                                    <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
+                <div class="search-box-overlay">
+                    <div class="container">
+                        <div class="search-box p-4 shadow rounded">
+                            <form action="{{ route('properties.index') }}" method="GET">
+                                <div class="row g-3 justify-content-center">
+                                    <div class="col-md-4">
+                                        <label for="checkin" class="form-label">Llegada</label>
+                                        <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="checkout" class="form-label">Salida</label>
+                                        <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="checkout" class="form-label">Salida</label>
-                                    <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary w-100">Buscar</button>
-                                </div>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                </div>
+                </div> 
             </div>
-        </div><!-- /overlay -->
-    </div><!-- /carousel-container -->
+        </div>
+    </div>
 @else
-    <p class="text-center text-danger">No se encontraron imágenes de Chuspombo Apartamentos.</p>
+    <p class="text-center text-danger">No se encontraron imágenes para el banner.</p>
 @endif
 
 <!-- Featured Properties -->
@@ -132,9 +182,7 @@
                             </div>
                         </div>
                         <div class="card-footer bg-white border-top-0">
-                            {{-- Vamos directo al detalle (show) para el calendario/booking por apartamento --}}
-                            <a href="{{ route('properties.show', $property['_id']) }}"
-                               class="btn btn-outline-primary w-100">Ver disponibilidad</a>
+                            <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-outline-primary w-100">Ver disponibilidad</a>
                         </div>
                     </div>
                 </div>
@@ -185,11 +233,8 @@
                             @endphp
 
                             @if (!empty($pagina->$imageField))
-                                <img
-                                    src="{{ asset('images/' . $pagina->$imageField) }}"
-                                    alt="Imagen tarjeta {{ $i }}"
-                                    class="mb-4 img-fluid"
-                                    style="max-height: 120px; object-fit: contain; width: 100%; max-width: 100%;">
+                                <img src="{{ asset('images/' . $pagina->$imageField) }}" alt="Imagen tarjeta {{ $i }}"
+                                     class="mb-4 img-fluid" style="max-height: 120px; object-fit: contain; width: 100%; max-width: 100%;">
                             @else
                                 <div class="feature-icon text-white rounded-circle mb-4">
                                     @if ($i === 1)
@@ -202,12 +247,8 @@
                                 </div>
                             @endif
 
-                            <h4 class="card-title">
-                                {{ $pagina->$titleField ?? $defaultTitles[$i] }}
-                            </h4>
-                            <p class="text-muted">
-                                {{ $pagina->$contentField ?? $defaultContent[$i] }}
-                            </p>
+                            <h4 class="card-title">{{ $pagina->$titleField ?? $defaultTitles[$i] }}</h4>
+                            <p class="text-muted">{{ $pagina->$contentField ?? $defaultContent[$i] }}</p>
                         </div>
                     </div>
                 </div>
@@ -218,35 +259,23 @@
 
 <!-- Sección de Propiedad Destacada -->
 @if(count($featuredProperties) > 0)
-    @php
-        $property = $featuredProperties[0]; // Primera propiedad destacada
-    @endphp
-
+    @php $property = $featuredProperties[0]; @endphp
     <section class="featured-property py-5">
         <div class="container">
             <div class="row align-items-center">
-                <!-- Columna de texto -->
                 <div class="col-md-6 text-section">
                     <p class="text-muted">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
                     <div class="stars">
-                        @php
-                            $rating = $property['rating'] ?? 5;
-                        @endphp
-                        @for ($i = 0; $i < $rating; $i++)
-                            ★
-                        @endfor
+                        @php $rating = $property['rating'] ?? 5; @endphp
+                        @for ($i = 0; $i < $rating; $i++) ★ @endfor
                     </div>
                     <h2 class="property-title">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
                     <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary">Ver disponibilidad</a>
                 </div>
-
-                <!-- Columna de imágenes -->
                 <div class="col-md-6 images-section">
                     <div class="image-wrapper">
-                        <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}"
-                             class="small-image" alt="Interior propiedad">
-                        <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}"
-                             class="large-image" alt="Vista exterior">
+                        <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}" class="small-image" alt="Interior propiedad">
+                        <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}" class="large-image" alt="Vista exterior">
                     </div>
                 </div>
             </div>
@@ -259,12 +288,8 @@
     <div class="container">
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
-                <h2 class="fw-bold">
-                    {{ $pagina->h2_confiar ?? '¿Por qué elegir Chuspombo?' }}
-                </h2>
-                <p class="text-muted">
-                    {{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en Galicia, España.' }}
-                </p>
+                <h2 class="fw-bold">{{ $pagina->h2_confiar ?? '¿Por qué elegir Chuspombo?' }}</h2>
+                <p class="text-muted">{{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en Galicia, España.' }}</p>
             </div>
         </div>
 
@@ -275,14 +300,12 @@
                         $title = "card2_title_$i";
                         $content = "card2_content_$i";
                         $image = "card2_image_$i";
-
                         $defaultTitles2 = [
                             4 => 'Limpieza Impecable',
                             5 => 'Atención Personalizada',
                             6 => 'Ubicación Estratégica',
                             7 => 'Precios Justos'
                         ];
-
                         $defaultContent2 = [
                             4 => 'Mantenemos altos estándares de limpieza y desinfección en todas nuestras propiedades.',
                             5 => 'Atención ágil y dedicada para que tu estancia sea memorable.',
