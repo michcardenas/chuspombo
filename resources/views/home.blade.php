@@ -73,11 +73,12 @@
             height: 100%;
         }
 
-        .hero-section .carousel-item img {
+        .hero-section .carousel-item {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            object-position: center;
         }
 
         .hero-overlay {
@@ -96,7 +97,7 @@
         .hero-content {
             text-align: center;
             color: white;
-            max-width: 800px;
+            max-width: 1000px;
             padding: 0 20px;
         }
 
@@ -119,11 +120,38 @@
             border-radius: 15px;
             padding: 2rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 900px;
+            margin: 0 auto;
         }
 
+        /* Carousel controls */
         .carousel-control-prev,
         .carousel-control-next {
-            z-index: 15;
+            z-index: 5;
+            width: 5%;
+        }
+
+        .carousel-control-prev:focus,
+        .carousel-control-next:focus,
+        .carousel-control-prev:hover,
+        .carousel-control-next:hover {
+            outline: none;
+            box-shadow: none;
+        }
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            padding: 20px;
+        }
+
+        /* Remove blue borders */
+        .carousel:focus,
+        .carousel-control-prev:focus,
+        .carousel-control-next:focus {
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         /* Responsive */
@@ -139,21 +167,40 @@
             
             .hero-subtitle {
                 font-size: 1.1rem;
+                margin-bottom: 1.5rem;
             }
             
             .search-card {
                 padding: 1.5rem;
-                margin: 0 10px;
+                margin: 0 15px;
+                max-width: none;
+            }
+
+            .carousel-control-prev,
+            .carousel-control-next {
+                z-index: 5;
+                width: 8%;
             }
         }
 
         @media (max-width: 576px) {
             .hero-title {
                 font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .hero-subtitle {
+                margin-bottom: 1rem;
             }
             
             .search-card {
                 padding: 1rem;
+                margin: 0 10px;
+            }
+
+            .carousel-control-prev,
+            .carousel-control-next {
+                display: none;
             }
         }
     </style>
@@ -192,8 +239,8 @@
 
                 <div class="search-card">
                     <form action="{{ route('properties.index') }}" method="GET">
-                        <div class="row g-3">
-                            <div class="col-lg-3 col-md-6">
+                        <div class="row g-3 justify-content-center">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
                                 <label for="property_type" class="form-label fw-semibold text-dark">Tipo de propiedad</label>
                                 <select class="form-select form-select-lg" id="property_type" name="property_type">
                                     <option value="">Todos los tipos</option>
@@ -203,15 +250,15 @@
                                     <option value="studio">Estudio</option>
                                 </select>
                             </div>
-                            <div class="col-lg-3 col-md-6">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
                                 <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
                                 <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
                             </div>
-                            <div class="col-lg-3 col-md-6">
+                            <div class="col-xl-3 col-lg-4 col-md-6">
                                 <label for="checkout" class="form-label fw-semibold text-dark">Fecha de salida</label>
                                 <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
                             </div>
-                            <div class="col-lg-3 col-md-6 d-flex align-items-end">
+                            <div class="col-xl-3 col-lg-12 col-md-6 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
                                     <i class="fas fa-search me-2"></i>Buscar
                                 </button>
