@@ -5,6 +5,40 @@
 @section('meta_description', 'Descubre apartamentos y villas exclusivas en Galicia, España con Chuspombo, tu socio confiable para experiencias de lujo inolvidables.')
 
 @section('content')
+
+{{-- ====== Colores Hostella (override mínimo de Bootstrap) ====== --}}
+<style>
+:root{
+  --hostella-primary:#1a1a1a;
+  --hostella-secondary:#FFD700;
+  --hostella-light:#f8f9fa;
+  --hostella-dark:#000000;
+  --hostella-accent:#D4AF37;
+}
+.btn-primary{
+  background-color:var(--hostella-primary) !important;
+  border-color:var(--hostella-primary) !important;
+}
+.btn-primary:hover{
+  background-color:var(--hostella-dark) !important;
+  border-color:var(--hostella-dark) !important;
+}
+.btn-outline-primary{
+  color:var(--hostella-primary) !important;
+  border-color:var(--hostella-primary) !important;
+}
+.btn-outline-primary:hover{
+  color:#fff !important;
+  background-color:var(--hostella-primary) !important;
+  border-color:var(--hostella-primary) !important;
+}
+.badge.bg-primary{
+  background-color:var(--hostella-secondary) !important;
+  color:var(--hostella-dark) !important;
+}
+a, .text-primary{ color:var(--hostella-primary) !important; }
+</style>
+
 <!-- Hero Section -->
 @php
     use Illuminate\Support\Arr;
@@ -87,26 +121,11 @@
                 ->take($imagesPerProperty)
                 ->values();
 
-            logger()->info('[Carousel] Merge imágenes propiedad', [
-                'property_id' => $pid,
-                'title'       => $p['title'] ?? null,
-                'from_array'  => $arrImgs->count(),
-                'from_db'     => $dbImgs->count(),
-                'selected'    => $merged->count(),
-                'urls'        => $merged->all(),
-            ]);
-
             return $merged;
         })
         ->unique()
         ->values();
-
-    logger()->info('[Carousel] Total imágenes para banner', [
-        'total' => $randomImages->count(),
-    ]);
 @endphp
-
-
 
 @if($randomImages->count() > 0)
     <div class="carousel-container position-relative">
@@ -129,61 +148,62 @@
             </button>
         </div>
 
-       <!-- Contenido superpuesto -->
-<div class="carousel-overlay text-center">
-    <h1 class="display-4 fw-bold text-white">
-        {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
-    </h1>
+        <!-- Contenido superpuesto -->
+        <div class="carousel-overlay text-center">
+            <h1 class="display-4 fw-bold text-white">
+                {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
+            </h1>
 
-    <h2 class="lead text-white">
-        {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
-    </h2>
+            <h2 class="lead text-white">
+                {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
+            </h2>
 
-    <div class="search-box-overlay">
-        <div class="container">
-            <div class="search-box p-4 shadow rounded">
-                <form action="{{ route('properties.index') }}" method="GET">
-                    <div class="row g-3 justify-content-center">
-                        {{-- Select: Apartamento (lista todas las propiedades como en featured) --}}
-                        <div class="col-md-4">
-                            <label for="apartment" class="form-label">Apartamento</label>
-                            <select id="apartment" name="Apartamento" class="form-select">
-                                <option value="">Todos los apartamentos</option>
-                                @foreach(($featuredProperties ?? []) as $property)
-                                    @php
-                                        $id   = $property['_id'] ?? null;
-                                        $tit  = $property['title'] ?? 'Sin título';
-                                        $city = $property['address']['city'] ?? null;
-                                        $ctry = $property['address']['country'] ?? null;
-                                        $loc  = trim(($city ? $city : '') . ($city && $ctry ? ', ' : '') . ($ctry ? $ctry : ''));
-                                    @endphp
-                                    @if($id)
-                                        <option value="{{ $id }}">
-                                            {{ $tit }}@if($loc) — {{ $loc }}@endif
-                                        </option>
-                                    @endif
-                                @endforeach
-                            </select>
-                        </div>
+            <div class="search-box-overlay">
+                <div class="container">
+                    <div class="search-box p-4 shadow rounded">
+                        <form action="{{ route('properties.index') }}" method="GET">
+                            <div class="row g-3 justify-content-center">
 
-                        <div class="col-md-4">
-                            <label for="checkin" class="form-label">Llegada</label>
-                            <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="checkout" class="form-label">Salida</label>
-                            <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">Buscar</button>
-                        </div>
+                                {{-- Select: Apartamento (indexa como en featured properties) --}}
+                                <div class="col-md-4">
+                                    <label for="apartment" class="form-label">Apartamento</label>
+                                    <select id="apartment" name="Apartamento" class="form-select">
+                                        <option value="">Todos los apartamentos</option>
+                                        @foreach(($featuredProperties ?? []) as $property)
+                                            @php
+                                                $id   = $property['_id'] ?? null;
+                                                $tit  = $property['title'] ?? 'Sin título';
+                                                $city = $property['address']['city'] ?? null;
+                                                $ctry = $property['address']['country'] ?? null;
+                                                $loc  = trim(($city ? $city : '') . ($city && $ctry ? ', ' : '') . ($ctry ? $ctry : ''));
+                                            @endphp
+                                            @if($id)
+                                                <option value="{{ $id }}">
+                                                    {{ $tit }}@if($loc) — {{ $loc }}@endif
+                                                </option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label for="checkin" class="form-label">Llegada</label>
+                                    <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="checkout" class="form-label">Salida</label>
+                                    <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
-    </div>
-</div><!-- /overlay -->
-
+        </div><!-- /overlay -->
+    </div><!-- /carousel-container -->
 @else
     <p class="text-center text-danger">No se encontraron imágenes de Chuspombo Apartamentos.</p>
 @endif
@@ -241,7 +261,6 @@
                             </div>
                         </div>
                         <div class="card-footer bg-white border-top-0">
-                            {{-- Vamos directo al detalle (show) para el calendario/booking por apartamento --}}
                             <a href="{{ route('properties.show', $property['_id']) }}"
                                class="btn btn-outline-primary w-100">Ver disponibilidad</a>
                         </div>
@@ -328,7 +347,7 @@
 <!-- Sección de Propiedad Destacada -->
 @if(count($featuredProperties) > 0)
     @php
-        $property = $featuredProperties[0]; // Primera propiedad destacada
+        $property = $featuredProperties[0];
     @endphp
 
     <section class="featured-property py-5">
@@ -338,12 +357,8 @@
                 <div class="col-md-6 text-section">
                     <p class="text-muted">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
                     <div class="stars">
-                        @php
-                            $rating = $property['rating'] ?? 5;
-                        @endphp
-                        @for ($i = 0; $i < $rating; $i++)
-                            ★
-                        @endfor
+                        @php $rating = $property['rating'] ?? 5; @endphp
+                        @for ($i = 0; $i < $rating; $i++) ★ @endfor
                     </div>
                     <h2 class="property-title">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
                     <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary">Ver disponibilidad</a>
