@@ -7,24 +7,27 @@
 @section('content')
 <!-- Hero Section -->
 @php
-    $imagesToShow = 5;
-
-    // Extensiones válidas y strings a evitar (placeholders)
+    // TOMAR TODAS LAS IMÁGENES DE LAS PROPIEDADES (sin límites)
     $validExt = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
-    $skipSubstr = ['placeholder', 'default', 'noimage', 'missing', 'image-not-found'];
+    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found'];
 
-    // Extraer URLs de imagen desde una propiedad
-    $extractImages = function ($p) use ($validExt, $skipSubstr) {
+    $collectFromProperty = function ($p) use ($validExt, $skipSubstr) {
         $urls = [];
 
-        if (!empty($p['picture']) && is_array($p['picture'])) {
-            foreach (['banner','hero','large','url','original','full','thumbnail'] as $k) {
-                if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) {
-                    $urls[] = $p['picture'][$k];
+        // picture puede ser array o string
+        if (!empty($p['picture'])) {
+            if (is_array($p['picture'])) {
+                foreach (['banner','hero','large','url','original','full','thumbnail'] as $k) {
+                    if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) {
+                        $urls[] = $p['picture'][$k];
+                    }
                 }
+            } elseif (is_string($p['picture'])) {
+                $urls[] = $p['picture'];
             }
         }
 
+        // listas de imágenes
         foreach (['pictures','gallery','images'] as $listKey) {
             if (!empty($p[$listKey]) && is_array($p[$listKey])) {
                 foreach ($p[$listKey] as $u) {
@@ -45,14 +48,10 @@
             ->values();
     };
 
-    // Tomar SOLO imágenes provenientes de propiedades
+    // Todas las imágenes válidas de todas las propiedades (únicas)
     $randomImages = collect($featuredProperties ?? [])
-        ->flatMap(fn ($p) => $extractImages($p))
-        ->unique()                                      // evitar duplicados
-        ->sortBy(fn ($u) => preg_match('/banner|hero|cover/i', $u) ? 0 : 1) // prioriza "banner/hero/cover"
-        ->take(40)                                      // limita candidatos
-        ->shuffle()                                     // aleatoriza
-        ->take($imagesToShow)                           // cantidad final
+        ->flatMap(fn ($p) => $collectFromProperty($p))
+        ->unique()
         ->values();
 @endphp
 
