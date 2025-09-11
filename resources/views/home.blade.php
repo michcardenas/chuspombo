@@ -56,11 +56,34 @@
     $randomImages = collect($featuredProperties ?? [])
         ->flatMap(function ($p) use ($extractImages, $imagesPerProperty) {
             $imgs = $extractImages($p);
-            return $imgs->isEmpty() ? collect() : $imgs->take($imagesPerProperty);
+            $picked = $imgs->take($imagesPerProperty)->values();
+
+            if ($picked->isNotEmpty()) {
+                logger()->info('[Carousel] Imágenes seleccionadas por propiedad', [
+                    'property_id'     => $p['_id'] ?? null,
+                    'title'           => $p['title'] ?? null,
+                    'count_total'     => $imgs->count(),
+                    'count_selected'  => $picked->count(),
+                    'selected_urls'   => $picked->all(),
+                ]);
+            } else {
+                logger()->info('[Carousel] Propiedad sin imágenes válidas', [
+                    'property_id' => $p['_id'] ?? null,
+                    'title'       => $p['title'] ?? null,
+                ]);
+            }
+
+            return $picked;
         })
         ->unique()
         ->values();
+
+    logger()->info('[Carousel] Total imágenes para banner', [
+        'total' => $randomImages->count(),
+        'urls'  => $randomImages->all(),
+    ]);
 @endphp
+
 
 @if($randomImages->count() > 0)
     <div class="carousel-container position-relative">
