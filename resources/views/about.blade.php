@@ -3,12 +3,20 @@
 @section('content')
 
 @php
-    // === Imágenes aleatorias tomadas de PROPIEDADES ===
-    // Construimos un pool con imágenes reales de las propiedades (locales y/o URLs del array)
+    use Illuminate\Support\Arr;
+
+    /**
+     * Tomamos imágenes reales de las PROPIEDADES (como en los códigos anteriores):
+     * - Buscamos en /public/images/smoobu/{ID}/ y archivos sueltos por ID.
+     * - También recogemos URLs de picture/pictures/gallery/images del array.
+     * - Filtramos placeholders y priorizamos banner/hero/cover/main/original/large.
+     * - Seleccionamos 4 aleatorias para las secciones de la página.
+     */
+
     $imagesNeeded = 4;
 
     $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
-    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy'];
+    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy','coming-soon'];
 
     $priorityRank = function (string $u) {
         if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
@@ -16,11 +24,14 @@
         return 1;
     };
 
+    // Preferimos $properties, si no, caemos a $featuredProperties.
+    $sourceProps = collect($properties ?? ($featuredProperties ?? []));
+
     // Candidatos locales: /public/images/smoobu/{ID}/... y archivos sueltos por ID
     $localCandidates = function ($id) use ($validExt, $skipSubstr, $priorityRank) {
         $c = collect();
 
-        // Carpeta por ID
+        // Carpeta por ID (nivel 1)
         $dir = public_path("images/smoobu/{$id}");
         if (is_dir($dir)) {
             $files = glob($dir.'/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
@@ -84,22 +95,48 @@
                     ->values();
     };
 
-    // Construir pool desde TODAS las propiedades (omite las sin fotos)
-    $pool = collect($properties ?? [])->flatMap(function ($p) use ($localCandidates, $arrayCandidates) {
-                $id  = $p['_id'] ?? null;
+    // Construir POOL de imágenes (omite propiedades sin fotos)
+    $pool = $sourceProps->flatMap(function ($p) use ($localCandidates, $arrayCandidates) {
+                $id  = $p['_id'] ?? ($p['id'] ?? null);
                 $loc = $id ? $localCandidates($id) : collect();
                 $arr = $arrayCandidates($p);
-                return $loc->merge($arr)->unique()->values();
+                $merged = $loc->merge($arr)->unique()->values();
+
+                // Log breve por propiedad (útil para depurar)
+                if (($id ?? null) !== null) {
+                    logger()->info('[Landing Pool] Imágenes por propiedad', [
+                        'property_id' => $id,
+                        'title'       => $p['title'] ?? ($p['name'] ?? null),
+                        'local'       => $loc->count(),
+                        'array'       => $arr->count(),
+                        'merged'      => $merged->count(),
+                        'sample'      => $merged->take(3)->all(),
+                    ]);
+                }
+
+                return $merged;
             })
             ->unique()
             ->values();
 
-    // Seleccionar 4 aleatorias
-    $sectionImages = $pool->shuffle()->take($imagesNeeded)->values()->all();
+    logger()->info('[Landing Pool] Total imágenes disponibles', ['total' => $pool->count()]);
 
-    // Fallbacks si faltan
-    while (count($sectionImages) < $imagesNeeded) {
-        $sectionImages[] = asset('images/galicia-placeholder.webp');
+    // Seleccionar 4 aleatorias; si hay menos de 4, repetimos de las existentes (evitamos placeholders)
+    $sectionImages = $pool->shuffle()->take($imagesNeeded)->values()->all();
+    if (count($sectionImages) < $imagesNeeded && $pool->isNotEmpty()) {
+        // rellenar repitiendo del pool (sin usar placeholders)
+        while (count($sectionImages) < $imagesNeeded) {
+            $sectionImages[] = $pool->random();
+        }
+    }
+    // Fallback extremo: si el pool está vacío, usa un único placeholder
+    if (empty($sectionImages)) {
+        $sectionImages = [
+            asset('images/galicia-placeholder.webp'),
+            asset('images/galicia-placeholder.webp'),
+            asset('images/galicia-placeholder.webp'),
+            asset('images/galicia-placeholder.webp'),
+        ];
     }
 @endphp
 
