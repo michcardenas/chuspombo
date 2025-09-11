@@ -625,6 +625,13 @@ body {
     z-index: 1;
 }
 
+.site-footer {
+  --chuspombo-gray: #fff;
+  color: #fff; /* texto base dentro del footer */
+}
+
+
+
 /* Logo y marca */
 .logo-container {
     display: inline-block;
@@ -644,6 +651,7 @@ body {
     font-size: 0.95rem;
     line-height: 1.6;
     margin-top: 15px;
+     color: white;
 }
 
 /* Encabezados */
@@ -653,6 +661,7 @@ body {
     margin-bottom: 20px;
     position: relative;
     padding-bottom: 10px;
+    color: white;
 }
 
 .footer-heading::after {
@@ -670,10 +679,12 @@ body {
     list-style: none;
     padding: 0;
     margin: 0;
+     color: white;
 }
 
 .footer-links li {
     margin-bottom: 12px;
+     color: white;
 }
 
 .footer-links a {
@@ -682,6 +693,7 @@ body {
     transition: all 0.3s ease;
     position: relative;
     padding-left: 15px;
+     color: white;
 }
 
 .footer-links a::before {
@@ -690,6 +702,7 @@ body {
     left: 0;
     color: var(--chuspombo-secondary);
     font-weight: bold;
+    
 }
 
 .footer-links a:hover {
@@ -702,12 +715,14 @@ body {
     list-style: none;
     padding: 0;
     margin: 0;
+     color: white;
 }
 
 .contact-info li {
     display: flex;
     align-items: center;
     margin-bottom: 15px;
+     color: white;
 }
 
 .icon-wrapper {
@@ -724,6 +739,7 @@ body {
 
 .contact-info li span {
     color: var(--chuspombo-gray);
+    
 }
 
 /* Redes sociales */
@@ -766,7 +782,7 @@ body {
 .copyright, .developed-by {
     margin: 0;
     font-size: 0.9rem;
-    color: var(--chuspombo-gray);
+     color: white;
 }
 
 
