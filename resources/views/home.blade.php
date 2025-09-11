@@ -129,39 +129,61 @@
             </button>
         </div>
 
-        <!-- Contenido superpuesto -->
-        <div class="carousel-overlay text-center">
-            <h1 class="display-4 fw-bold text-white">
-                {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
-            </h1>
+       <!-- Contenido superpuesto -->
+<div class="carousel-overlay text-center">
+    <h1 class="display-4 fw-bold text-white">
+        {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
+    </h1>
 
-            <h2 class="lead text-white">
-                {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
-            </h2>
+    <h2 class="lead text-white">
+        {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
+    </h2>
 
-            <div class="search-box-overlay">
-                <div class="container">
-                    <div class="search-box p-4 shadow rounded">
-                        <form action="{{ route('properties.index') }}" method="GET">
-                            <div class="row g-3 justify-content-center">
-                                <div class="col-md-4">
-                                    <label for="checkin" class="form-label">Llegada</label>
-                                    <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="checkout" class="form-label">Salida</label>
-                                    <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary w-100">Buscar</button>
-                                </div>
-                            </div>
-                        </form>
+    <div class="search-box-overlay">
+        <div class="container">
+            <div class="search-box p-4 shadow rounded">
+                <form action="{{ route('properties.index') }}" method="GET">
+                    <div class="row g-3 justify-content-center">
+                        {{-- Select: Apartamento (lista todas las propiedades como en featured) --}}
+                        <div class="col-md-4">
+                            <label for="apartment" class="form-label">Apartamento</label>
+                            <select id="apartment" name="Apartamento" class="form-select">
+                                <option value="">Todos los apartamentos</option>
+                                @foreach(($featuredProperties ?? []) as $property)
+                                    @php
+                                        $id   = $property['_id'] ?? null;
+                                        $tit  = $property['title'] ?? 'Sin título';
+                                        $city = $property['address']['city'] ?? null;
+                                        $ctry = $property['address']['country'] ?? null;
+                                        $loc  = trim(($city ? $city : '') . ($city && $ctry ? ', ' : '') . ($ctry ? $ctry : ''));
+                                    @endphp
+                                    @if($id)
+                                        <option value="{{ $id }}">
+                                            {{ $tit }}@if($loc) — {{ $loc }}@endif
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="checkin" class="form-label">Llegada</label>
+                            <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="checkout" class="form-label">Salida</label>
+                            <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
-        </div><!-- /overlay -->
-    </div><!-- /carousel-container -->
+        </div>
+    </div>
+</div><!-- /overlay -->
+
 @else
     <p class="text-center text-danger">No se encontraron imágenes de Chuspombo Apartamentos.</p>
 @endif
