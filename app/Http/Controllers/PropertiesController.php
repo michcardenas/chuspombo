@@ -41,25 +41,94 @@ public function index(Request $request)
         $apartments = Cache::remember('smoobu.apartments', 300, function () use ($api) {
             return $api->apartments(); // [['id'=>..., 'name'=>...], ...]
         });
-
         $apartments = collect($apartments);
 
-        // Filtro por apartment_id si viene en la URL
-        if ($request->filled('apartment_id')) {
-            $apartments = $apartments->where('id', (int)$request->input('apartment_id'));
+        // ---- NUEVO: soporte para nombre del select "Apartamento" del home ----
+        $selectedId = $request->input('apartment_id') ?? $request->input('Apartamento');
+
+        if (filled($selectedId)) {
+            $apartments = $apartments->where('id', (int) $selectedId)->values();
         }
 
-        // Rango de fechas opcional para precio (promedio simple de rates)
+        // Rango de fechas opcional
         $checkin  = $request->date('checkin');
         $checkout = $request->date('checkout');
 
+        // ---- NUEVO: Filtrar por disponibilidad real si hay rango ----
+        if ($checkin && $checkout && $apartments->count() > 0) {
+            $ids = $apartments->pluck('id')->values();
+            $from = $checkin->format('Y-m-d');
+            $to   = $checkout->format('Y-m-d');
+
+            // Generar las fechas (noches) del rango [checkin, checkout)
+            $dates = [];
+            $cursor = $checkin->copy();
+            while ($cursor->lt($checkout)) {
+                $dates[] = $cursor->format('Y-m-d');
+                $cursor->addDay();
+            }
+
+            $availableIds = collect();
+
+            // 1) Intentar un endpoint de availability del wrapper (si existe)
+            try {
+                // Estructura esperada: ['data' => [aptId => ['Y-m-d' => true/false|'available'|'booked'...]]]
+                $availabilityResponse = $api->availability($from, $to, $ids->all());
+                $data = collect($availabilityResponse['data'] ?? []);
+
+                $availableIds = $data->filter(function ($byDay) use ($dates) {
+                    foreach ($dates as $d) {
+                        $v = $byDay[$d] ?? null;
+                        // considera no disponible si es false/0/'booked'/'unavailable' o null
+                        if ($v === false || $v === 0 || $v === 'booked' || $v === 'unavailable' || $v === null) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })->keys()->map(fn ($k) => (int) $k);
+            } catch (\Throwable $e1) {
+                // 2) Fallback: revisar reservas y detectar solape
+                try {
+                    // Estructura común esperada:
+                    // ['data' => [ ['apartment_id'=>..., 'checkin'=>..., 'checkout'=>...], ... ]]
+                    $reservationsResp = $api->reservations($from, $to, $ids->all());
+                    $reservations = collect($reservationsResp['data'] ?? []);
+
+                    $unavailableById = $reservations->groupBy(function ($r) {
+                        return (int) ($r['apartment_id'] ?? $r['apartmentId'] ?? $r['apartment'] ?? 0);
+                    })->filter(function ($rows) use ($checkin, $checkout) {
+                        return $rows->contains(function ($r) use ($checkin, $checkout) {
+                            // normalizar campos
+                            $ci = \Illuminate\Support\Carbon::parse($r['checkin'] ?? $r['checkIn'] ?? $r['from'] ?? null);
+                            $co = \Illuminate\Support\Carbon::parse($r['checkout'] ?? $r['checkOut'] ?? $r['to'] ?? null);
+                            if (!$ci || !$co) return false;
+                            // solape si (ci < checkout) y (co > checkin)
+                            return $ci->lt($checkout) && $co->gt($checkin);
+                        });
+                    })->keys();
+
+                    $availableIds = $ids->diff($unavailableById)->values();
+                } catch (\Throwable $e2) {
+                    // Si tampoco hay reservas, no filtramos por disponibilidad
+                    \Log::warning('No availability source; skipping availability filter', [
+                        'e1' => $e1->getMessage(),
+                        'e2' => $e2->getMessage(),
+                    ]);
+                    $availableIds = $ids->values();
+                }
+            }
+
+            // Aplicar filtro final por disponibilidad
+            $apartments = $apartments->whereIn('id', $availableIds->all())->values();
+        }
+
+        // Rates (promedio simple) para los que quedaron
         $ratesByApt = [];
         if ($checkin && $checkout && $apartments->count() > 0) {
             try {
                 $ids = $apartments->pluck('id')->values()->all();
                 $ratesResponse = $api->rates($checkin->format('Y-m-d'), $checkout->format('Y-m-d'), $ids);
 
-                // Estructura típica: ['data' => [aptId => ['Y-m-d' => ['price'=>...]]]]
                 $byId = $ratesResponse['data'] ?? [];
                 foreach ($byId as $aptId => $days) {
                     $prices = [];
@@ -89,18 +158,17 @@ public function index(Request $request)
             })();
 
             return [
-                '_id'      => $id,
-                'title'    => $name,
-                'picture'  => ['thumbnail' => $thumb],
-                // Fallback de ubicación a Galicia, España
-                'address'  => ['city' => 'Galicia', 'country' => 'España'],
-                'bedrooms' => 0,
+                '_id'       => $id,
+                'title'     => $name,
+                'picture'   => ['thumbnail' => $thumb],
+                'address'   => ['city' => 'Galicia', 'country' => 'España'],
+                'bedrooms'  => 0,
                 'bathrooms' => 0,
-                'prices'   => [
-                    'basePrice' => $ratesByApt[$id] ?? null, // si null → la vista muestra "Consultar"
+                'prices'    => [
+                    'basePrice' => $ratesByApt[$id] ?? null,
                     'currency'  => 'EUR',
                 ],
-                'rating'   => 5,
+                'rating'    => 5,
             ];
         })->values()->all();
 
@@ -121,6 +189,7 @@ public function index(Request $request)
         ]);
     }
 }
+
 
 
    /**
