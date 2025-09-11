@@ -6,35 +6,50 @@
 @section('content')
 
 @php
-    // === Contenidos editables (desde $pagina, con fallback) ===
-    $h1         = $pagina->contact_h1        ?? 'Hablemos 🤝';
-    $subtitle   = $pagina->contact_subtitle  ?? 'Estamos aquí para ayudarte a planear tu próxima estancia en Galicia.';
-    $intro      = $pagina->contact_intro     ?? 'Cuéntanos fechas, dudas o necesidades especiales. Respondemos rápido.';
+    // ===== Datos principales desde contact_pages =====
+    $h1       = $contact->h1 ?? 'Hablemos 🤝';
+    $subtitle = $contact->h2_1 ?? 'Estamos aquí para ayudarte a planear tu próxima estancia en Galicia.';
+    $intro    = $contact->intro_text ?? 'Cuéntanos fechas, dudas o necesidades especiales. Respondemos rápido.';
 
-    $phone      = $pagina->contact_phone     ?? '+34 000 000 000';
-    $email      = $pagina->contact_email     ?? 'info@chuspombo.com';
-    $address    = $pagina->contact_address   ?? 'Galicia, España';
-    $whatsapp   = $pagina->contact_whatsapp  ?? null;
+    // Medios de contacto
+    $phone    = $contact->phone_primary ?? '+34 000 000 000';
+    $email    = $contact->email_primary ?? 'info@chuspombo.com';
+    $whatsapp = $contact->whatsapp      ?? null;
 
-    // Imagen del hero (archivo dentro de /public/images). Ej: contact-hero.webp
-    $heroImage  = !empty($pagina->contact_hero) ? asset('images/'.$pagina->contact_hero) : asset('images/galicia-placeholder.webp');
+    // Dirección compuesta
+    $addressParts = array_filter([
+        $contact->address1 ?? null,
+        $contact->address2 ?? null,
+        $contact->city ?? null,
+        $contact->region ?? null,
+        $contact->postal_code ?? null,
+        $contact->country ?? null,
+    ]);
+    $address = count($addressParts) ? implode(', ', $addressParts) : 'Galicia, España';
 
-    // Horarios (opcionalmente editables)
-    $hoursTitle = $pagina->contact_hours_title ?? 'Horario de atención';
-    $hoursMon   = $pagina->contact_hours_mon   ?? 'Lun–Vie: 09:00–19:00';
-    $hoursSat   = $pagina->contact_hours_sat   ?? 'Sáb: 10:00–14:00';
-    $hoursSun   = $pagina->contact_hours_sun   ?? 'Dom: Cerrado';
+    // Imagen hero (desde controlador ya viene $heroUrl opcional)
+    $heroImage = $heroUrl
+        ?? ($contact->hero_image ? asset('images/'.$contact->hero_image) : asset('images/galicia-placeholder.webp'));
 
-    // FAQs simples (se pueden extender)
-    $faq1_q     = $pagina->faq_q1 ?? '¿Cómo reservo un apartamento?';
-    $faq1_a     = $pagina->faq_a1 ?? 'Envíanos tus fechas y preferencia; te confirmamos disponibilidad y precio.';
-    $faq2_q     = $pagina->faq_q2 ?? '¿Se permite cancelación?';
-    $faq2_a     = $pagina->faq_a2 ?? 'Sí, según políticas del alojamiento y el tiempo previo a la llegada.';
-    $faq3_q     = $pagina->faq_q3 ?? '¿Ofrecen check-in sin contacto?';
-    $faq3_a     = $pagina->faq_a3 ?? 'Podemos gestionar check-in autónomo bajo solicitud.';
+    // Horarios: si business_hours (json) viene como array, lo mostramos; si no, fallbacks
+    $hoursTitle = 'Horario de atención';
+    $hoursList  = is_array($contact->business_hours) ? $contact->business_hours : null;
+    $fallbackHours = [
+        ['label' => 'Lun–Vie', 'from' => '09:00', 'to' => '19:00'],
+        ['label' => 'Sáb',     'from' => '10:00', 'to' => '14:00'],
+        ['label' => 'Dom',     'from' => 'Cerrado', 'to' => ''],
+    ];
 
-    // Map embed (pega el iframe completo en contact_map_embed)
-    $mapEmbed   = $pagina->contact_map_embed ?? null;
+    // FAQs (no están en contact_pages, dejamos defaults)
+    $faq1_q = '¿Cómo reservo un apartamento?';
+    $faq1_a = 'Envíanos tus fechas y preferencia; te confirmamos disponibilidad y precio.';
+    $faq2_q = '¿Se permite cancelación?';
+    $faq2_a = 'Sí, según políticas del alojamiento y el tiempo previo a la llegada.';
+    $faq3_q = '¿Ofrecen check-in sin contacto?';
+    $faq3_a = 'Podemos gestionar check-in autónomo bajo solicitud.';
+
+    // Mapa
+    $mapEmbed = $contact->map_iframe ?? null;
 @endphp
 
 <style>
@@ -119,7 +134,8 @@ a,.text-primary{ color:var(--hostella-primary)!important; }
             <div class="alert alert-success">{{ session('status') }}</div>
           @endif
 
-          <form method="POST" action="{{ route('landing.contact') }}">
+          {{-- Usa la ruta que definimos para enviar el formulario de contacto --}}
+          <form method="POST" action="{{ route('contact.submit') }}">
             @csrf
 
             <div class="row g-3">
@@ -205,11 +221,33 @@ a,.text-primary{ color:var(--hostella-primary)!important; }
 
           <div>
             <div class="text-muted small mb-1">{{ $hoursTitle }}</div>
-            <ul class="list-unstyled mb-0">
-              <li>🗓️ {{ $hoursMon }}</li>
-              <li>🗓️ {{ $hoursSat }}</li>
-              <li>🗓️ {{ $hoursSun }}</li>
-            </ul>
+            @if($hoursList)
+              <ul class="list-unstyled mb-0">
+                @foreach($hoursList as $h)
+                  <li>
+                    🗓️ {{ $h['label'] ?? '' }}:
+                    @if(($h['from'] ?? '') !== '' && ($h['to'] ?? '') !== '')
+                      {{ $h['from'] }}–{{ $h['to'] }}
+                    @else
+                      {{ $h['from'] ?? 'Cerrado' }}
+                    @endif
+                  </li>
+                @endforeach
+              </ul>
+            @else
+              <ul class="list-unstyled mb-0">
+                @foreach($fallbackHours as $h)
+                  <li>
+                    🗓️ {{ $h['label'] }}:
+                    @if($h['to'])
+                      {{ $h['from'] }}–{{ $h['to'] }}
+                    @else
+                      {{ $h['from'] }}
+                    @endif
+                  </li>
+                @endforeach
+              </ul>
+            @endif
           </div>
         </div>
 

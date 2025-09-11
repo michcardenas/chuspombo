@@ -54,7 +54,7 @@ Route::post('/book/{propertyId}', [ReservationController::class, 'store'])->name
 Route::get('/nosotros', [App\Http\Controllers\AboutController::class, 'index'])->name('about');
 Route::get('/contacto', [App\Http\Controllers\AboutController::class, 'contact'])->name('contact');
 
-Route::post('/landing/contact', [App\Http\Controllers\AboutController::class, 'contactSubmit'])->name('landing.contact');
+Route::post('/landing/contact', [App\Http\Controllers\AboutController::class, 'contactSubmit'])->name('contact.submit');
 
 
 
