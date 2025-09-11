@@ -4,6 +4,7 @@
 
 @php
     // === Imágenes aleatorias tomadas de PROPIEDADES ===
+    // Construimos un pool con imágenes reales de las propiedades (locales y/o URLs del array)
     $imagesNeeded = 4;
 
     $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
@@ -31,7 +32,9 @@
 
         // Archivos directos por ID
         foreach (["images/smoobu/{$id}.webp","images/smoobu/{$id}.avif","images/smoobu/{$id}.jpg","images/smoobu/{$id}.jpeg","images/smoobu/{$id}.png"] as $rel) {
-            if (file_exists(public_path($rel))) $c->push(asset($rel));
+            if (file_exists(public_path($rel))) {
+                $c->push(asset($rel));
+            }
         }
 
         return $c->filter(fn($u) => is_string($u) && preg_match($validExt, $u))
@@ -53,7 +56,9 @@
         if (!empty($p['picture'])) {
             if (is_array($p['picture'])) {
                 foreach (['banner','hero','cover','main','original','large','url','full','thumbnail'] as $k) {
-                    if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) $urls->push($p['picture'][$k]);
+                    if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) {
+                        $urls->push($p['picture'][$k]);
+                    }
                 }
             } elseif (is_string($p['picture'])) {
                 $urls->push($p['picture']);
@@ -62,7 +67,9 @@
 
         foreach (['pictures','gallery','images'] as $key) {
             if (!empty($p[$key]) && is_array($p[$key])) {
-                foreach ($p[$key] as $u) if (is_string($u)) $urls->push($u);
+                foreach ($p[$key] as $u) {
+                    if (is_string($u)) $urls->push($u);
+                }
             }
         }
 
@@ -82,8 +89,7 @@
                 $id  = $p['_id'] ?? null;
                 $loc = $id ? $localCandidates($id) : collect();
                 $arr = $arrayCandidates($p);
-                $merged = $loc->merge($arr)->unique()->values();
-                return $merged;
+                return $loc->merge($arr)->unique()->values();
             })
             ->unique()
             ->values();
@@ -100,7 +106,9 @@
 <div class="container-fluid p-0">
     <!-- Hero Section Premium -->
     <section class="position-relative overflow-hidden" style="height: 70vh; min-height: 600px;">
-        <div class="position-absolute w-100 h-100" style="background: linear-gradient(45deg, rgba(26,26,26,0.8), rgba(212,175,55,0.3)), url('{{ $sectionImages[0] }}'); background-size: cover; background-position: center;"></div>
+        <div class="position-absolute w-100 h-100"
+             style="background: linear-gradient(45deg, rgba(26,26,26,0.8), rgba(212,175,55,0.3)), url('{{ $sectionImages[0] }}');
+                    background-size: cover; background-position: center;"></div>
         <div class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center">
             <div class="container text-center text-white">
                 <div class="row justify-content-center">
@@ -115,7 +123,8 @@
                             Donde el lujo se encuentra con la autenticidad gallega.<br>
                             <em>Dos apartamentos únicos en el corazón de Galicia.</em>
                         </p>
-                        <a href="{{ route('contact') }}" class="btn btn-lg px-5 py-3" style="background: linear-gradient(45deg, #D4AF37, #B8860B); border: none; color: #1a1a1a; font-weight: 600; border-radius: 30px;">
+                        <a href="{{ route('contact') }}" class="btn btn-lg px-5 py-3"
+                           style="background: linear-gradient(45deg, #D4AF37, #B8860B); border: none; color: #1a1a1a; font-weight: 600; border-radius: 30px;">
                             Descubre Tu Refugio Gallego
                         </a>
                     </div>
@@ -130,7 +139,7 @@
             <div class="row align-items-center g-5">
                 <div class="col-lg-6">
                     <div class="position-relative">
-                        <img src="{{ $sectionImages[1] }}" alt="Apartamento Chuspombo" class="img-fluid rounded-3 shadow-lg">
+                        <img src="{{ $sectionImages[1] }}" alt="Apartamento Chuspombo" class="img-fluid rounded-3 shadow-lg" loading="lazy">
                         <div class="position-absolute bottom-0 end-0 bg-dark text-white p-3 rounded-3 m-3">
                             <small class="text-muted">Galicia, España</small>
                         </div>
@@ -237,7 +246,7 @@
             <div class="row align-items-center g-5">
                 <div class="col-lg-6 order-lg-2">
                     <div class="position-relative">
-                        <img src="{{ $sectionImages[2] }}" alt="Interior Chuspombo" class="img-fluid rounded-3 shadow-lg">
+                        <img src="{{ $sectionImages[2] }}" alt="Interior Chuspombo" class="img-fluid rounded-3 shadow-lg" loading="lazy">
                     </div>
                 </div>
                 <div class="col-lg-6 order-lg-1">
@@ -294,7 +303,9 @@
 
     <!-- CTA Final Premium -->
     <section class="py-5 position-relative overflow-hidden">
-        <div class="position-absolute w-100 h-100" style="background: linear-gradient(rgba(26,26,26,0.85), rgba(26,26,26,0.85)), url('{{ $sectionImages[3] }}'); background-size: cover; background-position: center;"></div>
+        <div class="position-absolute w-100 h-100"
+             style="background: linear-gradient(rgba(26,26,26,0.85), rgba(26,26,26,0.85)), url('{{ $sectionImages[3] }}');
+                    background-size: cover; background-position: center;"></div>
         <div class="container position-relative py-5">
             <div class="row justify-content-center text-center text-white">
                 <div class="col-lg-8">
@@ -305,7 +316,8 @@
                         Dos apartamentos únicos, infinitas experiencias. Descubre por qué nuestros huéspedes se enamoran de Galicia... y regresan.
                     </p>
                     <div class="d-flex flex-column flex-md-row gap-3 justify-content-center">
-                        <a href="mailto:info@chuspombo.com" class="btn btn-lg px-5 py-3" style="background: linear-gradient(45deg, #D4AF37, #B8860B); border: none; color: #1a1a1a; font-weight: 600; border-radius: 30px;">
+                        <a href="mailto:info@chuspombo.com" class="btn btn-lg px-5 py-3"
+                           style="background: linear-gradient(45deg, #D4AF37, #B8860B); border: none; color: #1a1a1a; font-weight: 600; border-radius: 30px;">
                             <i class="fas fa-envelope me-2"></i>
                             Reserva Ahora
                         </a>
