@@ -9,16 +9,16 @@
 @php
     $imagesToShow = 5;
 
-    // Validaciones de URL de imagen
+    // Extensiones válidas y strings a evitar (placeholders)
     $validExt = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
     $skipSubstr = ['placeholder', 'default', 'noimage', 'missing', 'image-not-found'];
 
-    // Helper: extraer URLs de imágenes válidas desde una propiedad
+    // Extraer URLs de imagen desde una propiedad
     $extractImages = function ($p) use ($validExt, $skipSubstr) {
         $urls = [];
 
         if (!empty($p['picture']) && is_array($p['picture'])) {
-            foreach (['banner','large','url','original','full','thumbnail'] as $k) {
+            foreach (['banner','hero','large','url','original','full','thumbnail'] as $k) {
                 if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) {
                     $urls[] = $p['picture'][$k];
                 }
@@ -34,181 +34,85 @@
         }
 
         return collect($urls)
-            ->filter(fn ($u) => is_string($u) && $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
+            ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
             ->reject(function ($u) use ($skipSubstr) {
                 $lu = strtolower($u);
                 foreach ($skipSubstr as $s) {
-                    if (str_contains($lu, $s)) return true; // descarta placeholders
+                    if (str_contains($lu, $s)) return true;
                 }
                 return false;
             })
-            ->values()
-            ->all();
+            ->values();
     };
 
-    // 1) Solo considerar propiedades que tengan al menos una imagen válida
-    $propsWithImages = collect($featuredProperties ?? [])->filter(
-        fn ($p) => count($extractImages($p)) > 0
-    );
-
-    // 2) Construir la lista de candidatos SOLO con imágenes válidas
-    $candidates = $propsWithImages
-        ->flatMap(function ($p) use ($extractImages) {
-            $title = $p['title'] ?? 'Propiedad Chuspombo';
-            return collect($extractImages($p))->map(fn ($u) => ['url' => $u, 'alt' => $title]);
-        })
-        ->unique('url')
-        ->sortBy(function ($img) {
-            $u = $img['url'];
-            // Prioriza posibles banners/hero
-            return preg_match('/banner|hero|cover/i', $u) ? 0 : 1;
-        })
+    // Tomar SOLO imágenes provenientes de propiedades
+    $randomImages = collect($featuredProperties ?? [])
+        ->flatMap(fn ($p) => $extractImages($p))
+        ->unique()                                      // evitar duplicados
+        ->sortBy(fn ($u) => preg_match('/banner|hero|cover/i', $u) ? 0 : 1) // prioriza "banner/hero/cover"
+        ->take(40)                                      // limita candidatos
+        ->shuffle()                                     // aleatoriza
+        ->take($imagesToShow)                           // cantidad final
         ->values();
-
-    // 3) Selección final para el carrusel
-    $propertyImages = $candidates->take(20)->shuffle()->take($imagesToShow)->values();
-
-    // 4) Fallback a /public_html/images si no se consiguió nada
-    if ($propertyImages->isEmpty()) {
-        $fallback = collect();
-        for ($i = 1; $i <= 100; $i++) {
-            $path = base_path("public_html/images/CHUSPOMBO-APARTAMENTOS-{$i}.webp");
-            if (file_exists($path)) {
-                $fallback->push([
-                    'url' => asset("images/CHUSPOMBO-APARTAMENTOS-{$i}.webp"),
-                    'alt' => 'Chuspombo Apartamentos'
-                ]);
-            }
-        }
-        $propertyImages = $fallback->shuffle()->take($imagesToShow)->values();
-    }
 @endphp
 
-@if($propertyImages->count() > 0)
-<section class="position-relative">
-  <!-- Carrusel con ratio + cover (sin CSS custom) -->
-  <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
-    <div class="carousel-inner">
-      @foreach($propertyImages as $index => $img)
-        <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-          <div class="ratio ratio-16x9">
-            <img
-              src="{{ $img['url'] }}"
-              alt="{{ $img['alt'] ?? 'Banner' }}"
-              class="position-absolute top-0 start-0 w-100 h-100 d-block"
-              style="object-fit: cover;"  {{-- elimina bordes negros --}}
-              loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
-              decoding="async"
-              draggable="false">
-          </div>
+@if($randomImages->count() > 0)
+    <div class="carousel-container position-relative">
+        <!-- Carrusel -->
+        <div id="carouselProperties" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                @foreach($randomImages as $index => $image)
+                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                        <img src="{{ $image }}" class="d-block w-100 carousel-image" alt="Chuspombo Apartamentos">
+                    </div>
+                @endforeach
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselProperties" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Anterior</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselProperties" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Siguiente</span>
+            </button>
         </div>
-      @endforeach
-    </div>
 
-    @if($propertyImages->count() > 1)
-      <!-- Controles: solo en ≥ lg para evitar solapes en móvil -->
-      <button class="carousel-control-prev d-none d-lg-flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Anterior">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-      </button>
-      <button class="carousel-control-next d-none d-lg-flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Siguiente">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-      </button>
+        <!-- Contenido superpuesto -->
+        <div class="carousel-overlay text-center">
+            <h1 class="display-4 fw-bold text-white">
+                {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
+            </h1>
 
-      <!-- Indicadores (opcionales) -->
-      <div class="carousel-indicators d-none d-md-flex">
-        @foreach($propertyImages as $i => $img)
-          <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ $i }}" class="{{ $i === 0 ? 'active' : '' }}" aria-label="Slide {{ $i + 1 }}"></button>
-        @endforeach
-      </div>
-    @endif
-  </div>
+            <h2 class="lead text-white">
+                {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
+            </h2>
 
-  <!-- Overlay SOLO escritorio/tablet (≥ md) -->
-  <div class="d-none d-md-flex position-absolute top-0 start-0 w-100 h-100 align-items-center justify-content-center">
-    <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-25"></div>
-    <div class="container position-relative">
-      <div class="row justify-content-center">
-        <div class="col-11 col-lg-8 text-center text-white mb-3">
-          <h1 class="fw-bold display-5">{{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}</h1>
-          <p class="lead mb-4">{{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}</p>
-        </div>
-        <div class="col-12 col-lg-10">
-          <div class="card border-0 shadow-lg">
-            <div class="card-body p-3 p-md-4">
-              <form action="{{ route('properties.index') }}" method="GET">
-                <div class="row g-3 justify-content-center">
-                  <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label class="form-label fw-semibold d-block">Tipo de propiedad</label>
-                    <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
-                    <input type="hidden" name="property_type" value="apartment">
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label for="checkin" class="form-label fw-semibold">Fecha de llegada</label>
-                    <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label for="checkout" class="form-label fw-semibold">Fecha de salida</label>
-                    <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                  </div>
-                  <div class="col-xl-3 col-lg-12 col-md-6 d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                      <i class="fas fa-search me-2"></i>Buscar
-                    </button>
-                  </div>
+            <div class="search-box-overlay">
+                <div class="container">
+                    <div class="search-box p-4 shadow rounded">
+                        <form action="{{ route('properties.index') }}" method="GET">
+                            <div class="row g-3 justify-content-center">
+                                <div class="col-md-4">
+                                    <label for="checkin" class="form-label">Llegada</label>
+                                    <input type="date" class="form-control" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="checkout" class="form-label">Salida</label>
+                                    <input type="date" class="form-control" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-              </form>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Versión móvil: contenido debajo (no se sobresale) -->
-<section class="d-block d-md-none pt-3 pb-4">
-  <div class="container">
-    <div class="text-center mb-3">
-      <h1 class="fw-bold h3">{{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}</h1>
-      <p class="text-muted mb-3">{{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}</p>
-    </div>
-    <div class="card border-0 shadow-lg">
-      <div class="card-body p-3">
-        <form action="{{ route('properties.index') }}" method="GET">
-          <div class="row g-3 justify-content-center">
-            <div class="col-12">
-              <label class="form-label fw-semibold d-block">Tipo de propiedad</label>
-              <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
-              <input type="hidden" name="property_type" value="apartment">
-            </div>
-            <div class="col-6">
-              <label for="checkin_xs" class="form-label fw-semibold">Fecha de llegada</label>
-              <input type="date" class="form-control" id="checkin_xs" name="checkin" min="{{ date('Y-m-d') }}">
-            </div>
-            <div class="col-6">
-              <label for="checkout_xs" class="form-label fw-semibold">Fecha de salida</label>
-              <input type="date" class="form-control" id="checkout_xs" name="checkout" min="{{ date('Y-m-d') }}">
-            </div>
-            <div class="col-12 d-grid">
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-search me-2"></i>Buscar
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</section>
+        </div><!-- /overlay -->
+    </div><!-- /carousel-container -->
 @else
-  <div class="container py-5">
-    <div class="alert alert-warning text-center" role="alert">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      No se encontraron imágenes para el banner.
-    </div>
-  </div>
+    <p class="text-center text-danger">No se encontraron imágenes de Chuspombo Apartamentos.</p>
 @endif
-
 
 <!-- Featured Properties -->
 <section class="py-5">
@@ -223,7 +127,7 @@
                 </p>
             </div>
             <div class="col-md-4 text-md-end">
-                <a href="{{ route('properties.index', ['property_type' => 'apartment']) }}" class="btn btn-outline-primary">Ver todos</a>
+                <a href="{{ route('properties.index') }}" class="btn btn-outline-primary">Ver todos</a>
             </div>
         </div>
 
@@ -240,41 +144,38 @@
                 @endphp
 
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card h-100 property-card border-0 shadow-sm">
-                        <div class="position-relative">
-                            <img src="{{ $thumb }}" class="card-img-top" alt="{{ $property['title'] }}" style="height: 250px; object-fit: cover;">
-                        </div>
+                    <div class="card h-100 property-card">
+                        <img src="{{ $thumb }}" class="card-img-top" alt="{{ $property['title'] }}">
                         <div class="card-body">
                             <h5 class="card-title">{{ $property['title'] }}</h5>
-                            <p class="card-text text-muted mb-3">
+                            <p class="card-text text-muted">
                                 <i class="fas fa-map-marker-alt me-1"></i>
                                 {{ $location !== '' ? $location : 'Galicia, España' }}
                             </p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-muted">
+                                <div>
                                     <i class="fas fa-bed me-1"></i> {{ $bedrooms }}
                                     <i class="fas fa-bath ms-2 me-1"></i> {{ $bathrooms }}
                                 </div>
-                                <div class="fw-bold text-primary">
+                                <strong>
                                     @if(is_numeric($price))
-                                        €{{ number_format($price, 0, ',', '.') }}/noche
+                                        €{{ $price }}/noche
                                     @else
                                         Consultar
                                     @endif
-                                </div>
+                                </strong>
                             </div>
                         </div>
                         <div class="card-footer bg-white border-top-0">
-                            <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-outline-primary w-100">Ver disponibilidad</a>
+                            {{-- Vamos directo al detalle (show) para el calendario/booking por apartamento --}}
+                            <a href="{{ route('properties.show', $property['_id']) }}"
+                               class="btn btn-outline-primary w-100">Ver disponibilidad</a>
                         </div>
                     </div>
                 </div>
             @empty
                 <div class="col-12 text-center py-5">
-                    <div class="text-muted">
-                        <i class="fas fa-home fa-3x mb-3"></i>
-                        <p>No hay propiedades disponibles en este momento.</p>
-                    </div>
+                    <p>No hay propiedades disponibles en este momento.</p>
                 </div>
             @endforelse
         </div>
@@ -282,7 +183,7 @@
 </section>
 
 <!-- Why Choose Us -->
-<section class="py-5 bg-light">
+<section class="py-5" style="background-color: #f8f9fa; background-image: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
     <div class="container">
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
@@ -298,7 +199,7 @@
         <div class="row g-4">
             @for ($i = 1; $i <= 3; $i++)
                 <div class="col-lg-4">
-                    <div class="card h-100 border-0 shadow-sm">
+                    <div class="benefit-card h-100 border-0 shadow-sm">
                         <div class="card-body text-center p-4">
                             @php
                                 $imageField = 'card1_image_' . $i;
@@ -319,10 +220,13 @@
                             @endphp
 
                             @if (!empty($pagina->$imageField))
-                                <img src="{{ asset('images/' . $pagina->$imageField) }}" alt="Imagen tarjeta {{ $i }}"
-                                     class="mb-4 img-fluid" style="max-height: 120px; object-fit: contain;">
+                                <img
+                                    src="{{ asset('images/' . $pagina->$imageField) }}"
+                                    alt="Imagen tarjeta {{ $i }}"
+                                    class="mb-4 img-fluid"
+                                    style="max-height: 120px; object-fit: contain; width: 100%; max-width: 100%;">
                             @else
-                                <div class="feature-icon bg-primary text-white rounded-circle mb-4 d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <div class="feature-icon text-white rounded-circle mb-4">
                                     @if ($i === 1)
                                         <i class="fas fa-map-marker-alt fa-2x"></i>
                                     @elseif ($i === 2)
@@ -333,8 +237,12 @@
                                 </div>
                             @endif
 
-                            <h4 class="card-title mb-3">{{ $pagina->$titleField ?? $defaultTitles[$i] }}</h4>
-                            <p class="text-muted">{{ $pagina->$contentField ?? $defaultContent[$i] }}</p>
+                            <h4 class="card-title">
+                                {{ $pagina->$titleField ?? $defaultTitles[$i] }}
+                            </h4>
+                            <p class="text-muted">
+                                {{ $pagina->$contentField ?? $defaultContent[$i] }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -345,35 +253,35 @@
 
 <!-- Sección de Propiedad Destacada -->
 @if(count($featuredProperties) > 0)
-    @php $property = $featuredProperties[0]; @endphp
-    <section class="py-5">
+    @php
+        $property = $featuredProperties[0]; // Primera propiedad destacada
+    @endphp
+
+    <section class="featured-property py-5">
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-6 mb-4 mb-md-0">
-                    <p class="text-muted mb-2">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
-                    <div class="mb-3">
-                        @php $rating = $property['rating'] ?? 5; @endphp
-                        @for ($i = 0; $i < $rating; $i++) 
-                            <i class="fas fa-star text-warning"></i>
+                <!-- Columna de texto -->
+                <div class="col-md-6 text-section">
+                    <p class="text-muted">{{ $pagina->p_lugar_favorito ?? 'La favorita de nuestros huéspedes en Galicia, España.' }}</p>
+                    <div class="stars">
+                        @php
+                            $rating = $property['rating'] ?? 5;
+                        @endphp
+                        @for ($i = 0; $i < $rating; $i++)
+                            ★
                         @endfor
                     </div>
-                    <h2 class="fw-bold mb-4">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
-                    <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary btn-lg">Ver disponibilidad</a>
+                    <h2 class="property-title">{{ $property['title'] ?? 'Propiedad Premium' }}</h2>
+                    <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary">Ver disponibilidad</a>
                 </div>
-                <div class="col-md-6">
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}" 
-                                 class="img-fluid rounded shadow" 
-                                 alt="Interior propiedad"
-                                 style="height: 200px; width: 100%; object-fit: cover;">
-                        </div>
-                        <div class="col-6">
-                            <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}" 
-                                 class="img-fluid rounded shadow" 
-                                 alt="Vista exterior"
-                                 style="height: 200px; width: 100%; object-fit: cover;">
-                        </div>
+
+                <!-- Columna de imágenes -->
+                <div class="col-md-6 images-section">
+                    <div class="image-wrapper">
+                        <img src="{{ $featuredImages[0] ?? asset('images/property-placeholder.jpg') }}"
+                             class="small-image" alt="Interior propiedad">
+                        <img src="{{ $featuredImages[1] ?? asset('images/property-placeholder.jpg') }}"
+                             class="large-image" alt="Vista exterior">
                     </div>
                 </div>
             </div>
@@ -386,24 +294,30 @@
     <div class="container">
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
-                <h2 class="fw-bold">{{ $pagina->h2_confiar ?? '¿Por qué elegir Chuspombo?' }}</h2>
-                <p class="text-muted">{{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en Galicia, España.' }}</p>
+                <h2 class="fw-bold">
+                    {{ $pagina->h2_confiar ?? '¿Por qué elegir Chuspombo?' }}
+                </h2>
+                <p class="text-muted">
+                    {{ $pagina->p_confiar ?? 'Valores que nos convierten en tu mejor opción en Galicia, España.' }}
+                </p>
             </div>
         </div>
 
-        <div class="row g-4">
+        <div class="row g-4 text-center">
             @for ($i = 4; $i <= 7; $i++)
                 <div class="col-lg-3 col-md-6">
                     @php
                         $title = "card2_title_$i";
                         $content = "card2_content_$i";
                         $image = "card2_image_$i";
+
                         $defaultTitles2 = [
                             4 => 'Limpieza Impecable',
                             5 => 'Atención Personalizada',
                             6 => 'Ubicación Estratégica',
                             7 => 'Precios Justos'
                         ];
+
                         $defaultContent2 = [
                             4 => 'Mantenemos altos estándares de limpieza y desinfección en todas nuestras propiedades.',
                             5 => 'Atención ágil y dedicada para que tu estancia sea memorable.',
@@ -412,35 +326,33 @@
                         ];
                     @endphp
 
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="card-body text-center p-4">
-                            @if (!empty($pagina->{$image}))
-                                <img src="{{ asset('images/' . $pagina->{$image}) }}" alt="Imagen tarjeta {{ $i }}"
-                                     style="max-height: 100px; object-fit: contain;" class="mb-4">
-                            @else
-                                <div class="feature-icon rounded-circle text-white mb-4 bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                                    @switch($i)
-                                        @case(4) <i class="fas fa-broom fa-2x"></i> @break
-                                        @case(5) <i class="fas fa-concierge-bell fa-2x"></i> @break
-                                        @case(6) <i class="fas fa-map-marked-alt fa-2x"></i> @break
-                                        @case(7) <i class="fas fa-euro-sign fa-2x"></i> @break
-                                    @endswitch
-                                </div>
-                            @endif
+                    <div class="feature-card h-100 p-4 border-0 shadow-sm bg-white rounded">
+                        @if (!empty($pagina->{$image}))
+                            <img src="{{ asset('images/' . $pagina->{$image}) }}" alt="Imagen tarjeta {{ $i }}"
+                                 style="max-height: 100px; object-fit: contain; width: 100%; max-width: 100%;" class="mb-4">
+                        @else
+                            <div class="feature-icon rounded-circle text-white mb-4 bg-primary d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                @switch($i)
+                                    @case(4) <i class="fas fa-broom fa-2x"></i> @break
+                                    @case(5) <i class="fas fa-concierge-bell fa-2x"></i> @break
+                                    @case(6) <i class="fas fa-map-marked-alt fa-2x"></i> @break
+                                    @case(7) <i class="fas fa-euro-sign fa-2x"></i> @break
+                                @endswitch
+                            </div>
+                        @endif
 
-                            <h5 class="fw-bold mb-3">{{ $pagina->{$title} ?? $defaultTitles2[$i] }}</h5>
-                            <p class="text-muted">{{ $pagina->{$content} ?? $defaultContent2[$i] }}</p>
-                        </div>
+                        <h5 class="feature-title">{{ $pagina->{$title} ?? $defaultTitles2[$i] }}</h5>
+                        <p class="feature-text text-muted">{{ $pagina->{$content} ?? $defaultContent2[$i] }}</p>
                     </div>
                 </div>
             @endfor
         </div>
 
         <div class="row text-center mt-5">
-            <div class="col-12">
-                <a href="{{ route('about') }}" class="btn btn-outline-primary btn-lg">
-                    Descubre más sobre Galicia
-                    <i class="fas fa-arrow-right ms-2"></i>
+            <div class="col-lg-12">
+                <a href="{{ route('about') }}" class="animated-button">
+                    <span>Descubre más sobre Galicia</span>
+                    <span></span>
                 </a>
             </div>
         </div>
