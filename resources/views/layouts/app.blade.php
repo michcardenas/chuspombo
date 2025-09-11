@@ -16,7 +16,7 @@
     @endif
 
     <!-- Favicon -->
-    <link rel="icon" href="{{ asset('images/Hostella_Avatar.png') }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('images/Hostella_logo_horizontal.png') }}" type="image/x-icon">
 
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
