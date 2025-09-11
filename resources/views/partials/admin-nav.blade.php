@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
     <div class="container">
         <a class="navbar-brand" href="{{ route('admin.dashboard') }}">
-            <img style='height: 6rem;' src="{{ asset('images/Hostella_logo_horizontal.png') }}" alt="Hostella Admin">
+            <img style='height: 6rem;' src="{{ asset('images/Hostella_Avatar.png') }}" alt="Chuspombo Admin">
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar" aria-controls="adminNavbar" aria-expanded="false" aria-label="Toggle navigation">

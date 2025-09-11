@@ -24,7 +24,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-11">
             <div class="card shadow-lg border-0">
-                <div class="card-header text-white" style="background-color: #02006a;">
+                <div class="card-header text-white" style="background-color: #D4AF37;">
                     <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Listado de Pagos Recibidos</h5>
                 </div>
 

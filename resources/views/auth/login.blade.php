@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Iniciar sesión | Hostella</title>
+    <title>Iniciar sesión | Chuspombo</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}"> <!-- si tienes un CSS global -->
     <link rel="icon" href="{{ asset('images/Hostella_Avatar.png') }}" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">

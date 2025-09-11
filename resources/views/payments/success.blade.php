@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Pago Exitoso - Hostella')
+@section('title', 'Pago Exitoso - Chuspombo')
 
 @section('content')
 <section class="py-5 text-center" style="min-height: 70vh;">

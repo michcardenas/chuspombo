@@ -45,9 +45,9 @@
             </div>
         </div>
 
-        {{-- Sección Propiedad con Hostella --}}
+        {{-- Sección Propiedad con Chuspombo --}}
         <div class="card mb-4">
-            <div class="card-header">Sección: Propiedad con Hostella</div>
+            <div class="card-header">Sección: Propiedad con Chuspombo</div>
             <div class="card-body">
                 <div class="mb-3">
                     <label for="h2_hostella" class="form-label">Título h2</label>
@@ -107,9 +107,9 @@
             </div>
         </div>
 
-        {{-- Confianza en Hostella --}}
+        {{-- Confianza en Chuspombo --}}
         <div class="card mb-4">
-            <div class="card-header">¿Por qué confían en Hostella?</div>
+            <div class="card-header">¿Por qué confían en Chuspombo?</div>
             <div class="card-body">
                 <div class="mb-3">
                     <label for="h2_confiar" class="form-label">Título h2</label>

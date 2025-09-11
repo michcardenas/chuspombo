@@ -4,7 +4,7 @@
         <!-- Logo -->
         <a class="navbar-brand d-flex align-items-center" href="{{ route('home') }}">
             <img src="{{ asset('images/' . ($pagina->logo ?? 'Hostella_logo_horizontal.png')) }}" 
-                 alt="Hostella" class="logo" style="height: 50px; object-fit: contain;">
+                 alt="Chuspombo" class="logo" style="height: 50px; object-fit: contain;">
         </a>
 
         <!-- Botón móvil -->

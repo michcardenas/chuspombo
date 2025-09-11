@@ -6,7 +6,7 @@
 
 @section('content')
 
-{{-- ====== Colores Hostella (override mínimo de Bootstrap) ====== --}}
+
 <style>
 :root{
   --hostella-primary:#1a1a1a;

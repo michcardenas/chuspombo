@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Panel Admin | Hostella')</title>
-    <meta name="description" content="@yield('meta_description', 'Hostella Admin Dashboard')">
+    <title>@yield('title', 'Panel Admin | Chuspombo')</title>
+    <meta name="description" content="@yield('meta_description', 'Chuspombo Admin Dashboard')">
 
     <!-- Favicon -->
     <link rel="icon" href="{{ asset('images/Hostella_Avatar.png') }}" type="image/x-icon">
