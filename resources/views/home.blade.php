@@ -37,6 +37,41 @@
   color:var(--hostella-dark) !important;
 }
 a, .text-primary{ color:var(--hostella-primary) !important; }
+/* Compresión SOLO en móviles */
+@media (max-width: 576px){
+  /* Titulares del hero */
+  .carousel-overlay h1{
+    font-size: 1.6rem;      /* antes muy grande */
+    line-height: 1.2;
+    margin-bottom: .5rem;
+  }
+  .carousel-overlay h2{
+    font-size: 1rem;
+    line-height: 1.35;
+    margin-bottom: .75rem;
+    opacity: .95;
+  }
+
+  /* Caja de búsqueda (filtro) */
+  .search-box{
+    padding: 1rem !important;        /* menos padding */
+    border-radius: .6rem;
+  }
+  .search-box .form-label{
+    margin-bottom: .25rem;
+    font-size: .9rem;
+  }
+  .search-box .form-control,
+  .search-box .form-select{
+    padding: .375rem .5rem;           /* inputs más compactos */
+    font-size: .9rem;
+  }
+  .search-box .btn{
+    padding: .5rem .75rem;            /* botón más bajo */
+    font-size: .95rem;
+  }
+}
+
 </style>
 
 <!-- Hero Section -->
