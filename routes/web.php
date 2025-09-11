@@ -52,7 +52,9 @@ Route::post('/book/{propertyId}', [ReservationController::class, 'store'])->name
 
 // about
 Route::get('/nosotros', [App\Http\Controllers\AboutController::class, 'index'])->name('about');
+Route::get('/contacto', [App\Http\Controllers\AboutController::class, 'contact'])->name('contact');
 
+Route::post('/landing/contact', [App\Http\Controllers\AboutController::class, 'contactSubmit'])->name('landing.contact');
 
 
 
@@ -74,6 +76,12 @@ Route::middleware('auth')->get('/admin/pagina/propiedades', [PaginaController::c
 
 Route::middleware('auth')->get('/admin/pagina/propiedades/edit', [PaginaController::class, 'editPropiedades'])->name('admin.pagina.propiedades.edit');
 Route::middleware('auth')->post('/admin/pagina/propiedades/update', [PaginaController::class, 'updatePropiedades'])->name('admin.pagina.propiedades.update');
+
+Route::get('/admin/pagina/contacto/edit', [\App\Http\Controllers\Admin\PaginaController::class, 'editContacto'])
+    ->name('admin.pagina.contacto.edit');
+
+Route::post('/admin/pagina/contacto', [\App\Http\Controllers\Admin\PaginaController::class, 'updateContacto'])
+    ->name('admin.pagina.contacto.update');
 
 Route::middleware(['auth'])->prefix('admin/apartments')->name('admin.apartments.')->group(function () {
     Route::get('{apartment}/edit', [SmoobuApartmentController::class, 'edit'])->name('edit');
