@@ -7,82 +7,105 @@
 @section('content')
 <!-- Hero Section -->
 @php
+    use Illuminate\Support\Arr;
+    use Illuminate\Support\Facades\DB;
+
     $imagesPerProperty = 3;
 
     // Extensiones válidas y strings a evitar (placeholders)
-    $validExt = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
+    $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
     $skipSubstr = ['placeholder','default','noimage','missing','image-not-found'];
 
-    // Extraer y ordenar imágenes desde una propiedad
-    $extractImages = function ($p) use ($validExt, $skipSubstr) {
-        $urls = [];
+    // Ranking: banner/hero/cover/main/original/large primero; thumbs al final
+    $priorityRank = function (string $u) {
+        if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
+        if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
+        return 1;
+    };
 
-        // picture puede ser array o string
-        if (!empty($p['picture'])) {
-            if (is_array($p['picture'])) {
-                foreach (['banner','hero','large','url','original','full','thumbnail'] as $k) {
-                    if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) {
-                        $urls[] = $p['picture'][$k];
-                    }
-                }
-            } elseif (is_string($p['picture'])) {
-                $urls[] = $p['picture'];
-            }
-        }
+    // Extraer URLs con extensión desde cualquier nivel del array de la propiedad
+    $extractFromArray = function ($p) use ($validExt, $skipSubstr, $priorityRank) {
+        $flat = collect(Arr::dot((array) $p))
+            ->filter(fn ($v) => is_string($v))
+            ->map(fn ($v) => trim($v))
+            ->values();
 
-        // listas de imágenes
-        foreach (['pictures','gallery','images'] as $listKey) {
-            if (!empty($p[$listKey]) && is_array($p[$listKey])) {
-                foreach ($p[$listKey] as $u) {
-                    if (is_string($u)) $urls[] = $u;
-                }
-            }
-        }
-
-        // Filtrar válidas, quitar placeholders y ordenar por prioridad (banner/hero/cover primero)
-        return collect($urls)
-            ->filter(fn ($u) => is_string($u) && $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
+        return $flat
+            ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
             ->reject(function ($u) use ($skipSubstr) {
                 $lu = strtolower($u);
                 foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
                 return false;
             })
             ->unique()
-            ->sortBy(fn ($u) => preg_match('/banner|hero|cover/i', $u) ? 0 : 1)
+            ->sortBy(fn ($u) => $priorityRank($u))
             ->values();
     };
 
-    // Tomar HASTA 3 imágenes por propiedad; omitir propiedades sin fotos
+    // IDs de propiedades para consultar galería en DB
+    $apartmentIds = collect($featuredProperties ?? [])->pluck('_id')->filter()->unique()->values();
+
+    // Galería por propiedad desde DB
+    $galleryByApartment = collect();
+    if ($apartmentIds->isNotEmpty()) {
+        $rows = DB::table('smoobu_apartment_images')
+            ->select('apartment_id', 'path', 'sort_order', 'is_active')
+            ->whereIn('apartment_id', $apartmentIds)
+            ->where('is_active', 1)
+            ->orderBy('apartment_id')
+            ->orderBy('sort_order')
+            ->get();
+
+        $galleryByApartment = collect($rows)->groupBy('apartment_id')->map(function ($rows) use ($validExt, $skipSubstr) {
+            return collect($rows)->pluck('path')->map(function ($p) {
+                $p = is_string($p) ? trim($p) : '';
+                if ($p === '') return null;
+                // Si es relativo, conviértelo a URL absoluta
+                return str_starts_with($p, 'http') ? $p : asset($p);
+            })
+            ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)(\?.*)?$/i', $u))
+            ->reject(function ($u) use ($skipSubstr) {
+                $lu = strtolower($u);
+                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+                return false;
+            })
+            ->values();
+        });
+    }
+
+    // Hasta 3 imágenes por propiedad (array + DB). Omitir propiedades sin fotos.
     $randomImages = collect($featuredProperties ?? [])
-        ->flatMap(function ($p) use ($extractImages, $imagesPerProperty) {
-            $imgs = $extractImages($p);
-            $picked = $imgs->take($imagesPerProperty)->values();
+        ->flatMap(function ($p) use ($extractFromArray, $galleryByApartment, $imagesPerProperty, $priorityRank) {
+            $pid     = $p['_id'] ?? null;
+            $arrImgs = $extractFromArray($p);
+            $dbImgs  = ($pid !== null && $galleryByApartment->has($pid)) ? $galleryByApartment->get($pid) : collect();
 
-            if ($picked->isNotEmpty()) {
-                logger()->info('[Carousel] Imágenes seleccionadas por propiedad', [
-                    'property_id'     => $p['_id'] ?? null,
-                    'title'           => $p['title'] ?? null,
-                    'count_total'     => $imgs->count(),
-                    'count_selected'  => $picked->count(),
-                    'selected_urls'   => $picked->all(),
-                ]);
-            } else {
-                logger()->info('[Carousel] Propiedad sin imágenes válidas', [
-                    'property_id' => $p['_id'] ?? null,
-                    'title'       => $p['title'] ?? null,
-                ]);
-            }
+            $merged = $arrImgs
+                ->merge($dbImgs)
+                ->unique()
+                ->sortBy(fn ($u) => $priorityRank($u))
+                ->take($imagesPerProperty)
+                ->values();
 
-            return $picked;
+            logger()->info('[Carousel] Merge imágenes propiedad', [
+                'property_id' => $pid,
+                'title'       => $p['title'] ?? null,
+                'from_array'  => $arrImgs->count(),
+                'from_db'     => $dbImgs->count(),
+                'selected'    => $merged->count(),
+                'urls'        => $merged->all(),
+            ]);
+
+            return $merged;
         })
         ->unique()
         ->values();
 
     logger()->info('[Carousel] Total imágenes para banner', [
         'total' => $randomImages->count(),
-        'urls'  => $randomImages->all(),
     ]);
 @endphp
+
 
 
 @if($randomImages->count() > 0)
