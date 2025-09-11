@@ -85,68 +85,69 @@
 @endphp
 
 @if($propertyImages->count() > 0)
-<section class="relative">
-  <!-- Carrusel Bootstrap con <img> responsive (sin CSS propio) -->
+<section class="position-relative">
+  <!-- Carrusel con ratio + cover (sin CSS custom) -->
   <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
     <div class="carousel-inner">
       @foreach($propertyImages as $index => $img)
         <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-          <img
-            src="{{ $img['url'] }}"
-            alt="{{ $img['alt'] ?? 'Banner' }}"
-            class="block w-full h-[58vh] md:h-[72vh] min-h-[360px] md:min-h-[480px] max-h-[820px] 
-                   object-contain md:object-cover bg-slate-900"
-            loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
-            decoding="async"
-            draggable="false">
+          <div class="ratio ratio-16x9">
+            <img
+              src="{{ $img['url'] }}"
+              alt="{{ $img['alt'] ?? 'Banner' }}"
+              class="position-absolute top-0 start-0 w-100 h-100 d-block"
+              style="object-fit: cover;"  {{-- elimina bordes negros --}}
+              loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
+              decoding="async"
+              draggable="false">
+          </div>
         </div>
       @endforeach
     </div>
 
     @if($propertyImages->count() > 1)
-      <!-- Controles: ocultos en móvil para evitar solapes -->
-      <button class="carousel-control-prev hidden lg:flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Anterior">
+      <!-- Controles: solo en ≥ lg para evitar solapes en móvil -->
+      <button class="carousel-control-prev d-none d-lg-flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Anterior">
         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
       </button>
-      <button class="carousel-control-next hidden lg:flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Siguiente">
+      <button class="carousel-control-next d-none d-lg-flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Siguiente">
         <span class="carousel-control-next-icon" aria-hidden="true"></span>
       </button>
 
-      <!-- Indicadores opcionales -->
-      <div class="carousel-indicators hidden md:flex">
+      <!-- Indicadores (opcionales) -->
+      <div class="carousel-indicators d-none d-md-flex">
         @foreach($propertyImages as $i => $img)
-          <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ $i }}"
-                  class="{{ $i === 0 ? 'active' : '' }}" aria-label="Slide {{ $i + 1 }}"></button>
+          <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ $i }}" class="{{ $i === 0 ? 'active' : '' }}" aria-label="Slide {{ $i + 1 }}"></button>
         @endforeach
       </div>
     @endif
   </div>
 
-  <!-- Capa oscura y overlay (solo utilidades Tailwind) -->
-  <div class="pointer-events-none absolute inset-0">
-    <div class="absolute inset-0 bg-gradient-to-b from-black/40 to-black/20"></div>
-    <div class="relative z-10 flex h-full w-full items-center justify-center px-4 md:px-6 lg:px-8">
-      <div class="mx-auto w-full max-w-5xl text-center text-white">
-        <h1 class="fw-bold text-3xl md:text-5xl mb-2">{{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}</h1>
-        <p class="lead mb-3 md:mb-5">{{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}</p>
-
-        <!-- Tarjeta buscador: vuelve a ser clickeable -->
-        <div class="pointer-events-auto">
-          <div class="shadow-lg rounded-2xl bg-white/95 backdrop-blur">
-            <div class="p-4 md:p-6">
+  <!-- Overlay SOLO escritorio/tablet (≥ md) -->
+  <div class="d-none d-md-flex position-absolute top-0 start-0 w-100 h-100 align-items-center justify-content-center">
+    <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-25"></div>
+    <div class="container position-relative">
+      <div class="row justify-content-center">
+        <div class="col-11 col-lg-8 text-center text-white mb-3">
+          <h1 class="fw-bold display-5">{{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}</h1>
+          <p class="lead mb-4">{{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}</p>
+        </div>
+        <div class="col-12 col-lg-10">
+          <div class="card border-0 shadow-lg">
+            <div class="card-body p-3 p-md-4">
               <form action="{{ route('properties.index') }}" method="GET">
                 <div class="row g-3 justify-content-center">
                   <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label class="form-label fw-semibold d-block text-dark">Tipo de propiedad</label>
+                    <label class="form-label fw-semibold d-block">Tipo de propiedad</label>
                     <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
                     <input type="hidden" name="property_type" value="apartment">
                   </div>
                   <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
+                    <label for="checkin" class="form-label fw-semibold">Fecha de llegada</label>
                     <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
                   </div>
                   <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label for="checkout" class="form-label fw-semibold text-dark">Fecha de salida</label>
+                    <label for="checkout" class="form-label fw-semibold">Fecha de salida</label>
                     <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
                   </div>
                   <div class="col-xl-3 col-lg-12 col-md-6 d-grid">
@@ -159,7 +160,42 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
 
+<!-- Versión móvil: contenido debajo (no se sobresale) -->
+<section class="d-block d-md-none pt-3 pb-4">
+  <div class="container">
+    <div class="text-center mb-3">
+      <h1 class="fw-bold h3">{{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}</h1>
+      <p class="text-muted mb-3">{{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}</p>
+    </div>
+    <div class="card border-0 shadow-lg">
+      <div class="card-body p-3">
+        <form action="{{ route('properties.index') }}" method="GET">
+          <div class="row g-3 justify-content-center">
+            <div class="col-12">
+              <label class="form-label fw-semibold d-block">Tipo de propiedad</label>
+              <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
+              <input type="hidden" name="property_type" value="apartment">
+            </div>
+            <div class="col-6">
+              <label for="checkin_xs" class="form-label fw-semibold">Fecha de llegada</label>
+              <input type="date" class="form-control" id="checkin_xs" name="checkin" min="{{ date('Y-m-d') }}">
+            </div>
+            <div class="col-6">
+              <label for="checkout_xs" class="form-label fw-semibold">Fecha de salida</label>
+              <input type="date" class="form-control" id="checkout_xs" name="checkout" min="{{ date('Y-m-d') }}">
+            </div>
+            <div class="col-12 d-grid">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search me-2"></i>Buscar
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>
