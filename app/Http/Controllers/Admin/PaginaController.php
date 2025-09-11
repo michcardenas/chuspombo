@@ -33,7 +33,7 @@ class PaginaController extends Controller
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
             $filename = time() . '_logo.' . $file->getClientOriginalExtension();
-            $file->move('/home/u274930358/domains/hostella.co/public_html/images/', $filename);
+            $file->move('/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/', $filename);
             $pagina->logo = $filename;
         }
     
@@ -42,7 +42,7 @@ class PaginaController extends Controller
             if ($request->hasFile("card1_image_$i")) {
                 $file = $request->file("card1_image_$i");
                 $filename = time() . "_card1_$i." . $file->getClientOriginalExtension();
-                $file->move('/home/u274930358/domains/hostella.co/public_html/images/', $filename);
+                $file->move('/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/', $filename);
                 $pagina->{"card1_image_$i"} = $filename;
             }
         }
@@ -52,7 +52,7 @@ class PaginaController extends Controller
             if ($request->hasFile("card2_image_$i")) {
                 $file = $request->file("card2_image_$i");
                 $filename = time() . "_card2_$i." . $file->getClientOriginalExtension();
-                $file->move('/home/u274930358/domains/hostella.co/public_html/images/', $filename);
+                $file->move('/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/', $filename);
                 $pagina->{"card2_image_$i"} = $filename;
             }
         }
@@ -122,7 +122,7 @@ class PaginaController extends Controller
         if ($request->hasFile('card2_image_4')) {
             $file = $request->file('card2_image_4');
             $filename = time() . '_card2_4.' . $file->getClientOriginalExtension();
-            $file->move('/home/u274930358/domains/hostella.co/public_html/images/', $filename); // Guarda en /public/images
+            $file->move('/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/', $filename); // Guarda en /public/images
             $paginaData['card2_image_4'] = $filename; // Solo el nombre se guarda en la base de datos
         }
         
