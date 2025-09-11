@@ -12,7 +12,7 @@ class AboutController extends Controller
     protected $smoobu;
 
     // Ajusta el tipo del servicio a tu clase real (p.ej. \App\Services\SmoobuApi)
-    public function __construct(\App\Services\Smoobu $smoobu)
+    public function __construct(\App\Services\SmoobuClient $smoobu)
     {
         $this->smoobu = $smoobu;
     }
