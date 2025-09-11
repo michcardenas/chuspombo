@@ -86,123 +86,145 @@
 
 
 @if($propertyImages->count() > 0)
-    <style>
-        /* Hero Banner Styles */
-        .hero-section {
-            height: 80vh;
-            min-height: 500px;
-            max-height: 800px;
-            position: relative;
-            overflow: hidden;
-        }
+  <style>
+    :root{ --vh: 1vh; } /* fix para móviles */
 
-        .hero-section .carousel,
-        .hero-section .carousel-inner,
-        .hero-section .carousel-item {
-            height: 100%;
-        }
+    /* Hero Banner Styles */
+    .hero-section {
+        height: calc(var(--vh) * 80);
+        min-height: 500px;
+        max-height: 800px;
+        position: relative;
+        overflow: hidden;
+    }
 
-        .hero-section .carousel-item {
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            width: 100%;
-            height: 100%;
-        }
+    .hero-section .carousel,
+    .hero-section .carousel-inner,
+    .hero-section .carousel-item { height: 100%; }
 
-        /* Overlay por encima visualmente, pero sin bloquear clics */
-        .hero-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.2));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-            pointer-events: none; /* no atrapa clics */
-        }
-        .hero-content { 
-            text-align: center; 
-            color: white; 
-            max-width: 1000px; 
-            padding: 0 20px; 
-        }
-        .search-card { 
-            pointer-events: auto; /* el filtro sí es clickeable */
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 2rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            max-width: 900px;
-            margin: 0 auto;
-        }
+    .hero-section .carousel-item {
+        background-size: cover;          /* desktop/tablet: look hero */
+        background-position: center;
+        background-repeat: no-repeat;
+        width: 100%;
+        height: 100%;
+    }
 
-        .hero-title {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        .hero-subtitle {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
+    /* Overlay por encima visualmente, pero sin bloquear clics */
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        pointer-events: none; /* no atrapa clics */
+    }
+    .hero-content {
+        text-align: center;
+        color: white;
+        max-width: 1000px;
+        padding: 0 20px;
+    }
+    .search-card {
+        pointer-events: auto; /* el filtro sí es clickeable */
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        max-width: 900px;
+        margin: 0 auto;
+    }
 
-        /* Controles del carrusel: centrados y lejos del filtro */
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    .hero-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    /* Controles del carrusel: centrados y lejos del filtro */
+    .carousel-control-prev,
+    .carousel-control-next {
+        z-index: 5;
+        width: 5%;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    .carousel-control-prev:focus,
+    .carousel-control-next:focus,
+    .carousel-control-prev:hover,
+    .carousel-control-next:hover {
+        outline: none;
+        box-shadow: none;
+    }
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        background-color: rgba(0,0,0,0.5);
+        border-radius: 50%;
+        padding: 20px;
+    }
+
+    /* Quitar bordes azules / focus */
+    .carousel:focus,
+    .carousel *:focus,
+    .carousel-control-prev:focus,
+    .carousel-control-next:focus,
+    .hero-section button:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+        .search-card { max-width: 100%; }
+    }
+    @media (max-width: 992px) {
+        /* Evitar solapamiento: ocultar controles en tablets y abajo */
         .carousel-control-prev,
-        .carousel-control-next {
-            z-index: 5;
-            width: 5%;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .carousel-control-prev:focus,
-        .carousel-control-next:focus,
-        .carousel-control-prev:hover,
-        .carousel-control-next:hover {
-            outline: none;
-            box-shadow: none;
-        }
-        .carousel-control-prev-icon,
-        .carousel-control-next-icon {
-            background-color: rgba(0,0,0,0.5);
-            border-radius: 50%;
-            padding: 20px;
+        .carousel-control-next { display: none; }
+        .hero-title { font-size: 2.5rem; }
+        .hero-subtitle { font-size: 1.1rem; }
+    }
+
+    /* ===== Móviles (evitar recortes y saltos) ===== */
+    @media (max-width: 576px) {
+        /* El alto depende del ratio; no uses 100vh mobile */
+        .hero-section {
+            height: auto;
+            min-height: 0;
         }
 
-        /* Quitar bordes azules / focus */
-        .carousel:focus,
-        .carousel *:focus,
-        .carousel-control-prev:focus,
-        .carousel-control-next:focus,
-        .hero-section button:focus {
-            outline: none !important;
-            box-shadow: none !important;
+        /* Caja con relación 16:9 para el carrusel */
+        #heroCarousel,
+        .hero-section .carousel-inner {
+            width: 100%;
+            aspect-ratio: 16 / 9;       /* define alto automáticamente */
         }
 
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .search-card { max-width: 100%; }
+        /* Mostrar la imagen COMPLETA sin recortar */
+        .hero-section .carousel-item {
+            background-size: contain;   /* <- clave: no recorta */
+            background-position: center;
+            background-color: #0b1520;  /* color de fondo detrás de la imagen */
         }
-        @media (max-width: 992px) {
-            /* Evitar solapamiento: ocultar controles en tablets y abajo */
-            .carousel-control-prev,
-            .carousel-control-next { display: none; }
+
+        .search-card {
+            padding: 1rem;
+            margin: .5rem 10px 0;
         }
-        @media (max-width: 768px) {
-            .hero-section { height: 60vh; min-height: 400px; }
-            .hero-title { font-size: 2.5rem; }
-            .hero-subtitle { font-size: 1.1rem; margin-bottom: 1.5rem; }
-            .search-card { padding: 1.5rem; margin: 0 15px; }
-        }
-        @media (max-width: 576px) {
-            .hero-title { font-size: 2rem; margin-bottom: 0.5rem; }
-            .hero-subtitle { margin-bottom: 1rem; }
-            .search-card { padding: 1rem; margin: 0 10px; }
-        }
-    </style>
+
+        .hero-title { font-size: 2rem; margin-bottom: .5rem; }
+        .hero-subtitle { margin-bottom: 1rem; }
+    }
+</style>
 
     <section class="hero-section">
         <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
@@ -510,4 +532,16 @@
         </div>
     </div>
 </section>
+
+<script>
+  (function () {
+    const setVh = () => {
+      document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+    };
+    setVh();
+    window.addEventListener('resize', setVh);
+  })();
+</script>
+
+
 @endsection
