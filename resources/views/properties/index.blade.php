@@ -5,7 +5,9 @@
 @section('content')
 
 @php
-    // Generar imagen random para el banner
+    use Illuminate\Support\Arr;
+
+    // ===== Banner (igual que tenías, con fallback) =====
     $totalImages = 100;
     $randomNumber = rand(1, $totalImages);
 
@@ -26,10 +28,87 @@
                     break;
                 }
             }
-            // Fallback
             $bannerImage = $foundImage ?? asset('images/property-placeholder.jpg');
         }
     }
+
+    // ===== Helpers para IMÁGENES DE PROPIEDAD =====
+    $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
+    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy'];
+
+    $priorityRank = function (string $u) {
+        if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
+        if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
+        return 1;
+    };
+
+    // Extrae posibles URLs del array de la propiedad
+    $extractFromArray = function (array $p) use ($validExt, $skipSubstr, $priorityRank) {
+        return collect(Arr::dot($p))
+            ->values()
+            ->filter(fn ($v) => is_string($v))
+            ->map(fn ($u) => trim($u))
+            ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
+            ->reject(function ($u) use ($skipSubstr) {
+                $lu = strtolower($u);
+                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+                return false;
+            })
+            ->unique()
+            ->sortBy(fn ($u) => $priorityRank($u))
+            ->values();
+    };
+
+    // Busca en /public/images/smoobu/{ID}/ y variantes directas
+    $findLocalImageCandidates = function ($id) use ($validExt, $priorityRank, $skipSubstr) {
+        $candidates = collect();
+
+        // 1) Carpeta por ID
+        $dir = public_path("images/smoobu/{$id}");
+        if (is_dir($dir)) {
+            $files = glob($dir . '/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
+            foreach ($files as $abs) {
+                $rel = 'images/smoobu/' . $id . '/' . basename($abs);
+                $candidates->push(asset($rel));
+            }
+        }
+
+        // 2) Archivos sueltos por ID
+        foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.avif", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.jpeg", "images/smoobu/{$id}.png"] as $rel) {
+            if (file_exists(public_path($rel))) {
+                $candidates->push(asset($rel));
+            }
+        }
+
+        return $candidates
+            ->filter(fn ($u) => is_string($u) && preg_match($validExt, $u))
+            ->reject(function ($u) use ($skipSubstr) {
+                $lu = strtolower($u);
+                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+                return false;
+            })
+            ->unique()
+            ->sortBy(fn ($u) => $priorityRank($u))
+            ->values();
+    };
+
+    // Imagen principal para tarjeta
+    $mainImageForProperty = function (array $prop) use ($extractFromArray, $findLocalImageCandidates) {
+        $id = $prop['_id'] ?? null;
+
+        // 1) Locales
+        if ($id) {
+            $local = $findLocalImageCandidates($id);
+            if ($local->isNotEmpty()) return $local->first();
+        }
+
+        // 2) URLs que vengan en el array (picture/gallery/…)
+        $fromArray = $extractFromArray($prop);
+        if ($fromArray->isNotEmpty()) return $fromArray->first();
+
+        // 3) Fallback
+        return asset('images/property-placeholder.jpg');
+    };
 @endphp
 
 <!-- Banner hero -->
@@ -54,43 +133,54 @@
         <div class="row">
             @foreach($properties as $property)
                 @php
-                    $thumb = $property['picture']['thumbnail'] ?? asset('images/property-placeholder.jpg');
                     $title = $property['title'] ?? 'Apartamento';
-                    $city  = $property['address']['city'] ?? 'Galicia';
+                    $img   = $mainImageForProperty($property);
+
+                    $city    = $property['address']['city'] ?? 'Galicia';
                     $country = $property['address']['country'] ?? 'España';
                     $location = trim(($city ? $city : '') . ($city ? ', ' : '') . $country);
-                    $bedrooms = $property['bedrooms'] ?? 0;
-                    $bathrooms = $property['bathrooms'] ?? 0;
+
+                    $bedrooms  = (int)($property['bedrooms']  ?? 0);
+                    $bathrooms = (int)($property['bathrooms'] ?? 0);
+
                     $price = $property['prices']['basePrice'] ?? null;
+                    $priceStr = is_numeric($price) ? '€' . number_format((float)$price, 0, ',', '.') . '/noche' : 'Consultar';
+
+                    $pid = $property['_id'] ?? null;
                 @endphp
 
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="card h-100 shadow-sm">
-                        <img src="{{ $thumb }}" class="card-img-top property-img" alt="{{ $title }}">
+                        <img src="{{ $img }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy">
                         <div class="card-body">
                             <h5 class="card-title">{{ $title }}</h5>
-                            <p class="text-muted">
+                            <p class="text-muted mb-2">
                                 <i class="fas fa-map-marker-alt me-1"></i> {{ $location }}
                             </p>
-                            <div class="d-flex justify-content-between">
-                                <span><i class="fas fa-bed"></i> {{ $bedrooms }} Hab.</span>
-                                <span><i class="fas fa-bath"></i> {{ $bathrooms }} Baños</span>
-                            </div>
-                            <div class="mt-2 text-end">
-                                <strong>
-                                    @if(is_numeric($price))
-                                        €{{ $price }}/noche
+
+                            @if($bedrooms > 0 || $bathrooms > 0)
+                                <div class="d-flex justify-content-between text-muted">
+                                    @if($bedrooms > 0)
+                                        <span><i class="fas fa-bed"></i> {{ $bedrooms }} Hab.</span>
                                     @else
-                                        Consultar
+                                        <span></span>
                                     @endif
-                                </strong>
+                                    @if($bathrooms > 0)
+                                        <span><i class="fas fa-bath"></i> {{ $bathrooms }} Baños</span>
+                                    @endif
+                                </div>
+                            @endif
+
+                            <div class="mt-3 text-end">
+                                <strong>{{ $priceStr }}</strong>
                             </div>
                         </div>
                         <div class="card-footer bg-white text-center">
-                            {{-- Para Smoobu usamos el ID del apartment --}}
-                            <a href="{{ route('properties.show', $property['_id']) }}" class="btn btn-primary w-100">
-                                Ver Apartamento
-                            </a>
+                            @if($pid)
+                                <a href="{{ route('properties.show', $pid) }}" class="btn btn-primary w-100">
+                                    Ver Apartamento
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -112,6 +202,11 @@
 }
 .chuspombo-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.55))}
 .chuspombo-hero-content{position:relative;z-index:2;display:flex;align-items:end;height:100%;padding-bottom:40px;color:#fff}
+.property-img{height:250px;object-fit:cover}
+@media (max-width:576px){
+  .chuspombo-hero-banner{height:360px}
+  .property-img{height:210px}
+}
 </style>
 
 @endsection
