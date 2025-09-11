@@ -26,32 +26,45 @@
         <div class="mb-3">
             <label for="h1" class="form-label">Título principal (H1)</label>
             <input type="text" name="h1" id="h1" class="form-control"
-                   value="{{ old('h1', $paginaContacto->h1 ?? '') }}">
+                   value="{{ old('h1', $contact->h1 ?? '') }}">
         </div>
 
         <div class="mb-3">
-            <label for="h2_1" class="form-label">Subtítulo (H2)</label>
-            <input type="text" name="h2_1" id="h2_1" class="form-control"
-                   value="{{ old('h2_1', $paginaContacto->h2_1 ?? '') }}">
+            <label for="h2" class="form-label">Subtítulo (H2)</label>
+            <input type="text" name="h2" id="h2" class="form-control"
+                   value="{{ old('h2', $contact->h2 ?? '') }}">
         </div>
 
         <div class="mb-3">
-            <label for="intro" class="form-label">Introducción / texto breve</label>
-            <textarea name="intro" id="intro" rows="3" class="form-control"
-                      placeholder="Texto que aparece bajo el título.">{{ old('intro', $paginaContacto->intro ?? '') }}</textarea>
+            <label for="intro_text" class="form-label">Introducción</label>
+            <textarea name="intro_text" id="intro_text" rows="3" class="form-control">{{ old('intro_text', $contact->intro_text ?? '') }}</textarea>
         </div>
 
         <div class="mb-3">
-            <label for="contact_hero_image" class="form-label">Imagen Hero (cabecera)</label>
-            <input type="file" name="contact_hero_image" id="contact_hero_image" class="form-control" accept="image/*">
-            @if(!empty($paginaContacto->contact_hero_image))
-                <div class="mt-2">
-                    <p class="mb-1">Imagen actual:</p>
-                    <img src="{{ asset('images/' . $paginaContacto->contact_hero_image) }}"
-                         alt="Hero actual" style="max-width: 240px; height:auto;">
-                </div>
-            @endif
-            <small class="text-muted d-block mt-1">Sugerido: 1920×900px (JPG/WEBP).</small>
+            <label for="side_text" class="form-label">Texto lateral / apoyo (opcional)</label>
+            <textarea name="side_text" id="side_text" rows="3" class="form-control">{{ old('side_text', $contact->side_text ?? '') }}</textarea>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Imagen Hero</label>
+                <input type="file" name="hero_image" class="form-control" accept="image/*">
+                @if(!empty($contact->hero_image))
+                    <div class="mt-2">
+                        <img src="{{ asset('images/'.$contact->hero_image) }}" style="max-width:240px;height:auto" alt="Hero">
+                    </div>
+                @endif
+                <small class="text-muted">Sugerido: 1920×900 (JPG/WEBP/AVIF)</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Imagen Banner (opcional)</label>
+                <input type="file" name="banner_image" class="form-control" accept="image/*">
+                @if(!empty($contact->banner_image))
+                    <div class="mt-2">
+                        <img src="{{ asset('images/'.$contact->banner_image) }}" style="max-width:240px;height:auto" alt="Banner">
+                    </div>
+                @endif
+            </div>
         </div>
 
         <hr class="my-4">
@@ -60,87 +73,107 @@
         <h4 class="mb-3">Datos de contacto</h4>
         <div class="row g-3">
             <div class="col-md-6">
-                <label for="contact_email" class="form-label">Email de contacto</label>
-                <input type="email" name="contact_email" id="contact_email" class="form-control"
-                       value="{{ old('contact_email', $paginaContacto->contact_email ?? '') }}">
+                <label class="form-label">Email principal</label>
+                <input type="email" name="email_primary" class="form-control"
+                       value="{{ old('email_primary', $contact->email_primary) }}">
             </div>
             <div class="col-md-6">
-                <label for="contact_phone" class="form-label">Teléfono</label>
-                <input type="text" name="contact_phone" id="contact_phone" class="form-control"
-                       value="{{ old('contact_phone', $paginaContacto->contact_phone ?? '') }}">
+                <label class="form-label">Email secundario</label>
+                <input type="email" name="email_secondary" class="form-control"
+                       value="{{ old('email_secondary', $contact->email_secondary) }}">
             </div>
             <div class="col-md-6">
-                <label for="contact_whatsapp" class="form-label">WhatsApp</label>
-                <input type="text" name="contact_whatsapp" id="contact_whatsapp" class="form-control"
-                       value="{{ old('contact_whatsapp', $paginaContacto->contact_whatsapp ?? '') }}">
+                <label class="form-label">Teléfono principal</label>
+                <input type="text" name="phone_primary" class="form-control"
+                       value="{{ old('phone_primary', $contact->phone_primary) }}">
             </div>
             <div class="col-md-6">
-                <label for="contact_address_1" class="form-label">Dirección (línea 1)</label>
-                <input type="text" name="contact_address_1" id="contact_address_1" class="form-control"
-                       value="{{ old('contact_address_1', $paginaContacto->contact_address_1 ?? '') }}">
+                <label class="form-label">Teléfono secundario</label>
+                <input type="text" name="phone_secondary" class="form-control"
+                       value="{{ old('phone_secondary', $contact->phone_secondary) }}">
             </div>
             <div class="col-md-6">
-                <label for="contact_address_2" class="form-label">Dirección (línea 2)</label>
-                <input type="text" name="contact_address_2" id="contact_address_2" class="form-control"
-                       value="{{ old('contact_address_2', $paginaContacto->contact_address_2 ?? '') }}">
+                <label class="form-label">WhatsApp</label>
+                <input type="text" name="whatsapp" class="form-control"
+                       value="{{ old('whatsapp', $contact->whatsapp) }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Sitio web</label>
+                <input type="url" name="website" class="form-control"
+                       value="{{ old('website', $contact->website) }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Dirección (línea 1)</label>
+                <input type="text" name="address_line1" class="form-control"
+                       value="{{ old('address_line1', $contact->address_line1) }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Dirección (línea 2)</label>
+                <input type="text" name="address_line2" class="form-control"
+                       value="{{ old('address_line2', $contact->address_line2) }}">
             </div>
             <div class="col-md-4">
-                <label for="contact_city" class="form-label">Ciudad</label>
-                <input type="text" name="contact_city" id="contact_city" class="form-control"
-                       value="{{ old('contact_city', $paginaContacto->contact_city ?? '') }}">
+                <label class="form-label">Ciudad</label>
+                <input type="text" name="city" class="form-control"
+                       value="{{ old('city', $contact->city) }}">
             </div>
             <div class="col-md-4">
-                <label for="contact_region" class="form-label">Provincia/Región</label>
-                <input type="text" name="contact_region" id="contact_region" class="form-control"
-                       value="{{ old('contact_region', $paginaContacto->contact_region ?? '') }}">
+                <label class="form-label">Provincia/Región</label>
+                <input type="text" name="region" class="form-control"
+                       value="{{ old('region', $contact->region) }}">
             </div>
             <div class="col-md-4">
-                <label for="contact_postal" class="form-label">Código Postal</label>
-                <input type="text" name="contact_postal" id="contact_postal" class="form-control"
-                       value="{{ old('contact_postal', $paginaContacto->contact_postal ?? '') }}">
+                <label class="form-label">Código Postal</label>
+                <input type="text" name="postal_code" class="form-control"
+                       value="{{ old('postal_code', $contact->postal_code) }}">
             </div>
             <div class="col-md-6">
-                <label for="contact_country" class="form-label">País</label>
-                <input type="text" name="contact_country" id="contact_country" class="form-control"
-                       value="{{ old('contact_country', $paginaContacto->contact_country ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="opening_hours" class="form-label">Horario de atención</label>
-                <input type="text" name="opening_hours" id="opening_hours" class="form-control"
-                       value="{{ old('opening_hours', $paginaContacto->opening_hours ?? '') }}">
+                <label class="form-label">País</label>
+                <input type="text" name="country" class="form-control"
+                       value="{{ old('country', $contact->country) }}">
             </div>
         </div>
 
         <hr class="my-4">
 
-        {{-- ===== Textos del Formulario ===== --}}
-        <h4 class="mb-3">Textos del formulario</h4>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label for="form_title" class="form-label">Título del formulario</label>
-                <input type="text" name="form_title" id="form_title" class="form-control"
-                       value="{{ old('form_title', $paginaContacto->form_title ?? 'Contáctanos') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="form_subtitle" class="form-label">Subtítulo del formulario</label>
-                <input type="text" name="form_subtitle" id="form_subtitle" class="form-control"
-                       value="{{ old('form_subtitle', $paginaContacto->form_subtitle ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="form_cta_label" class="form-label">Texto del botón (CTA)</label>
-                <input type="text" name="form_cta_label" id="form_cta_label" class="form-control"
-                       value="{{ old('form_cta_label', $paginaContacto->form_cta_label ?? 'Enviar mensaje') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="form_success_message" class="form-label">Mensaje de éxito</label>
-                <input type="text" name="form_success_message" id="form_success_message" class="form-control"
-                       value="{{ old('form_success_message', $paginaContacto->form_success_message ?? '¡Gracias! Te responderemos muy pronto.') }}">
-            </div>
-            <div class="col-12">
-                <label for="form_error_message" class="form-label">Mensaje de error</label>
-                <input type="text" name="form_error_message" id="form_error_message" class="form-control"
-                       value="{{ old('form_error_message', $paginaContacto->form_error_message ?? 'No se pudo enviar. Intenta nuevamente más tarde.') }}">
-            </div>
+        {{-- ===== Horario (business_hours JSON) ===== --}}
+        <h4 class="mb-3">Horario de atención</h4>
+        @php
+            $rows = $contact->business_hours_array ?? [];
+            if (count($rows) === 0) {
+                $rows = [
+                    ['label' => 'Lun–Vie', 'from' => '09:00', 'to' => '19:00'],
+                    ['label' => 'Sáb', 'from' => '10:00', 'to' => '14:00'],
+                    ['label' => 'Dom', 'from' => 'Cerrado', 'to' => ''],
+                ];
+            }
+        @endphp
+
+        <div id="hours-rows" class="mb-3">
+            @foreach($rows as $i => $r)
+                <div class="row g-2 align-items-end mb-2 hours-row">
+                    <div class="col-md-4">
+                        <label class="form-label">Etiqueta</label>
+                        <input type="text" name="business_hours[{{ $i }}][label]" class="form-control" value="{{ $r['label'] ?? '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Desde</label>
+                        <input type="text" name="business_hours[{{ $i }}][from]" class="form-control" placeholder="09:00" value="{{ $r['from'] ?? '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Hasta</label>
+                        <input type="text" name="business_hours[{{ $i }}][to]" class="form-control" placeholder="19:00" value="{{ $r['to'] ?? '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-danger w-100 remove-row">Quitar</button>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="mb-4">
+            <button type="button" id="add-hour-row" class="btn btn-outline-primary">Añadir fila</button>
+            <small class="text-muted ms-2">Deja “Hasta” vacío para “Cerrado”.</small>
         </div>
 
         <hr class="my-4">
@@ -148,10 +181,21 @@
         {{-- ===== Mapa ===== --}}
         <h4 class="mb-3">Mapa</h4>
         <div class="mb-3">
-            <label for="map_iframe" class="form-label">Iframe del mapa (Google Maps)</label>
-            <textarea name="map_iframe" id="map_iframe" rows="4" class="form-control"
-                      placeholder='Pega aquí el iframe de Google Maps'>{{ old('map_iframe', $paginaContacto->map_iframe ?? '') }}</textarea>
-            <small class="text-muted">Ejemplo: &lt;iframe src="https://www.google.com/maps/embed?..." ...&gt;&lt;/iframe&gt;</small>
+            <label class="form-label">URL del mapa (iframe src)</label>
+            <input type="text" name="map_embed_url" class="form-control"
+                   value="{{ old('map_embed_url', $contact->map_embed_url) }}"
+                   placeholder="https://www.google.com/maps/embed?...">
+            <small class="text-muted">Pega el <strong>src</strong> del iframe de Google Maps (no el iframe completo).</small>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Latitud</label>
+                <input type="text" name="latitude" class="form-control" value="{{ old('latitude', $contact->latitude) }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Longitud</label>
+                <input type="text" name="longitude" class="form-control" value="{{ old('longitude', $contact->longitude) }}">
+            </div>
         </div>
 
         <hr class="my-4">
@@ -159,83 +203,44 @@
         {{-- ===== Redes Sociales ===== --}}
         <h4 class="mb-3">Redes sociales</h4>
         <div class="row g-3">
-            <div class="col-md-6">
-                <label for="facebook_url" class="form-label">Facebook</label>
-                <input type="url" name="facebook_url" id="facebook_url" class="form-control"
-                       value="{{ old('facebook_url', $paginaContacto->facebook_url ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="instagram_url" class="form-label">Instagram</label>
-                <input type="url" name="instagram_url" id="instagram_url" class="form-control"
-                       value="{{ old('instagram_url', $paginaContacto->instagram_url ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="tiktok_url" class="form-label">TikTok</label>
-                <input type="url" name="tiktok_url" id="tiktok_url" class="form-control"
-                       value="{{ old('tiktok_url', $paginaContacto->tiktok_url ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="twitter_url" class="form-label">X / Twitter</label>
-                <input type="url" name="twitter_url" id="twitter_url" class="form-control"
-                       value="{{ old('twitter_url', $paginaContacto->twitter_url ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="youtube_url" class="form-label">YouTube</label>
-                <input type="url" name="youtube_url" id="youtube_url" class="form-control"
-                       value="{{ old('youtube_url', $paginaContacto->youtube_url ?? '') }}">
-            </div>
+            <div class="col-md-6"><label class="form-label">Facebook</label><input type="url" name="facebook_url" class="form-control" value="{{ old('facebook_url', $contact->facebook_url) }}"></div>
+            <div class="col-md-6"><label class="form-label">Instagram</label><input type="url" name="instagram_url" class="form-control" value="{{ old('instagram_url', $contact->instagram_url) }}"></div>
+            <div class="col-md-6"><label class="form-label">X / Twitter</label><input type="url" name="twitter_url" class="form-control" value="{{ old('twitter_url', $contact->twitter_url) }}"></div>
+            <div class="col-md-6"><label class="form-label">TikTok</label><input type="url" name="tiktok_url" class="form-control" value="{{ old('tiktok_url', $contact->tiktok_url) }}"></div>
+            <div class="col-md-6"><label class="form-label">YouTube</label><input type="url" name="youtube_url" class="form-control" value="{{ old('youtube_url', $contact->youtube_url) }}"></div>
+            <div class="col-md-6"><label class="form-label">LinkedIn</label><input type="url" name="linkedin_url" class="form-control" value="{{ old('linkedin_url', $contact->linkedin_url) }}"></div>
         </div>
 
         <hr class="my-4">
 
-        {{-- ===== Metadatos SEO ===== --}}
-        <h4 class="mb-3">Metadatos para SEO</h4>
+        {{-- ===== Envío de Formulario / Legal ===== --}}
+        <h4 class="mb-3">Formulario y legal</h4>
         <div class="row g-3">
             <div class="col-md-6">
-                <label for="meta_title" class="form-label">Meta Title</label>
-                <input type="text" name="meta_title" id="meta_title" class="form-control"
-                       value="{{ old('meta_title', $paginaContacto->meta->meta_title ?? '') }}">
+                <label class="form-label">Enviar formularios a (To)</label>
+                <input type="email" name="form_recipient" class="form-control" value="{{ old('form_recipient', $contact->form_recipient) }}">
             </div>
             <div class="col-md-6">
-                <label for="meta_description" class="form-label">Meta Description</label>
-                <input type="text" name="meta_description" id="meta_description" class="form-control"
-                       value="{{ old('meta_description', $paginaContacto->meta->meta_description ?? '') }}">
+                <label class="form-label">CC (opcional, separar por coma)</label>
+                <input type="text" name="form_cc" class="form-control" value="{{ old('form_cc', $contact->form_cc) }}">
             </div>
             <div class="col-md-6">
-                <label for="meta_keywords" class="form-label">Meta Keywords</label>
-                <input type="text" name="meta_keywords" id="meta_keywords" class="form-control"
-                       value="{{ old('meta_keywords', $paginaContacto->meta->meta_keywords ?? '') }}">
+                <label class="form-label">Mensaje de éxito</label>
+                <input type="text" name="success_message" class="form-control" value="{{ old('success_message', $contact->success_message ?? '¡Gracias! Te responderemos muy pronto.') }}">
             </div>
             <div class="col-md-6">
-                <label for="canonical_url" class="form-label">Canonical URL</label>
-                <input type="text" name="canonical_url" id="canonical_url" class="form-control"
-                       value="{{ old('canonical_url', $paginaContacto->meta->canonical_url ?? '') }}">
+                <label class="form-label">Label checkbox legal</label>
+                <input type="text" name="legal_checkbox_label" class="form-control" value="{{ old('legal_checkbox_label', $contact->legal_checkbox_label) }}">
             </div>
             <div class="col-md-6">
-                <label for="robots" class="form-label">Robots</label>
-                <input type="text" name="robots" id="robots" class="form-control"
-                       value="{{ old('robots', $paginaContacto->meta->robots ?? '') }}">
+                <label class="form-label">URL política/aviso legal</label>
+                <input type="url" name="legal_link_url" class="form-control" value="{{ old('legal_link_url', $contact->legal_link_url) }}">
             </div>
-            <div class="col-md-6">
-                <label for="author" class="form-label">Author</label>
-                <input type="text" name="author" id="author" class="form-control"
-                       value="{{ old('author', $paginaContacto->meta->author ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="language" class="form-label">Language</label>
-                <input type="text" name="language" id="language" class="form-control"
-                       value="{{ old('language', $paginaContacto->meta->language ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="viewport" class="form-label">Viewport</label>
-                <input type="text" name="viewport" id="viewport" class="form-control"
-                       value="{{ old('viewport', $paginaContacto->meta->viewport ?? '') }}">
-            </div>
-            <div class="col-md-6">
-                <label for="charset" class="form-label">Charset</label>
-                <input type="text" name="charset" id="charset" class="form-control"
-                       value="{{ old('charset', $paginaContacto->meta->charset ?? '') }}">
-            </div>
+        </div>
+
+        <div class="form-check mt-4">
+            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', $contact->is_active) ? 'checked' : '' }}>
+            <label class="form-check-label" for="is_active">Página activa</label>
         </div>
 
         <div class="mt-4">
@@ -243,4 +248,39 @@
         </div>
     </form>
 </div>
+
+{{-- JS mínimo para horario --}}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const box = document.getElementById('hours-rows');
+  const add = document.getElementById('add-hour-row');
+  const tpl = (i) => `
+    <div class="row g-2 align-items-end mb-2 hours-row">
+      <div class="col-md-4">
+        <label class="form-label">Etiqueta</label>
+        <input type="text" name="business_hours[${i}][label]" class="form-control" value="">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Desde</label>
+        <input type="text" name="business_hours[${i}][from]" class="form-control" placeholder="09:00" value="">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Hasta</label>
+        <input type="text" name="business_hours[${i}][to]" class="form-control" placeholder="19:00" value="">
+      </div>
+      <div class="col-md-2">
+        <button type="button" class="btn btn-outline-danger w-100 remove-row">Quitar</button>
+      </div>
+    </div>`;
+  add?.addEventListener('click', () => {
+    const idx = box.querySelectorAll('.hours-row').length;
+    box.insertAdjacentHTML('beforeend', tpl(idx));
+  });
+  box?.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-row')) {
+      e.target.closest('.hours-row')?.remove();
+    }
+  });
+});
+</script>
 @endsection

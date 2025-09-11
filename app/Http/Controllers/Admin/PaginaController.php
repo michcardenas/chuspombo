@@ -14,19 +14,24 @@ class PaginaController extends Controller
     {
         // Siempre trabajamos sobre ID 1
         $pagina = \App\Models\Pagina::find($id);
-    
+
         if (!$pagina) {
             $pagina = new \App\Models\Pagina();
             $pagina->id = 1; // Forzamos que siempre sea ID 1
         }
-    
+
         // Llenamos todos los campos excepto logo e imágenes
         $pagina->fill($request->except([
             'logo',
-            'card1_image_1', 'card1_image_2', 'card1_image_3',
-            'card2_image_4', 'card2_image_5', 'card2_image_6', 'card2_image_7',
+            'card1_image_1',
+            'card1_image_2',
+            'card1_image_3',
+            'card2_image_4',
+            'card2_image_5',
+            'card2_image_6',
+            'card2_image_7',
         ]));
-    
+
         // Subir logo
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
@@ -34,7 +39,7 @@ class PaginaController extends Controller
             $file->move('/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/', $filename);
             $pagina->logo = $filename;
         }
-    
+
         // Subir imágenes de tarjetas sección 1
         for ($i = 1; $i <= 3; $i++) {
             if ($request->hasFile("card1_image_$i")) {
@@ -44,7 +49,7 @@ class PaginaController extends Controller
                 $pagina->{"card1_image_$i"} = $filename;
             }
         }
-    
+
         // Subir imágenes de tarjetas sección 2 (confianza en Hostella)
         for ($i = 4; $i <= 7; $i++) {
             if ($request->hasFile("card2_image_$i")) {
@@ -54,28 +59,35 @@ class PaginaController extends Controller
                 $pagina->{"card2_image_$i"} = $filename;
             }
         }
-    
+
         $pagina->save();
-    
+
         // Guardar metadatos SEO
         if ($request->has('meta_title')) {
             $meta = $pagina->meta ?? new \App\Models\PaginaMeta();
             $meta->fill($request->only([
-                'meta_title', 'meta_description', 'meta_keywords',
-                'canonical_url', 'robots', 'author', 'language', 'viewport', 'charset'
+                'meta_title',
+                'meta_description',
+                'meta_keywords',
+                'canonical_url',
+                'robots',
+                'author',
+                'language',
+                'viewport',
+                'charset'
             ]));
             $meta->pagina_id = $pagina->id;
             $meta->save();
         }
-    
+
         return redirect()->route('admin.dashboard')->with('success', 'Página actualizada con éxito.');
     }
-    
-    
+
+
     public function editPropiedades()
     {
         $paginaPropiedades = \App\Models\Pagina::with('meta')->where('id', 2)->first();
-    
+
         if (!$paginaPropiedades) {
             $paginaPropiedades = \App\Models\Pagina::create([
                 'id' => 2,
@@ -83,17 +95,17 @@ class PaginaController extends Controller
                 'h2_1' => ''
             ]);
         }
-    
+
         if (!$paginaPropiedades->meta) {
             $paginaPropiedades->setRelation('meta', new \App\Models\PaginaMeta([
                 'pagina_id' => $paginaPropiedades->id
             ]));
         }
-    
+
         return view('admin.edit-propiedades', compact('paginaPropiedades'));
     }
-    
-    
+
+
     public function updatePropiedades(Request $request)
     {
         $data = $request->validate([
@@ -110,12 +122,12 @@ class PaginaController extends Controller
             'viewport' => 'nullable|string|max:255',
             'charset' => 'nullable|string|max:255',
         ]);
-    
+
         $paginaData = [
             'h1' => $data['h1'],
             'h2_1' => $data['h2_1'],
         ];
-    
+
         // Procesar imagen si fue subida
         if ($request->hasFile('card2_image_4')) {
             $file = $request->file('card2_image_4');
@@ -123,11 +135,11 @@ class PaginaController extends Controller
             $file->move('/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/', $filename); // Guarda en /public/images
             $paginaData['card2_image_4'] = $filename; // Solo el nombre se guarda en la base de datos
         }
-        
-    
+
+
         // Crear o actualizar la página
         $pagina = Pagina::updateOrCreate(['id' => 2], $paginaData);
-    
+
         // Crear o actualizar la meta
         $pagina->meta()->updateOrCreate([], [
             'meta_title' => $data['meta_title'] ?? '',
@@ -140,126 +152,168 @@ class PaginaController extends Controller
             'viewport' => $data['viewport'] ?? '',
             'charset' => $data['charset'] ?? '',
         ]);
-    
+
         return redirect()->route('admin.pagina.propiedades.edit')->with('success', 'Contenido actualizado correctamente.');
     }
 
- /**
-     * Editar Contacto (admin)
-     * Carga/crea el registro único en contact_pages y lo manda a la vista.
-     */
     public function editContacto()
     {
-        // Usamos un “singleton” para contacto
-        $contact = ContactPage::firstOrCreate([]);
+        // Editamos un único registro (el primero activo o el primero)
+        $contact = ContactPage::orderByDesc('is_active')->orderBy('id')->first();
 
-        // Para no tocar tu vista actual, le pasamos la misma variable que usabas:
-        return view('admin.edit-contacto', [
-            'paginaContacto' => $contact, // la vista puede seguir usando $paginaContacto
-        ]);
-    }
-
-    /**
-     * Actualizar Contacto (admin)
-     * Guarda todo en contact_pages (solo datos de contacto).
-     */
-    public function updateContacto(Request $request)
-    {
-        $data = $request->validate([
-            // Textos principales
-            'h1'               => 'nullable|string|max:255',
-            'h2_1'             => 'nullable|string|max:255',
-            'intro_text'       => 'nullable|string|max:2000',
-            'side_text'        => 'nullable|string|max:2000',
-
-            // Datos de contacto
-            'email_primary'    => 'nullable|email|max:255',
-            'email_secondary'  => 'nullable|email|max:255',
-            'phone_primary'    => 'nullable|string|max:255',
-            'phone_secondary'  => 'nullable|string|max:255',
-            'whatsapp'         => 'nullable|string|max:255',
-            'website'          => 'nullable|url|max:255',
-
-            // Dirección
-            'address_line1'    => 'nullable|string|max:255',
-            'address_line2'    => 'nullable|string|max:255',
-            'city'             => 'nullable|string|max:255',
-            'region'           => 'nullable|string|max:255',
-            'postal_code'      => 'nullable|string|max:255',
-            'country'          => 'nullable|string|max:255',
-
-            // Mapa
-            'map_embed_url'    => 'nullable|string|max:5000',
-            'latitude'         => 'nullable|numeric',
-            'longitude'        => 'nullable|numeric',
-
-            // Redes
-            'facebook_url'     => 'nullable|url|max:255',
-            'instagram_url'    => 'nullable|url|max:255',
-            'twitter_url'      => 'nullable|url|max:255',
-            'tiktok_url'       => 'nullable|url|max:255',
-            'youtube_url'      => 'nullable|url|max:255',
-            'linkedin_url'     => 'nullable|url|max:255',
-
-            // Imágenes
-            'hero_image'       => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-            'banner_image'     => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-
-            // Formulario
-            'form_recipient'       => 'nullable|email|max:255',
-            'form_cc'              => 'nullable|string|max:500', // puedes separar por coma en tu lógica de envío
-            'success_message'      => 'nullable|string|max:500',
-            'legal_checkbox_label' => 'nullable|string|max:255',
-            'legal_link_url'       => 'nullable|url|max:255',
-
-            // Horarios (puede venir como JSON o texto)
-            'business_hours'       => 'nullable|string|max:5000',
-
-            // Activación
-            'is_active'            => 'nullable|boolean',
-        ]);
-
-        $contact = ContactPage::firstOrCreate([]);
-
-        // Asignación masiva de campos “simples”
-        $contact->fill(collect($data)->except(['hero_image', 'banner_image', 'business_hours'])->toArray());
-
-        // Horarios: si te llega JSON, intenta decodificar; si no, guarda tal cual
-        if ($request->filled('business_hours')) {
-            $decoded = json_decode($request->input('business_hours'), true);
-            $contact->business_hours = json_last_error() === JSON_ERROR_NONE
-                ? $decoded
-                : $request->input('business_hours'); // texto plano si no es JSON válido
+        if (!$contact) {
+            $contact = ContactPage::create([
+                'h1' => '',
+                'h2' => '',
+                'intro_text' => '',
+                'side_text'  => '',
+                'is_active'  => 1,
+            ]);
         }
 
-        // Subida de imágenes (mismo path absoluto que usabas)
-        $uploadPath = '/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/';
+        // Normalizar business_hours a array para el form
+        $hours = [];
+        if ($contact->business_hours) {
+            $decoded = json_decode($contact->business_hours, true);
+            if (is_array($decoded)) $hours = $decoded;
+        }
+        $contact->business_hours_array = $hours;
+
+        return view('admin.edit-contacto', compact('contact'));
+    }
+
+    public function updateContacto(Request $request)
+    {
+        // Validación basada en tu esquema
+        $validated = $request->validate([
+            'h1'                 => 'nullable|string|max:255',
+            'h2'                 => 'nullable|string|max:255',
+            'intro_text'         => 'nullable|string',
+            'side_text'          => 'nullable|string',
+
+            'email_primary'      => 'nullable|email|max:255',
+            'email_secondary'    => 'nullable|email|max:255',
+            'phone_primary'      => 'nullable|string|max:255',
+            'phone_secondary'    => 'nullable|string|max:255',
+            'whatsapp'           => 'nullable|string|max:255',
+            'website'            => 'nullable|url|max:255',
+
+            'address_line1'      => 'nullable|string|max:255',
+            'address_line2'      => 'nullable|string|max:255',
+            'city'               => 'nullable|string|max:255',
+            'region'             => 'nullable|string|max:255',
+            'postal_code'        => 'nullable|string|max:255',
+            'country'            => 'nullable|string|max:255',
+
+            'map_embed_url'      => 'nullable|string|max:255',
+            'latitude'           => 'nullable|numeric',
+            'longitude'          => 'nullable|numeric',
+
+            'facebook_url'       => 'nullable|url|max:255',
+            'instagram_url'      => 'nullable|url|max:255',
+            'twitter_url'        => 'nullable|url|max:255',
+            'tiktok_url'         => 'nullable|url|max:255',
+            'youtube_url'        => 'nullable|url|max:255',
+            'linkedin_url'       => 'nullable|url|max:255',
+
+            'form_recipient'     => 'nullable|email|max:255',
+            'form_cc'            => 'nullable|string|max:255',
+            'success_message'    => 'nullable|string|max:255',
+            'legal_checkbox_label' => 'nullable|string|max:255',
+            'legal_link_url'     => 'nullable|url|max:255',
+
+            // business_hours llega como arreglo de filas [{label,from,to}]
+            'business_hours'     => 'nullable|array',
+            'business_hours.*.label' => 'nullable|string|max:255',
+            'business_hours.*.from'  => 'nullable|string|max:255',
+            'business_hours.*.to'    => 'nullable|string|max:255',
+
+            // Archivos
+            'hero_image'         => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
+            'banner_image'       => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
+
+            'is_active'          => 'nullable|boolean',
+        ]);
+
+        // Obtenemos/creamos el único registro
+        $contact = ContactPage::orderByDesc('is_active')->orderBy('id')->first();
+        if (!$contact) {
+            $contact = new ContactPage();
+        }
+
+        // Campos directos (todos excepto archivos y business_hours)
+        $fillableKeys = [
+            'h1',
+            'h2',
+            'intro_text',
+            'side_text',
+            'email_primary',
+            'email_secondary',
+            'phone_primary',
+            'phone_secondary',
+            'whatsapp',
+            'website',
+            'address_line1',
+            'address_line2',
+            'city',
+            'region',
+            'postal_code',
+            'country',
+            'map_embed_url',
+            'latitude',
+            'longitude',
+            'facebook_url',
+            'instagram_url',
+            'twitter_url',
+            'tiktok_url',
+            'youtube_url',
+            'linkedin_url',
+            'form_recipient',
+            'form_cc',
+            'success_message',
+            'legal_checkbox_label',
+            'legal_link_url',
+        ];
+        foreach ($fillableKeys as $key) {
+            $contact->{$key} = $validated[$key] ?? null;
+        }
+
+        // business_hours → JSON
+        $hours = $validated['business_hours'] ?? [];
+        // Limpieza mínima (quitar filas vacías)
+        $normalized = [];
+        foreach ($hours as $row) {
+            $label = trim($row['label'] ?? '');
+            $from  = trim($row['from']  ?? '');
+            $to    = trim($row['to']    ?? '');
+            if ($label !== '' || $from !== '' || $to !== '') {
+                $normalized[] = compact('label', 'from', 'to');
+            }
+        }
+        $contact->business_hours = $normalized ? json_encode($normalized, JSON_UNESCAPED_UNICODE) : null;
+
+        // Cargar archivos (ruta absoluta que estás usando en otros lugares)
+        $diskPath = '/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/';
 
         if ($request->hasFile('hero_image')) {
             $file = $request->file('hero_image');
-            $filename = time() . '_contact_hero.' . $file->getClientOriginalExtension();
-            $file->move($uploadPath, $filename);
-            $contact->hero_image = $filename; // guardamos solo el nombre
+            $filename = time() . '_hero.' . $file->getClientOriginalExtension();
+            $file->move($diskPath, $filename);
+            $contact->hero_image = $filename;
         }
 
         if ($request->hasFile('banner_image')) {
             $file = $request->file('banner_image');
-            $filename = time() . '_contact_banner.' . $file->getClientOriginalExtension();
-            $file->move($uploadPath, $filename);
+            $filename = time() . '_banner.' . $file->getClientOriginalExtension();
+            $file->move($diskPath, $filename);
             $contact->banner_image = $filename;
         }
 
-        // is_active checkbox
-        $contact->is_active = (bool) ($request->boolean('is_active'));
+        // Estado
+        $contact->is_active = $request->boolean('is_active');
 
         $contact->save();
 
-        return redirect()
-            ->route('admin.pagina.contacto.edit')
-            ->with('success', 'Página de contacto actualizada correctamente.');
+        return back()->with('success', 'Página de contacto actualizada correctamente.');
     }
 }
-
-    
-
-

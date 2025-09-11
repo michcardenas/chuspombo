@@ -8,18 +8,21 @@
 @php
     // ===== Datos principales desde contact_pages =====
     $h1       = $contact->h1 ?? 'Hablemos 🤝';
-    $subtitle = $contact->h2_1 ?? 'Estamos aquí para ayudarte a planear tu próxima estancia en Galicia.';
+    $subtitle = $contact->h2 ?? 'Estamos aquí para ayudarte a planear tu próxima estancia en Galicia.';
     $intro    = $contact->intro_text ?? 'Cuéntanos fechas, dudas o necesidades especiales. Respondemos rápido.';
 
     // Medios de contacto
-    $phone    = $contact->phone_primary ?? '+34 000 000 000';
-    $email    = $contact->email_primary ?? 'info@chuspombo.com';
-    $whatsapp = $contact->whatsapp      ?? null;
+    $phonePrimary   = $contact->phone_primary   ?? null;
+    $phoneSecondary = $contact->phone_secondary ?? null;
+    $emailPrimary   = $contact->email_primary   ?? null;
+    $emailSecondary = $contact->email_secondary ?? null;
+    $whatsapp       = $contact->whatsapp        ?? null;
+    $website        = $contact->website         ?? null;
 
     // Dirección compuesta
     $addressParts = array_filter([
-        $contact->address1 ?? null,
-        $contact->address2 ?? null,
+        $contact->address_line1 ?? null,
+        $contact->address_line2 ?? null,
         $contact->city ?? null,
         $contact->region ?? null,
         $contact->postal_code ?? null,
@@ -27,13 +30,21 @@
     ]);
     $address = count($addressParts) ? implode(', ', $addressParts) : 'Galicia, España';
 
-    // Imagen hero (desde controlador ya viene $heroUrl opcional)
-    $heroImage = $heroUrl
-        ?? ($contact->hero_image ? asset('images/'.$contact->hero_image) : asset('images/galicia-placeholder.webp'));
+    // Imagen hero
+    $heroImage = ($heroUrl ?? null)
+        ?: (!empty($contact->hero_image) ? asset('images/'.$contact->hero_image) : asset('images/galicia-placeholder.webp'));
 
-    // Horarios: si business_hours (json) viene como array, lo mostramos; si no, fallbacks
+    // Horarios: viene como JSON en business_hours
     $hoursTitle = 'Horario de atención';
-    $hoursList  = is_array($contact->business_hours) ? $contact->business_hours : null;
+    $hoursList = null;
+    if (!empty($contact->business_hours)) {
+        $decoded = is_array($contact->business_hours)
+            ? $contact->business_hours
+            : json_decode($contact->business_hours, true);
+        if (is_array($decoded)) {
+            $hoursList = $decoded;
+        }
+    }
     $fallbackHours = [
         ['label' => 'Lun–Vie', 'from' => '09:00', 'to' => '19:00'],
         ['label' => 'Sáb',     'from' => '10:00', 'to' => '14:00'],
@@ -48,8 +59,17 @@
     $faq3_q = '¿Ofrecen check-in sin contacto?';
     $faq3_a = 'Podemos gestionar check-in autónomo bajo solicitud.';
 
-    // Mapa
-    $mapEmbed = $contact->map_iframe ?? null;
+    // Mapa: en contact_pages guardamos SOLO el src del iframe (map_embed_url).
+    // Si por error guardaron el iframe completo, lo mostramos tal cual.
+    $mapHtml = null;
+    if (!empty($contact->map_embed_url)) {
+        $raw = trim($contact->map_embed_url);
+        if (str_contains($raw, '<iframe')) {
+            $mapHtml = $raw; // ya viene con iframe completo
+        } else {
+            $mapHtml = '<iframe src="'.e($raw).'" width="100%" height="340" style="border:0;border-radius:18px" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>';
+        }
+    }
 @endphp
 
 <style>
@@ -134,7 +154,6 @@ a,.text-primary{ color:var(--hostella-primary)!important; }
             <div class="alert alert-success">{{ session('status') }}</div>
           @endif
 
-          {{-- Usa la ruta que definimos para enviar el formulario de contacto --}}
           <form method="POST" action="{{ route('contact.submit') }}">
             @csrf
 
@@ -193,27 +212,40 @@ a,.text-primary{ color:var(--hostella-primary)!important; }
         <div class="contact-card p-4 p-md-5 mb-4">
           <h4 class="fw-bold mb-4">Información de contacto</h4>
 
+          @if($phonePrimary)
           <div class="d-flex align-items-start gap-3 mb-3">
             <div class="contact-icon"><i class="fas fa-phone"></i></div>
             <div>
               <div class="text-muted small">Teléfono</div>
-              <a href="tel:{{ preg_replace('/\D+/','',$phone) }}" class="fw-semibold d-block">{{ $phone }}</a>
+              <a href="tel:{{ preg_replace('/\D+/','',$phonePrimary) }}" class="fw-semibold d-block">{{ $phonePrimary }}</a>
+              @if($phoneSecondary)
+                <small class="d-block text-muted mt-1">Alt: <a href="tel:{{ preg_replace('/\D+/','',$phoneSecondary) }}">{{ $phoneSecondary }}</a></small>
+              @endif
             </div>
           </div>
+          @endif
 
+          @if($emailPrimary)
           <div class="d-flex align-items-start gap-3 mb-3">
             <div class="contact-icon"><i class="fas fa-envelope"></i></div>
             <div>
               <div class="text-muted small">Email</div>
-              <a href="mailto:{{ $email }}" class="fw-semibold d-block">{{ $email }}</a>
+              <a href="mailto:{{ $emailPrimary }}" class="fw-semibold d-block">{{ $emailPrimary }}</a>
+              @if($emailSecondary)
+                <small class="d-block text-muted mt-1">Alt: <a href="mailto:{{ $emailSecondary }}">{{ $emailSecondary }}</a></small>
+              @endif
             </div>
           </div>
+          @endif
 
           <div class="d-flex align-items-start gap-3 mb-0">
             <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
             <div>
               <div class="text-muted small">Dirección</div>
               <span class="fw-semibold d-block">{{ $address }}</span>
+              @if($website)
+                <small class="d-block mt-2"><i class="fas fa-globe me-1"></i><a href="{{ $website }}" target="_blank" rel="noopener">{{ $website }}</a></small>
+              @endif
             </div>
           </div>
 
@@ -251,9 +283,9 @@ a,.text-primary{ color:var(--hostella-primary)!important; }
           </div>
         </div>
 
-        @if($mapEmbed)
+        @if($mapHtml)
           <div class="map-wrapper contact-card p-2">
-            {!! $mapEmbed !!}
+            {!! $mapHtml !!}
           </div>
         @endif
 
