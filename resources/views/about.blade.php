@@ -3,32 +3,104 @@
 @section('content')
 
 @php
-    // Sistema de imágenes random mejorado
-    $totalImages = 100;
-    $randomImages = [];
-    $imagesNeeded = 4; // Necesitamos 4 imágenes diferentes
-    
-    $availableNumbers = collect(range(1, $totalImages))->shuffle();
-    
-    foreach ($availableNumbers as $number) {
-        if (count($randomImages) >= $imagesNeeded) break;
-        
-        $testImage = "CHUSPOMBO-APARTAMENTOS-{$number}.webp";
-        if (file_exists(public_path("images/{$testImage}"))) {
-            $randomImages[] = asset("images/{$testImage}");
+    // === Imágenes aleatorias tomadas de PROPIEDADES ===
+    $imagesNeeded = 4;
+
+    $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
+    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy'];
+
+    $priorityRank = function (string $u) {
+        if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
+        if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
+        return 1;
+    };
+
+    // Candidatos locales: /public/images/smoobu/{ID}/... y archivos sueltos por ID
+    $localCandidates = function ($id) use ($validExt, $skipSubstr, $priorityRank) {
+        $c = collect();
+
+        // Carpeta por ID
+        $dir = public_path("images/smoobu/{$id}");
+        if (is_dir($dir)) {
+            $files = glob($dir.'/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
+            foreach ($files as $abs) {
+                $rel = 'images/smoobu/'.$id.'/'.basename($abs);
+                $c->push(asset($rel));
+            }
         }
-    }
-    
-    // Fallbacks si no hay suficientes imágenes
-    while (count($randomImages) < $imagesNeeded) {
-        $randomImages[] = asset('images/galicia-placeholder.webp');
+
+        // Archivos directos por ID
+        foreach (["images/smoobu/{$id}.webp","images/smoobu/{$id}.avif","images/smoobu/{$id}.jpg","images/smoobu/{$id}.jpeg","images/smoobu/{$id}.png"] as $rel) {
+            if (file_exists(public_path($rel))) $c->push(asset($rel));
+        }
+
+        return $c->filter(fn($u) => is_string($u) && preg_match($validExt, $u))
+                ->reject(function ($u) use ($skipSubstr) {
+                    $lu = strtolower($u);
+                    foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+                    return false;
+                })
+                ->unique()
+                ->sortBy(fn($u) => $priorityRank($u))
+                ->values();
+    };
+
+    // Candidatos desde el array de la propiedad (picture/pictures/gallery/images)
+    $arrayCandidates = function ($p) use ($validExt, $skipSubstr, $priorityRank) {
+        $urls = collect();
+
+        // picture puede ser string o array
+        if (!empty($p['picture'])) {
+            if (is_array($p['picture'])) {
+                foreach (['banner','hero','cover','main','original','large','url','full','thumbnail'] as $k) {
+                    if (!empty($p['picture'][$k]) && is_string($p['picture'][$k])) $urls->push($p['picture'][$k]);
+                }
+            } elseif (is_string($p['picture'])) {
+                $urls->push($p['picture']);
+            }
+        }
+
+        foreach (['pictures','gallery','images'] as $key) {
+            if (!empty($p[$key]) && is_array($p[$key])) {
+                foreach ($p[$key] as $u) if (is_string($u)) $urls->push($u);
+            }
+        }
+
+        return $urls->filter(fn($u) => $u !== '' && !str_starts_with($u,'data:') && preg_match($validExt,$u))
+                    ->reject(function ($u) use ($skipSubstr) {
+                        $lu = strtolower($u);
+                        foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+                        return false;
+                    })
+                    ->unique()
+                    ->sortBy(fn($u) => $priorityRank($u))
+                    ->values();
+    };
+
+    // Construir pool desde TODAS las propiedades (omite las sin fotos)
+    $pool = collect($properties ?? [])->flatMap(function ($p) use ($localCandidates, $arrayCandidates) {
+                $id  = $p['_id'] ?? null;
+                $loc = $id ? $localCandidates($id) : collect();
+                $arr = $arrayCandidates($p);
+                $merged = $loc->merge($arr)->unique()->values();
+                return $merged;
+            })
+            ->unique()
+            ->values();
+
+    // Seleccionar 4 aleatorias
+    $sectionImages = $pool->shuffle()->take($imagesNeeded)->values()->all();
+
+    // Fallbacks si faltan
+    while (count($sectionImages) < $imagesNeeded) {
+        $sectionImages[] = asset('images/galicia-placeholder.webp');
     }
 @endphp
 
 <div class="container-fluid p-0">
     <!-- Hero Section Premium -->
     <section class="position-relative overflow-hidden" style="height: 70vh; min-height: 600px;">
-        <div class="position-absolute w-100 h-100" style="background: linear-gradient(45deg, rgba(26,26,26,0.8), rgba(212,175,55,0.3)), url('{{ $randomImages[0] }}'); background-size: cover; background-position: center;"></div>
+        <div class="position-absolute w-100 h-100" style="background: linear-gradient(45deg, rgba(26,26,26,0.8), rgba(212,175,55,0.3)), url('{{ $sectionImages[0] }}'); background-size: cover; background-position: center;"></div>
         <div class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center">
             <div class="container text-center text-white">
                 <div class="row justify-content-center">
@@ -58,7 +130,7 @@
             <div class="row align-items-center g-5">
                 <div class="col-lg-6">
                     <div class="position-relative">
-                        <img src="{{ $randomImages[1] }}" alt="Apartamento Chuspombo" class="img-fluid rounded-3 shadow-lg">
+                        <img src="{{ $sectionImages[1] }}" alt="Apartamento Chuspombo" class="img-fluid rounded-3 shadow-lg">
                         <div class="position-absolute bottom-0 end-0 bg-dark text-white p-3 rounded-3 m-3">
                             <small class="text-muted">Galicia, España</small>
                         </div>
@@ -165,7 +237,7 @@
             <div class="row align-items-center g-5">
                 <div class="col-lg-6 order-lg-2">
                     <div class="position-relative">
-                        <img src="{{ $randomImages[2] }}" alt="Interior Chuspombo" class="img-fluid rounded-3 shadow-lg">
+                        <img src="{{ $sectionImages[2] }}" alt="Interior Chuspombo" class="img-fluid rounded-3 shadow-lg">
                     </div>
                 </div>
                 <div class="col-lg-6 order-lg-1">
@@ -222,7 +294,7 @@
 
     <!-- CTA Final Premium -->
     <section class="py-5 position-relative overflow-hidden">
-        <div class="position-absolute w-100 h-100" style="background: linear-gradient(rgba(26,26,26,0.85), rgba(26,26,26,0.85)), url('{{ $randomImages[3] }}'); background-size: cover; background-position: center;"></div>
+        <div class="position-absolute w-100 h-100" style="background: linear-gradient(rgba(26,26,26,0.85), rgba(26,26,26,0.85)), url('{{ $sectionImages[3] }}'); background-size: cover; background-position: center;"></div>
         <div class="container position-relative py-5">
             <div class="row justify-content-center text-center text-white">
                 <div class="col-lg-8">
