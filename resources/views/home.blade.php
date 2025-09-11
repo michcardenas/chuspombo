@@ -7,11 +7,14 @@
 @section('content')
 <!-- Hero Section -->
 @php
-    // TOMAR TODAS LAS IMÁGENES DE LAS PROPIEDADES (sin límites)
+    $imagesPerProperty = 3;
+
+    // Extensiones válidas y strings a evitar (placeholders)
     $validExt = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
     $skipSubstr = ['placeholder','default','noimage','missing','image-not-found'];
 
-    $collectFromProperty = function ($p) use ($validExt, $skipSubstr) {
+    // Extraer y ordenar imágenes desde una propiedad
+    $extractImages = function ($p) use ($validExt, $skipSubstr) {
         $urls = [];
 
         // picture puede ser array o string
@@ -36,21 +39,25 @@
             }
         }
 
+        // Filtrar válidas, quitar placeholders y ordenar por prioridad (banner/hero/cover primero)
         return collect($urls)
-            ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
+            ->filter(fn ($u) => is_string($u) && $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
             ->reject(function ($u) use ($skipSubstr) {
                 $lu = strtolower($u);
-                foreach ($skipSubstr as $s) {
-                    if (str_contains($lu, $s)) return true;
-                }
+                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
                 return false;
             })
+            ->unique()
+            ->sortBy(fn ($u) => preg_match('/banner|hero|cover/i', $u) ? 0 : 1)
             ->values();
     };
 
-    // Todas las imágenes válidas de todas las propiedades (únicas)
+    // Tomar HASTA 3 imágenes por propiedad; omitir propiedades sin fotos
     $randomImages = collect($featuredProperties ?? [])
-        ->flatMap(fn ($p) => $collectFromProperty($p))
+        ->flatMap(function ($p) use ($extractImages, $imagesPerProperty) {
+            $imgs = $extractImages($p);
+            return $imgs->isEmpty() ? collect() : $imgs->take($imagesPerProperty);
+        })
         ->unique()
         ->values();
 @endphp
