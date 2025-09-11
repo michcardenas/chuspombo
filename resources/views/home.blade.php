@@ -86,98 +86,192 @@
 
 
 @if($propertyImages->count() > 0)
-<section class="position-relative">
-  {{-- CARRUSEL (solo Bootstrap + <img>) --}}
-  <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
-    <div class="carousel-inner">
-      @foreach($propertyImages as $index => $img)
-        <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-          <img
-            src="{{ $img['url'] }}"
-            alt="{{ $img['alt'] ?? 'Banner' }}"
-            class="d-block w-100 img-fluid"
-            loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
-            decoding="async"
-            draggable="false">
-        </div>
-      @endforeach
-    </div>
+    <style>
+        /* Hero Banner Styles */
+        .hero-section {
+            height: 80vh;
+            min-height: 500px;
+            max-height: 800px;
+            position: relative;
+            overflow: hidden;
+        }
 
-    @if($propertyImages->count() > 1)
-      {{-- Controles: visibles en ≥ lg para evitar solapes --}}
-      <button class="carousel-control-prev d-none d-lg-flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Anterior">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-      </button>
-      <button class="carousel-control-next d-none d-lg-flex" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Siguiente">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-      </button>
+        .hero-section .carousel,
+        .hero-section .carousel-inner,
+        .hero-section .carousel-item {
+            height: 100%;
+        }
 
-      {{-- Indicadores (opcionales) --}}
-      <div class="carousel-indicators d-none d-md-flex">
-        @foreach($propertyImages as $i => $img)
-          <button type="button"
-                  data-bs-target="#heroCarousel"
-                  data-bs-slide-to="{{ $i }}"
-                  class="{{ $i === 0 ? 'active' : '' }}"
-                  aria-label="Slide {{ $i + 1 }}"></button>
-        @endforeach
-      </div>
-    @endif
-  </div>
+        .hero-section .carousel-item {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            width: 100%;
+            height: 100%;
+        }
 
-  {{-- Capa oscura translucida (no bloquea clics gracias a pe-none) --}}
-  <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-25 pe-none"></div>
+        /* Overlay por encima visualmente, pero sin bloquear clics */
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: none; /* no atrapa clics */
+        }
+        .hero-content { 
+            text-align: center; 
+            color: white; 
+            max-width: 1000px; 
+            padding: 0 20px; 
+        }
+        .search-card { 
+            pointer-events: auto; /* el filtro sí es clickeable */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 900px;
+            margin: 0 auto;
+        }
 
-  {{-- Overlay de contenido (solo utilidades Bootstrap) --}}
-  <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-11 col-md-10 col-lg-8">
-          <div class="text-center text-white mb-3">
-            <h1 class="fw-bold display-6 display-md-5">{{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}</h1>
-            <p class="lead mb-3 mb-md-4">{{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}</p>
-          </div>
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .hero-subtitle {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
 
-          {{-- Tarjeta de búsqueda (clickeable con pe-auto) --}}
-          <div class="card border-0 shadow-lg pe-auto">
-            <div class="card-body p-3 p-md-4">
-              <form action="{{ route('properties.index') }}" method="GET">
-                <div class="row g-3 justify-content-center">
-                  <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label class="form-label fw-semibold text-dark d-block">Tipo de propiedad</label>
-                    <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
-                    <input type="hidden" name="property_type" value="apartment">
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
-                    <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
-                  </div>
-                  <div class="col-xl-3 col-lg-4 col-md-6">
-                    <label for="checkout" class="form-label fw-semibold text-dark">Fecha de salida</label>
-                    <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
-                  </div>
-                  <div class="col-xl-3 col-lg-12 col-md-6 d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                      <i class="fas fa-search me-2"></i>Buscar
-                    </button>
-                  </div>
-                </div>
-              </form>
+        /* Controles del carrusel: centrados y lejos del filtro */
+        .carousel-control-prev,
+        .carousel-control-next {
+            z-index: 5;
+            width: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .carousel-control-prev:focus,
+        .carousel-control-next:focus,
+        .carousel-control-prev:hover,
+        .carousel-control-next:hover {
+            outline: none;
+            box-shadow: none;
+        }
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            padding: 20px;
+        }
+
+        /* Quitar bordes azules / focus */
+        .carousel:focus,
+        .carousel *:focus,
+        .carousel-control-prev:focus,
+        .carousel-control-next:focus,
+        .hero-section button:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .search-card { max-width: 100%; }
+        }
+        @media (max-width: 992px) {
+            /* Evitar solapamiento: ocultar controles en tablets y abajo */
+            .carousel-control-prev,
+            .carousel-control-next { display: none; }
+        }
+        @media (max-width: 768px) {
+            .hero-section { height: 60vh; min-height: 400px; }
+            .hero-title { font-size: 2.5rem; }
+            .hero-subtitle { font-size: 1.1rem; margin-bottom: 1.5rem; }
+            .search-card { padding: 1.5rem; margin: 0 15px; }
+        }
+        @media (max-width: 576px) {
+            .hero-title { font-size: 2rem; margin-bottom: 0.5rem; }
+            .hero-subtitle { margin-bottom: 1rem; }
+            .search-card { padding: 1rem; margin: 0 10px; }
+        }
+    </style>
+
+    <section class="hero-section">
+        <div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+            <div class="carousel-inner">
+                @foreach($propertyImages as $index => $img)
+                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}" 
+                         style="background-image: url('{{ $img['url'] }}');">
+                    </div>
+                @endforeach
             </div>
-          </div>
 
+            @if(count($propertyImages) > 1)
+                <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev" aria-label="Anterior">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next" aria-label="Siguiente">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                </button>
+            @endif
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+
+        <div class="hero-overlay">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    {{ $pagina->h1 ?? 'Descubre Propiedades Exclusivas' }}
+                </h1>
+                <p class="hero-subtitle">
+                    {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
+                </p>
+
+                <div class="search-card">
+                    <form action="{{ route('properties.index') }}" method="GET">
+                        <div class="row g-3 justify-content-center">
+                            <!-- Campo fijo: Apartamento -->
+                            <div class="col-xl-3 col-lg-4 col-md-6 d-flex align-items-end">
+                                <div class="w-100">
+                                    <label class="form-label fw-semibold text-dark d-block">Tipo de propiedad</label>
+                                    <span class="badge bg-primary fs-6 px-3 py-2">Apartamento</span>
+                                    <input type="hidden" name="property_type" value="apartment">
+                                </div>
+                            </div>
+
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <label for="checkin" class="form-label fw-semibold text-dark">Fecha de llegada</label>
+                                <input type="date" class="form-control form-control-lg" id="checkin" name="checkin" min="{{ date('Y-m-d') }}">
+                            </div>
+                            <div class="col-xl-3 col-lg-4 col-md-6">
+                                <label for="checkout" class="form-label fw-semibold text-dark">Fecha de salida</label>
+                                <input type="date" class="form-control form-control-lg" id="checkout" name="checkout" min="{{ date('Y-m-d') }}">
+                            </div>
+                            <div class="col-xl-3 col-lg-12 col-md-6 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                                    <i class="fas fa-search me-2"></i>Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </section>
 @else
-  <div class="container py-5">
-    <div class="alert alert-warning text-center" role="alert">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      No se encontraron imágenes para el banner.
+    <div class="container py-5">
+        <div class="alert alert-warning text-center" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            No se encontraron imágenes para el banner.
+        </div>
     </div>
-  </div>
 @endif
 
 <!-- Featured Properties -->
