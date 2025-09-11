@@ -62,13 +62,7 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/main.js') }}"></script>
-    <!-- Tailwind (Play CDN, sin Node) -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    corePlugins: { preflight: false }, // evita resetear estilos base de Bootstrap
-  };
-</script>
+    
      
     @yield('scripts')
 </body>
