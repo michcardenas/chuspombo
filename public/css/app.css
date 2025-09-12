@@ -128,25 +128,27 @@ a {
     transition: all 0.3s ease;
 }
 
+/* Botones primarios */
 .btn-primary {
-    background-color: #010066;
-    border-color: #3f51b5;
+  background-color: var(--hostella-primary);
+  border-color: var(--hostella-primary);
 }
 
 .btn-primary:hover {
-    background-color: #303f9f;
-    border-color: #303f9f;
+  background-color: var(--hostella-dark);
+  border-color: var(--hostella-dark);
 }
 
+/* Botones outline */
 .btn-outline-primary {
-    color: #3f51b5;
-    border-color: #3f51b5;
+  color: var(--hostella-primary);
+  border-color: var(--hostella-primary);
 }
 
 .btn-outline-primary:hover {
-    background-color: #3f51b5;
-    border-color: #3f51b5;
-    color: white;
+  background-color: var(--hostella-primary);
+  border-color: var(--hostella-primary);
+  color: #fff;
 }
 
 /* Cards */
@@ -423,44 +425,47 @@ body {
     width: 100%;
     max-width: 320px;
 }
-.animated-button {
-    position: relative;
-    display: inline-block;
-    padding: 12px 24px;
-    border: none;
-    font-size: 16px;
-    background-color: inherit;
-    border-radius: 100px;
-    font-weight: 600;
-    color: #010066;
-    box-shadow: 0 0 0 2px #010066;
-    cursor: pointer;
-    overflow: hidden;
-    transition: all 0.6s cubic-bezier(0.23, 1, 0.320, 1);
-}
 
-.animated-button span:last-child {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 20px;
-    height: 20px;
-    background-color: #010066;
-    border-radius: 50%;
-    opacity: 0;
-    transition: all 0.8s cubic-bezier(0.23, 1, 0.320, 1);
+/* Botón animado */
+.animated-button {
+  position: relative;
+  display: inline-block;
+  padding: 12px 24px;
+  border: none;
+  font-size: 16px;
+  background-color: transparent;
+  border-radius: 100px;
+  font-weight: 600;
+  color: var(--hostella-primary);
+  box-shadow: 0 0 0 2px var(--hostella-accent);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
 .animated-button span:first-child {
-    position: relative;
-    z-index: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.animated-button span:last-child {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  background-color: var(--hostella-accent);
+  border-radius: 50%;
+  opacity: 0;
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
 .animated-button:hover {
-    box-shadow: 0 0 0 5px #01006630;
-    color: #ffffff;
+  box-shadow: 0 0 0 5px rgba(212, 175, 55, 0.25); /* accent con alpha */
+  color: #ffffff;
 }
+
 
 .animated-button:active {
     scale: 0.95;
