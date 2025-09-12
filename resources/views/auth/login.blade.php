@@ -121,11 +121,11 @@
         <h2>Iniciar Sesión</h2>
         <div class="title-underline"></div>
 
-        @if ($errors->any())
-            <div class="error">
-                {{ $errors->first() }}
-            </div>
-        @endif>
+@if ($errors->any())
+    <div class="error">
+        {{ $errors->first() }}
+    </div>
+@endif
 
         <form method="POST" action="{{ route('login') }}">
             @csrf
