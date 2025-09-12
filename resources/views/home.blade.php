@@ -8,35 +8,7 @@
 
 
 <style>
-:root{
-  --hostella-primary:#1a1a1a;
-  --hostella-secondary:#FFD700;
-  --hostella-light:#f8f9fa;
-  --hostella-dark:#000000;
-  --hostella-accent:#D4AF37;
-}
-.btn-primary{
-  background-color:var(--hostella-primary) !important;
-  border-color:var(--hostella-primary) !important;
-}
-.btn-primary:hover{
-  background-color:var(--hostella-dark) !important;
-  border-color:var(--hostella-dark) !important;
-}
-.btn-outline-primary{
-  color:var(--hostella-primary) !important;
-  border-color:var(--hostella-primary) !important;
-}
-.btn-outline-primary:hover{
-  color:#fff !important;
-  background-color:var(--hostella-primary) !important;
-  border-color:var(--hostella-primary) !important;
-}
-.badge.bg-primary{
-  background-color:var(--hostella-secondary) !important;
-  color:var(--hostella-dark) !important;
-}
-a, .text-primary{ color:var(--hostella-primary) !important; }
+
 /* Compresión SOLO en móviles */
 @media (max-width: 576px){
   /* Titulares del hero */
