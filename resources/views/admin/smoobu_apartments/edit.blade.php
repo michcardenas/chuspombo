@@ -113,7 +113,7 @@
             <div class="mb-3">
                 <label class="form-label">Agregar imágenes</label>
                 <input type="file" name="images[]" class="form-control" multiple accept="image/*">
-                <small class="text-muted">Puedes subir varias. Máx 4MB c/u.</small>
+                <small class="text-muted">Puedes subir varias.</small>
             </div>
 
             <div class="mt-4">

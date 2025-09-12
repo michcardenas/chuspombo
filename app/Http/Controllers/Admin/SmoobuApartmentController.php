@@ -54,7 +54,7 @@ class SmoobuApartmentController extends Controller
             'cover_image_id'         => 'nullable|integer|exists:smoobu_apartment_images,id',
             'delete_images'          => 'nullable|array',
             'delete_images.*'        => 'integer|exists:smoobu_apartment_images,id',
-            'images.*'               => 'nullable|image|max:4096',
+            'images.*'               => 'nullable|image',
         ]);
 
         // Upsert meta
