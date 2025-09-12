@@ -363,23 +363,6 @@
                 </div>
             </div>
 
-            {{-- ===== Notas SEO (solo referencia) ===== --}}
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="hdr-nota-seo">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-nota-seo" aria-expanded="false" aria-controls="sec-nota-seo">
-                        Notas
-                        <span class="badge text-bg-secondary ms-2">No visible</span>
-                    </button>
-                </h2>
-                <div id="sec-nota-seo" class="accordion-collapse collapse" aria-labelledby="hdr-nota-seo" data-bs-parent="#contactEditor">
-                    <div class="accordion-body">
-                        <small class="text-muted">
-                            Esta página no usa metadatos específicos aquí (los puedes gestionar globalmente si lo prefieres).
-                        </small>
-                    </div>
-                </div>
-            </div>
-
         </div>
 
         <div class="d-flex justify-content-end gap-2 mt-3">
