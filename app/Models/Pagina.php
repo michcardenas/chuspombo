@@ -61,6 +61,8 @@ class Pagina extends Model
         'whatsapp',
         'logo',
         'featured_property_id',
+        'direccion',
+        'email',
     ];
 
     /**

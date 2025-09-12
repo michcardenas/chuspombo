@@ -249,6 +249,18 @@
                                 <input type="text" name="whatsapp" id="whatsapp" class="form-control" placeholder="+57..." value="{{ old('whatsapp', $pagina->whatsapp) }}">
                             </div>
                             <div class="col-md-6">
+                                <label for="direccion" class="form-label">Dirección</label>
+                                <input type="text" name="direccion" id="direccion" class="form-control"
+                                    placeholder="Ej: España, Galicia"
+                                    value="{{ old('direccion', $pagina->direccion) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Correo de contacto</label>
+                                <input type="email" name="email" id="email" class="form-control"
+                                    placeholder="info@chuspombo.com"
+                                    value="{{ old('email', $pagina->email) }}">
+                            </div>
+                            <div class="col-md-6">
                                 <label for="logo" class="form-label">Logo</label>
                                 <input type="file" name="logo" id="logo" class="form-control">
                                 @if ($pagina->logo)

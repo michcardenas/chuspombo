@@ -281,6 +281,47 @@
                 </div>
             </div>
 
+            {{-- ===== FAQs ===== --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-faqs">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-faqs" aria-expanded="false" aria-controls="sec-faqs">
+                        Preguntas frecuentes (FAQ)
+                        <span class="badge text-bg-success ms-2">Visible en Contacto</span>
+                    </button>
+                </h2>
+                <div id="sec-faqs" class="accordion-collapse collapse" aria-labelledby="hdr-faqs" data-bs-parent="#contactEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3">
+                            @for($i = 1; $i <= 3; $i++)
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="mb-3">FAQ {{ $i }}</h6>
+                                            <div class="mb-2">
+                                                <label class="form-label" for="faq{{ $i }}_q">Pregunta</label>
+                                                <input type="text"
+                                                       id="faq{{ $i }}_q"
+                                                       name="faq{{ $i }}_q"
+                                                       class="form-control"
+                                                       value="{{ old("faq{$i}_q", $contact?->{"faq{$i}_q"} ) }}">
+                                            </div>
+                                            <div>
+                                                <label class="form-label" for="faq{{ $i }}_a">Respuesta</label>
+                                                <textarea id="faq{{ $i }}_a"
+                                                          name="faq{{ $i }}_a"
+                                                          rows="3"
+                                                          class="form-control">{{ old("faq{$i}_a", $contact?->{"faq{$i}_a"}) }}</textarea>
+                                                <small class="text-muted">Puedes usar líneas nuevas para separar ideas.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- ===== Formulario & Legal ===== --}}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="hdr-form-legal">

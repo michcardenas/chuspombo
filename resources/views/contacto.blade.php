@@ -51,13 +51,29 @@
         ['label' => 'Dom',     'from' => 'Cerrado', 'to' => ''],
     ];
 
-    // FAQs (por defecto)
-    $faq1_q = '¿Cómo reservo un apartamento?';
-    $faq1_a = 'Envíanos tus fechas y preferencia; te confirmamos disponibilidad y precio.';
-    $faq2_q = '¿Se permite cancelación?';
-    $faq2_a = 'Sí, según políticas del alojamiento y el tiempo previo a la llegada.';
-    $faq3_q = '¿Ofrecen check-in sin contacto?';
-    $faq3_a = 'Podemos gestionar check-in autónomo bajo solicitud.';
+    // ===== FAQs desde BD (con fallback en el primero) =====
+    $faqs = [
+        [
+            'id'   => 'faq1',
+            'q'    => trim($contact->faq1_q ?? '') ?: '¿Cómo reservo un apartamento?',
+            'a'    => trim($contact->faq1_a ?? '') ?: 'Envíanos tus fechas y preferencia; te confirmamos disponibilidad y precio.',
+            'show' => true,
+        ],
+        [
+            'id'   => 'faq2',
+            'q'    => trim($contact->faq2_q ?? ''),
+            'a'    => trim($contact->faq2_a ?? ''),
+            'show' => false,
+        ],
+        [
+            'id'   => 'faq3',
+            'q'    => trim($contact->faq3_q ?? ''),
+            'a'    => trim($contact->faq3_a ?? ''),
+            'show' => false,
+        ],
+    ];
+    // Ocultar FAQs totalmente vacíos (excepto el 1 que siempre tiene fallback)
+    $faqs = array_values(array_filter($faqs, fn($f) => $f['q'] !== '' || $f['a'] !== ''));
 
     // Mapa: guardamos src o iframe completo
     $mapHtml = null;
@@ -312,38 +328,25 @@
             </div>
           @endif
 
+          {{-- ===== FAQs ===== --}}
+          @if(count($faqs))
           <div class="accordion mt-4" id="faqs">
-            <div class="accordion-item contact-card">
-              <h2 class="accordion-header">
-                <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                  {{ $faq1_q }}
-                </button>
-              </h2>
-              <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqs">
-                <div class="accordion-body">{{ $faq1_a }}</div>
+            @foreach($faqs as $i => $f)
+              <div class="accordion-item contact-card {{ $i>0 ? 'mt-3' : '' }}">
+                <h2 class="accordion-header">
+                  <button class="accordion-button fw-semibold {{ $f['show'] ? '' : 'collapsed' }}"
+                          type="button" data-bs-toggle="collapse"
+                          data-bs-target="#{{ $f['id'] }}">
+                    {{ $f['q'] }}
+                  </button>
+                </h2>
+                <div id="{{ $f['id'] }}" class="accordion-collapse collapse {{ $f['show'] ? 'show' : '' }}" data-bs-parent="#faqs">
+                  <div class="accordion-body">{{ $f['a'] }}</div>
+                </div>
               </div>
-            </div>
-            <div class="accordion-item contact-card mt-3">
-              <h2 class="accordion-header">
-                <button class="accordion-button fw-semibold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                  {{ $faq2_q }}
-                </button>
-              </h2>
-              <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqs">
-                <div class="accordion-body">{{ $faq2_a }}</div>
-              </div>
-            </div>
-            <div class="accordion-item contact-card mt-3">
-              <h2 class="accordion-header">
-                <button class="accordion-button fw-semibold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                  {{ $faq3_q }}
-                </button>
-              </h2>
-              <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqs">
-                <div class="accordion-body">{{ $faq3_a }}</div>
-              </div>
-            </div>
+            @endforeach
           </div>
+          @endif
 
         </div>
       </div>

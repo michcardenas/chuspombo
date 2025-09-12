@@ -37,6 +37,9 @@ class ContactPage extends Model
 
         // Estado
         'is_active',
+
+        // FAQ
+        'faq1_q','faq1_a','faq2_q','faq2_a','faq3_q','faq3_a',
     ];
 
     protected $casts = [
