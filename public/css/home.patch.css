@@ -1,4 +1,12 @@
-/* ====== PATCH RESPONSIVE CHUS POMBO (HOME) ====== */
+/* ====== PATCH RESPONSIVE CHUS POMBO (HOME) — HOSTELLA PALETTE ====== */
+:root {
+  --hostella-primary:#1a1a1a;
+  --hostella-secondary:#FFD700;
+  --hostella-light:#f8f9fa;
+  --hostella-dark:#000000;
+  --hostella-accent:#D4AF37;
+}
+
 /* 1) Unifica body y evita doble declaración */
 body {
   font-family: 'Poppins', sans-serif;
@@ -13,35 +21,31 @@ body {
 .carousel-container {
   position: relative;
   max-width: 100%;
-  height: clamp(320px, 60vh, 700px); /* adapta a pantalla */
+  height: clamp(320px, 60vh, 700px);
   overflow: hidden;
 }
 .carousel-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* mantiene proporción sin estirar */
+  object-fit: cover;
 }
 
 /* Fondo fijo para el contenedor del navbar (opcional) */
-.navbar {
-  background-color: #fff; /* o rgba(255,255,255,.95) */
-}
+.navbar { background-color: #fff; }
 
 /* Menú colapsado con fondo cuando está abierto (móvil) */
-@media (max-width: 991.98px) { /* breakpoint de Bootstrap lg */
+@media (max-width: 991.98px) {
   .navbar .navbar-collapse {
-    background: #fff;                /* el “fondo” que falta */
-    width: 100vw;                    /* cubrir todo el ancho */
-    position: fixed;                 /* despegar del flujo */
-    top: 80px;                       /* altura de tu navbar */
+    background: #fff;
+    width: 100vw;
+    position: fixed;
+    top: 80px;
     left: 0;
     padding: 12px 16px;
     box-shadow: 0 8px 24px rgba(0,0,0,.12);
     z-index: 1000;
   }
-  .navbar .nav-link {
-    padding: .75rem 0;
-  }
+  .navbar .nav-link { padding: .75rem 0; }
 }
 
 /* Altura y padding global para no tapar el contenido */
@@ -54,20 +58,17 @@ body { padding-top: 72px; }
 /* Estilos del offcanvas móvil */
 .chus-offcanvas {
   background: #fff;
-  /* que abra debajo del navbar sin superponer el logo */
   margin-top: 72px;                     /* = altura del navbar */
-  height: auto;                         /* se autoajusta al contenido */
-  max-height: calc(100vh - 72px);       /* no sobrepasa la pantalla */
+  height: auto;
+  max-height: calc(100vh - 72px);
   box-shadow: 0 8px 24px rgba(0,0,0,.12);
 }
-.chus-offcanvas .nav-link { font-weight: 500; color: #6b7280; } /* gray-500 */
+.chus-offcanvas .nav-link { font-weight: 500; color: #6b7280; }
 .chus-offcanvas .nav-link.active,
-.chus-offcanvas .nav-link:hover { color: #010066; }
+.chus-offcanvas .nav-link:hover { color: var(--hostella-accent); }
 
 /* Desktop mantiene el menú clásico */
-@media (min-width: 992px) {
-  .chus-offcanvas { display: none; }
-}
+@media (min-width: 992px) { .chus-offcanvas { display: none; } }
 
 /* 3) Overlay del hero con tipografías fluidas */
 .carousel-overlay {
@@ -103,33 +104,33 @@ body { padding-top: 72px; }
   .property-card:hover { transform: translateY(-5px); }
 }
 
-/* 5) Botones: mantener primario azul global y negro SOLO en la sección destacada */
+/* 5) Botones: usan paleta Hostella */
 .btn {
   border-radius: 0.25rem;
   padding: 0.5rem 1.5rem;
   font-weight: 500;
   transition: all 0.3s ease;
 }
-.btn-primary { /* azul global */
-  background-color: #010066;
-  border-color: #3f51b5;
+.btn-primary {
+  background-color: var(--hostella-primary);
+  border-color: var(--hostella-primary);
 }
 .btn-primary:hover {
-  background-color: #303f9f;
-  border-color: #303f9f;
+  background-color: var(--hostella-dark);
+  border-color: var(--hostella-dark);
 }
 .btn-outline-primary {
-  color: #3f51b5;
-  border-color: #3f51b5;
+  color: var(--hostella-primary);
+  border-color: var(--hostella-primary);
 }
 .btn-outline-primary:hover {
-  background-color: #3f51b5;
-  border-color: #3f51b5;
+  background-color: var(--hostella-primary);
+  border-color: var(--hostella-primary);
   color: #fff;
 }
-/* Negro solo en CTA de “Propiedad destacada” */
+/* Negro (brand) solo en CTA de “Propiedad destacada” */
 .featured-property .btn-primary {
-  background-color: #1a1a1a;
+  background-color: var(--hostella-primary);
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
@@ -152,9 +153,8 @@ body { padding-top: 72px; }
   width: 100%;
   border-radius: 15px;
   object-fit: cover;
-  aspect-ratio: 16/10; /* evita “saltos” de layout */
+  aspect-ratio: 16/10;
 }
-/* “Foto pequeña” superpuesta: controla desbordes */
 .small-image {
   width: 190px; height: 154px; border-radius: 40px; object-fit: cover;
   position: absolute; top: -40px; left: -85px;
@@ -170,7 +170,7 @@ body { padding-top: 72px; }
 }
 .feature-card:hover {
   background-color: #fff;
-  box-shadow: 0 10px 30px rgba(1,0,102,.1);
+  box-shadow: 0 10px 30px rgba(212,175,55,.20); /* hostella-accent */
   transform: translateY(-5px);
 }
 .feature-title { color: var(--hostella-dark); margin-bottom: 14px; font-weight: 600; }
@@ -178,7 +178,7 @@ body { padding-top: 72px; }
 
 /* 9) Botón animado CTA: accesible al foco */
 .animated-button:focus-visible {
-  outline: 3px solid #01006655;
+  outline: 3px solid rgba(212,175,55,.33); /* hostella-accent con alpha */
   outline-offset: 3px;
 }
 
@@ -193,8 +193,8 @@ body { padding-top: 72px; }
   .carousel-overlay { padding: 14px; }
   .images-section { flex-direction: column; }
   .small-image {
-    position: static;           /* deja de superponer en móvil */
-    width: 100%; height: auto;  /* ocupa el ancho */
+    position: static;
+    width: 100%; height: auto;
     border-radius: 12px; border-width: 3px;
   }
   .large-image { aspect-ratio: 4/3; }
