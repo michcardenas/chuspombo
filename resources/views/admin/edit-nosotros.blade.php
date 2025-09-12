@@ -200,23 +200,6 @@
                 </div>
             </div>
 
-            {{-- ===== NOTAS ===== --}}
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="hdr-notas">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-notas" aria-expanded="false" aria-controls="sec-notas">
-                        Notas
-                        <span class="badge text-bg-secondary ms-2">No visible</span>
-                    </button>
-                </h2>
-                <div id="sec-notas" class="accordion-collapse collapse" aria-labelledby="hdr-notas" data-bs-parent="#aboutEditor">
-                    <div class="accordion-body">
-                        <small class="text-muted">
-                            Esta página usa imágenes reales de tus propiedades (como la portada y “Propiedades”).  
-                            Si prefieres subir imágenes fijas para cada sección, avísame y agregamos los campos y la lógica de guardado.
-                        </small>
-                    </div>
-                </div>
-            </div>
 
         </div>
 
