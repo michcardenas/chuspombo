@@ -124,12 +124,10 @@
     // Seleccionar 4 aleatorias; si hay menos de 4, repetimos de las existentes (evitamos placeholders)
     $sectionImages = $pool->shuffle()->take($imagesNeeded)->values()->all();
     if (count($sectionImages) < $imagesNeeded && $pool->isNotEmpty()) {
-        // rellenar repitiendo del pool (sin usar placeholders)
         while (count($sectionImages) < $imagesNeeded) {
             $sectionImages[] = $pool->random();
         }
     }
-    // Fallback extremo: si el pool está vacío, usa un único placeholder
     if (empty($sectionImages)) {
         $sectionImages = [
             asset('images/galicia-placeholder.webp'),
@@ -140,12 +138,64 @@
     }
 @endphp
 
+{{-- ====== Hostella palette / overrides locales para esta vista ====== --}}
+<style>
+:root{
+  --hostella-primary:#1a1a1a;
+  --hostella-secondary:#FFD700;
+  --hostella-light:#f8f9fa;
+  --hostella-dark:#000000;
+  --hostella-accent:#D4AF37;
+}
+/* Botones base con paleta Hostella */
+.btn-primary{
+  background-color:var(--hostella-primary)!important;
+  border-color:var(--hostella-primary)!important;
+}
+.btn-primary:hover{
+  background-color:var(--hostella-dark)!important;
+  border-color:var(--hostella-dark)!important;
+}
+.btn-outline-primary{
+  color:var(--hostella-primary)!important;
+  border-color:var(--hostella-primary)!important;
+}
+.btn-outline-primary:hover{
+  color:#fff!important;
+  background-color:var(--hostella-primary)!important;
+  border-color:var(--hostella-primary)!important;
+}
+/* Botón acento dorado */
+.btn-accent{
+  background: linear-gradient(45deg, var(--hostella-accent), #B8860B);
+  border:none;
+  color:var(--hostella-dark);
+  font-weight:600;
+  border-radius:30px;
+}
+.btn-accent:hover{
+  filter: brightness(.95);
+  color:var(--hostella-dark);
+}
+/* Mapear utilidades de Bootstrap a paleta Hostella (sólo en esta vista) */
+.bg-primary{ background-color:var(--hostella-primary)!important; }
+.text-primary{ color:var(--hostella-primary)!important; }
+.badge.bg-primary{
+  background-color:var(--hostella-secondary)!important;
+  color:var(--hostella-dark)!important;
+}
+.text-accent{ color:var(--hostella-accent)!important; }
+
+/* Pequeños detalles visuales */
+.shadow-soft{ box-shadow:0 10px 30px rgba(0,0,0,.08); }
+.round-3{ border-radius:1rem; }
+</style>
+
 <div class="container-fluid p-0">
     <!-- Hero Section Premium -->
     <section class="position-relative overflow-hidden" style="height: 70vh; min-height: 600px;">
         <div class="position-absolute w-100 h-100"
-             style="background: linear-gradient(45deg, rgba(26,26,26,0.8), rgba(212,175,55,0.3)), url('{{ $sectionImages[0] }}');
-                    background-size: cover; background-position: center;"></div>
+             style="background: linear-gradient(45deg, rgba(26,26,26,0.8), rgba(212,175,55,0.3)), url('{{ $sectionImages[0] }}'); background-size: cover; background-position: center;"></div>
         <div class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center">
             <div class="container text-center text-white">
                 <div class="row justify-content-center">
@@ -153,15 +203,14 @@
                         <h1 class="display-2 fw-bold mb-4" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
                             Chuspombo
                         </h1>
-                        <p class="fs-3 mb-4" style="color: #D4AF37; font-weight: 300;">
+                        <p class="fs-3 mb-4 text-accent" style="font-weight: 300;">
                             Apartamentos
                         </p>
                         <p class="lead fs-4 mb-5 px-3" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">
                             Donde el lujo se encuentra con la autenticidad gallega.<br>
                             <em>Dos apartamentos únicos en el corazón de Galicia.</em>
                         </p>
-                        <a href="{{ route('contact') }}" class="btn btn-lg px-5 py-3"
-                           style="background: linear-gradient(45deg, #D4AF37, #B8860B); border: none; color: #1a1a1a; font-weight: 600; border-radius: 30px;">
+                        <a href="{{ route('contact') }}" class="btn btn-lg px-5 py-3 btn-accent">
                             Descubre Tu Refugio Gallego
                         </a>
                     </div>
@@ -187,7 +236,7 @@
                         <span class="badge bg-primary px-3 py-2 mb-3">Nuestra Historia</span>
                         <h2 class="display-5 fw-bold mb-4">
                             Más que alojamiento,<br>
-                            <span style="color: #D4AF37;">una experiencia auténtica</span>
+                            <span class="text-accent">una experiencia auténtica</span>
                         </h2>
                         <p class="fs-5 text-muted mb-4 lh-lg">
                             Chuspombo nació del amor por Galicia y la pasión por la hospitalidad. Nuestros dos apartamentos no son solo espacios de lujo, sino ventanas abiertas a la verdadera esencia gallega.
@@ -341,8 +390,7 @@
     <!-- CTA Final Premium -->
     <section class="py-5 position-relative overflow-hidden">
         <div class="position-absolute w-100 h-100"
-             style="background: linear-gradient(rgba(26,26,26,0.85), rgba(26,26,26,0.85)), url('{{ $sectionImages[3] }}');
-                    background-size: cover; background-position: center;"></div>
+             style="background: linear-gradient(rgba(26,26,26,0.85), rgba(26,26,26,0.85)), url('{{ $sectionImages[3] }}'); background-size: cover; background-position: center;"></div>
         <div class="container position-relative py-5">
             <div class="row justify-content-center text-center text-white">
                 <div class="col-lg-8">
@@ -353,8 +401,7 @@
                         Dos apartamentos únicos, infinitas experiencias. Descubre por qué nuestros huéspedes se enamoran de Galicia... y regresan.
                     </p>
                     <div class="d-flex flex-column flex-md-row gap-3 justify-content-center">
-                        <a href="mailto:info@chuspombo.com" class="btn btn-lg px-5 py-3"
-                           style="background: linear-gradient(45deg, #D4AF37, #B8860B); border: none; color: #1a1a1a; font-weight: 600; border-radius: 30px;">
+                        <a href="mailto:info@chuspombo.com" class="btn btn-lg px-5 py-3 btn-accent">
                             <i class="fas fa-envelope me-2"></i>
                             Reserva Ahora
                         </a>
