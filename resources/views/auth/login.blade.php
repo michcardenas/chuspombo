@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Iniciar sesión | Chuspombo</title>
@@ -8,34 +9,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
     <style>
-        :root{
-          --hostella-primary:#1a1a1a;   /* negro principal */
-          --hostella-secondary:#FFD700; /* dorado */
-          --hostella-light:#f8f9fa;
-          --hostella-dark:#000000;
-          --hostella-accent:#D4AF37;    /* dorado suave */
+        :root {
+            --hostella-primary: #1a1a1a;
+            /* negro principal */
+            --hostella-secondary: #FFD700;
+            /* dorado */
+            --hostella-light: #f8f9fa;
+            --hostella-dark: #000000;
+            --hostella-accent: #D4AF37;
+            /* dorado suave */
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
             font-family: 'Poppins', sans-serif;
             color: #222;
             min-height: 100vh;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
             /* Fondo oscuro con halos dorados suaves */
             background:
-              radial-gradient(900px circle at 10% 15%, rgba(212,175,55,.18), transparent 40%),
-              radial-gradient(900px circle at 85% 85%, rgba(212,175,55,.12), transparent 45%),
-              linear-gradient(135deg, #0b0b0b 0%, #1c1c1c 100%);
+                radial-gradient(900px circle at 10% 15%, rgba(212, 175, 55, .18), transparent 40%),
+                radial-gradient(900px circle at 85% 85%, rgba(212, 175, 55, .12), transparent 45%),
+                linear-gradient(135deg, #0b0b0b 0%, #1c1c1c 100%);
         }
 
         .login-container {
             background-color: #fff;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
             width: 100%;
             max-width: 420px;
             padding: 40px 30px;
@@ -53,7 +61,10 @@
             margin-bottom: 22px;
         }
 
-        .form-group { margin-bottom: 16px; text-align: left; }
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
 
         .form-group label {
             display: block;
@@ -75,7 +86,7 @@
         .form-group input:focus {
             border-color: var(--hostella-accent);
             outline: none;
-            box-shadow: 0 0 0 .2rem rgba(212,175,55,.18);
+            box-shadow: 0 0 0 .2rem rgba(212, 175, 55, .18);
         }
 
         .btn-login {
@@ -90,8 +101,14 @@
             cursor: pointer;
             transition: filter .25s, transform .05s;
         }
-        .btn-login:hover { filter: brightness(.93); }
-        .btn-login:active { transform: translateY(1px); }
+
+        .btn-login:hover {
+            filter: brightness(.93);
+        }
+
+        .btn-login:active {
+            transform: translateY(1px);
+        }
 
         .error {
             color: #d33;
@@ -101,18 +118,25 @@
 
         /* Detalle dorado fino bajo el título */
         .title-underline {
-            width: 56px; height: 3px;
+            width: 56px;
+            height: 3px;
             margin: 10px auto 0;
             background: linear-gradient(90deg, var(--hostella-secondary), transparent);
             border-radius: 2px;
         }
 
         @media (max-width: 480px) {
-            .login-container { padding: 28px 20px; }
-            .login-logo { width: 150px; }
+            .login-container {
+                padding: 28px 20px;
+            }
+
+            .login-logo {
+                width: 150px;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="login-container">
@@ -121,11 +145,11 @@
         <h2>Iniciar Sesión</h2>
         <div class="title-underline"></div>
 
-@if ($errors->any())
-    <div class="error">
-        {{ $errors->first() }}
-    </div>
-@endif
+        @if ($errors->any())
+        <div class="error">
+            {{ $errors->first() }}
+        </div>
+        @endif
 
         <form method="POST" action="{{ route('login') }}">
             @csrf
@@ -145,4 +169,5 @@
     </div>
 
 </body>
+
 </html>

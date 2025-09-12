@@ -60,6 +60,7 @@ class Pagina extends Model
         'instagram',
         'whatsapp',
         'logo',
+        'featured_property_id',
     ];
 
     /**

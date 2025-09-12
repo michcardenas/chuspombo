@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
     <div class="container">
         <a class="navbar-brand" href="{{ route('admin.dashboard') }}">
-            <img style='height: 6rem;' src="{{ asset('images/Hostella_logo_horizontal.png') }}" alt="Chuspombo Admin">
+            <img style="height: 6rem;" src="{{ asset('images/Hostella_logo_horizontal.png') }}" alt="Chuspombo Admin">
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar" aria-controls="adminNavbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,16 +19,15 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('admin.pagos*') ? 'active' : '' }}" href="{{ route('admin.pagos.index') }}">
-                        Pagos
-                    </a>
+                    <a class="nav-link {{ request()->routeIs('admin.pagos*') ? 'active' : '' }}" href="{{ route('admin.pagos.index') }}">Pagos</a>
                 </li>
 
+                {{-- NUEVO: Nosotros (Admin) --}}
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Nosotros</a>
+                    <a class="nav-link {{ request()->routeIs('admin.pagina.nosotros.*') ? 'active' : '' }}" href="{{ route('admin.pagina.nosotros.edit') }}">Nosotros</a>
                 </li>
 
-                {{-- NUEVO: Contacto (Admin) --}}
+                {{-- Contacto (Admin) --}}
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('admin.pagina.contacto.*') ? 'active' : '' }}" href="{{ route('admin.pagina.contacto.edit') }}">Contacto</a>
                 </li>

@@ -8,11 +8,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\ContactPage;
+use App\Models\AboutPage; // <-- USAR EL MODELO DEDICADO
+
 class AboutController extends Controller
 {
     protected $smoobu;
 
-    // Ajusta el tipo del servicio a tu clase real (p.ej. \App\Services\SmoobuApi)
     public function __construct(\App\Services\SmoobuClient $smoobu)
     {
         $this->smoobu = $smoobu;
@@ -26,12 +27,12 @@ class AboutController extends Controller
         try {
             // 1) Traer apartamentos desde Smoobu (cache 5 min)
             $apartments = Cache::remember('smoobu.apartments', 300, function () {
-                return $this->smoobu->apartments(); // ej: [['id'=>..., 'name'=>...], ...]
+                return $this->smoobu->apartments();
             });
 
             $apartments = collect($apartments ?? []);
 
-            // 2) Opcional: leer imágenes por apartment desde la tabla (si la tienes)
+            // 2) Imágenes por apartment desde DB (opcional)
             $ids = $apartments->pluck('id')->filter()->unique()->values()->all();
 
             $imagesByApt = collect();
@@ -48,18 +49,16 @@ class AboutController extends Controller
                     return collect($rows)->pluck('path')->map(function ($p) {
                         $p = is_string($p) ? trim($p) : '';
                         if ($p === '') return null;
-                        // Si es relativo, vuelve URL absoluta
                         return str_starts_with($p, 'http') ? $p : asset($p);
                     })->filter()->values();
                 });
             }
 
-            // 3) Mapear al formato que la vista espera
+            // 3) Mapear formato para la vista
             $properties = $apartments->map(function ($apt) use ($imagesByApt) {
                 $id   = $apt['id'] ?? null;
                 $name = trim($apt['name'] ?? 'Propiedad');
 
-                // thumbnail local rápido (no imprescindible para el pool, pero útil)
                 $thumb = (function () use ($id) {
                     foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.png"] as $rel) {
                         if ($id && file_exists(public_path($rel))) return asset($rel);
@@ -67,15 +66,13 @@ class AboutController extends Controller
                     return asset('images/property-placeholder.jpg');
                 })();
 
-                // Lista de imágenes opcionales para que la vista también encuentre por array
                 $pictures = $imagesByApt->get($id, collect())->values()->all();
 
                 return [
-                    '_id'     => $id,
-                    'title'   => $name,
-                    'picture' => ['thumbnail' => $thumb],
-                    // Estas claves ayudan a la vista a encontrar más URLs además del escaneo local:
-                    'pictures' => $pictures, // <- importante si quieres reforzar el pool
+                    '_id'      => $id,
+                    'title'    => $name,
+                    'picture'  => ['thumbnail' => $thumb],
+                    'pictures' => $pictures,
                     'gallery'  => $pictures,
                     'images'   => $pictures,
                 ];
@@ -83,21 +80,33 @@ class AboutController extends Controller
 
             Log::info('[AboutController] properties construidas', ['count' => count($properties)]);
 
+            // 4) Contenido editable desde about_pages
+            //    Prioriza activa; si no hay, toma la primera; si tampoco existe, instancia en memoria.
+            $about = AboutPage::active()->first()
+                ?? AboutPage::first()
+                ?? new AboutPage();
+
             return view('about', [
                 'properties' => $properties,
+                'about'  => $about, // <-- la vista ya espera $contenido
             ]);
         } catch (\Throwable $e) {
             Log::error('Error en AboutController@index', ['e' => $e->getMessage()]);
+
+            // Garantiza que la vista tenga $contenido aunque haya error
+            $about = AboutPage::active()->first()
+                ?? AboutPage::first()
+                ?? new AboutPage();
+
             return view('about', [
                 'properties' => [],
+                'about'  => $about,
             ]);
         }
     }
 
     public function contact()
     {
-        // Cargamos el registro único de contacto
-        // (si aún no existe, creamos uno en memoria con valores por defecto para no romper la vista)
         $contact = ContactPage::first();
 
         if (!$contact) {
@@ -109,7 +118,6 @@ class AboutController extends Controller
             ]);
         }
 
-        // Si necesitas URLs listas para las imágenes en la vista, puedes prepararlas aquí:
         $heroUrl   = $contact->hero_image   ? asset('images/' . $contact->hero_image)   : null;
         $bannerUrl = $contact->banner_image ? asset('images/' . $contact->banner_image) : null;
 
@@ -120,20 +128,15 @@ class AboutController extends Controller
         ]);
     }
 
-    /**
-     * Procesa el formulario de contacto (POST)
-     */
     public function contactSubmit(Request $request)
     {
-        // Valida datos del formulario
         $data = $request->validate([
             'name'        => ['required', 'string', 'max:120'],
             'email'       => ['required', 'email', 'max:150'],
             'phone'       => ['nullable', 'string', 'max:30'],
             'subject'     => ['nullable', 'string', 'max:150'],
             'message'     => ['required', 'string', 'max:4000'],
-            // Opcionales si incluyes campos en tu formulario
-            'apartment_id' => ['nullable', 'integer'],
+            'apartment_id'=> ['nullable', 'integer'],
             'checkin'     => ['nullable', 'date'],
             'checkout'    => ['nullable', 'date', 'after_or_equal:checkin'],
         ], [
@@ -144,10 +147,8 @@ class AboutController extends Controller
             'checkout.after_or_equal' => 'La fecha de salida debe ser igual o posterior a la llegada.',
         ]);
 
-        // A quién enviamos (usa .env si lo tienes, sino fallback)
         $to = config('mail.to.contact', config('mail.from.address', 'admin@chuspombo.com'));
 
-        // Construimos un HTML sencillo para el correo
         $lines = [
             '<h2>Nuevo mensaje desde Contacto</h2>',
             '<p><strong>Nombre:</strong> ' . e($data['name']) . '</p>',
@@ -169,7 +170,6 @@ class AboutController extends Controller
         $html = implode('', $lines);
 
         try {
-            // Envío simple sin crear Mailable (válido y rápido)
             Mail::send([], [], function ($message) use ($to, $data, $html) {
                 $subject = 'Contacto Chuspombo — ' . ($data['subject'] ?? 'Nuevo mensaje');
                 $message
@@ -179,16 +179,11 @@ class AboutController extends Controller
                     ->setBody($html, 'text/html');
             });
 
-            // Si Mail no está configurado, Mail::failures puede estar vacío,
-            // pero igual dejamos log de éxito por trazabilidad
             Log::info('Contacto enviado', ['from' => $data['email'], 'name' => $data['name']]);
 
             return back()->with('success', '¡Gracias! Tu mensaje ha sido enviado. Te responderemos pronto.');
         } catch (\Throwable $e) {
-            // Si falla el correo, lo registramos y devolvemos un mensaje amable
             Log::error('Error enviando contacto', ['error' => $e->getMessage(), 'payload' => $data]);
-
-            // Puedes decidir si quieres continuar sin error crítico:
             return back()->withInput()->with('error', 'No se pudo enviar el mensaje en este momento. Intenta de nuevo más tarde.');
         }
     }

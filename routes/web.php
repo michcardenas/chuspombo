@@ -83,6 +83,14 @@ Route::get('/admin/pagina/contacto/edit', [\App\Http\Controllers\Admin\PaginaCon
 Route::post('/admin/pagina/contacto', [\App\Http\Controllers\Admin\PaginaController::class, 'updateContacto'])
     ->name('admin.pagina.contacto.update');
 
+
+    /* ====== NUEVO: Nosotros (About) ====== */
+Route::middleware('auth')->get('/admin/pagina/nosotros/edit', [PaginaController::class, 'editNosotros'])
+    ->name('admin.pagina.nosotros.edit');
+
+Route::middleware('auth')->post('/admin/pagina/nosotros', [PaginaController::class, 'updateNosotros'])
+    ->name('admin.pagina.nosotros.update');
+
 Route::middleware(['auth'])->prefix('admin/apartments')->name('admin.apartments.')->group(function () {
     Route::get('{apartment}/edit', [SmoobuApartmentController::class, 'edit'])->name('edit');
     Route::post('{apartment}', [SmoobuApartmentController::class, 'update'])->name('update');

@@ -3,243 +3,333 @@
 @section('title', 'Editar Página de Inicio')
 
 @section('content')
-<div class="container">
+<div class="container py-3">
 
-    <h1 class="mb-4">Editar Página de Inicio</h1>
+    <h1 class="mb-3">Editar Página de Inicio</h1>
 
     <form action="{{ route('admin.pagina.update', $pagina->id ?? 1) }}" method="POST" enctype="multipart/form-data">
-    @csrf
+        @csrf
         @method('PUT')
-
         <input type="hidden" name="pagina_id" value="{{ $pagina->id }}">
 
-        {{-- Encabezados --}}
-        <div class="card mb-4">
-            <div class="card-header">Encabezados</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="h1" class="form-label">Título principal (h1)</label>
-                    <input type="text" name="h1" class="form-control" value="{{ old('h1', $pagina->h1) }}">
-                </div>
+        <div class="accordion" id="homeEditor">
 
-                <div class="mb-3">
-                    <label for="h2_1" class="form-label">Subtítulo (h2)</label>
-                    <input type="text" name="h2_1" class="form-control" value="{{ old('h2_1', $pagina->h2_1) }}">
-                </div>
-            </div>
-        </div>
-
-        {{-- Sección Propiedades --}}
-        <div class="card mb-4">
-            <div class="card-header">Sección: Propiedades</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="h2_propiedades" class="form-label">Título h2</label>
-                    <input type="text" name="h2_propiedades" class="form-control" value="{{ old('h2_propiedades', $pagina->h2_propiedades) }}">
-                </div>
-
-                <div class="mb-3">
-                    <label for="p_propiedades" class="form-label">Contenido</label>
-                    <textarea name="p_propiedades" class="form-control" rows="3">{{ old('p_propiedades', $pagina->p_propiedades) }}</textarea>
-                </div>
-            </div>
-        </div>
-
-        {{-- Sección Propiedad con Chuspombo --}}
-        <div class="card mb-4">
-            <div class="card-header">Sección: Propiedad con Chuspombo</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="h2_hostella" class="form-label">Título h2</label>
-                    <input type="text" name="h2_hostella" class="form-control" value="{{ old('h2_hostella', $pagina->h2_hostella) }}">
-                </div>
-
-                <div class="mb-3">
-                    <label for="p_hostella" class="form-label">Contenido</label>
-                    <textarea name="p_hostella" class="form-control" rows="3">{{ old('p_hostella', $pagina->p_hostella) }}</textarea>
-                </div>
-            </div>
-        </div>
-
-        {{-- Tarjetas sección 1 --}}
-        <div class="card mb-4">
-            <div class="card-header">Tarjetas - Sección 1</div>
-            <div class="card-body">
-                @for ($i = 1; $i <= 3; $i++)
-                    <div class="mb-3">
-                        <label for="card1_title_{{ $i }}">Título tarjeta {{ $i }}</label>
-                        <input type="text" name="card1_title_{{ $i }}" class="form-control" value="{{ old("card1_title_$i", $pagina["card1_title_$i"]) }}">
-                    </div>
-                    <div class="mb-3">
-                        <label for="card1_content_{{ $i }}">Contenido tarjeta {{ $i }}</label>
-                        <textarea name="card1_content_{{ $i }}" class="form-control" rows="2">{{ old("card1_content_$i", $pagina["card1_content_$i"]) }}</textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="card1_image_{{ $i }}">Imagen tarjeta {{ $i }}</label>
-                        <input type="file" name="card1_image_{{ $i }}" class="form-control">
-
-                        @php
-                            $imageField = "card1_image_$i";
-                        @endphp
-
-                        @if (!empty($pagina->$imageField))
-                            <div class="mt-2">
-                            <img src="{{ url('images/' . $pagina->$imageField) }}" alt="Imagen tarjeta {{ $i }}" style="max-height: 100px;">
+            {{-- Encabezados (Hero) --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-hero">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sec-hero" aria-expanded="true" aria-controls="sec-hero">
+                        Encabezados (Hero) <span class="badge text-bg-success ms-2">Home</span>
+                    </button>
+                </h2>
+                <div id="sec-hero" class="accordion-collapse collapse show" aria-labelledby="hdr-hero" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="h1" class="form-label">Título (H1)</label>
+                                <input type="text" name="h1" id="h1" class="form-control" placeholder="Ej: Descubre Propiedades Exclusivas" value="{{ old('h1', $pagina->h1) }}">
                             </div>
-                        @endif
+                            <div class="col-md-6">
+                                <label for="h2_1" class="form-label">Subtítulo (H2)</label>
+                                <input type="text" name="h2_1" id="h2_1" class="form-control" placeholder="Ej: Apartamentos de lujo en Galicia" value="{{ old('h2_1', $pagina->h2_1) }}">
+                            </div>
+                        </div>
                     </div>
-
-                    <hr>
-                @endfor
-            </div>
-        </div>
-
-
-        {{-- Lugar favorito --}}
-        <div class="card mb-4">
-            <div class="card-header">Lugar Favorito</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="p_lugar_favorito" class="form-label">Texto</label>
-                    <textarea name="p_lugar_favorito" class="form-control" rows="3">{{ old('p_lugar_favorito', $pagina->p_lugar_favorito) }}</textarea>
                 </div>
             </div>
-        </div>
 
-        {{-- Confianza en Chuspombo --}}
-        <div class="card mb-4">
-            <div class="card-header">¿Por qué confían en Chuspombo?</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="h2_confiar" class="form-label">Título h2</label>
-                    <input type="text" name="h2_confiar" class="form-control" value="{{ old('h2_confiar', $pagina->h2_confiar) }}">
-                </div>
-
-                <div class="mb-3">
-                    <label for="p_confiar" class="form-label">Contenido</label>
-                    <textarea name="p_confiar" class="form-control" rows="3">{{ old('p_confiar', $pagina->p_confiar) }}</textarea>
-                </div>
-
-                <hr>
-<h6 class="mt-4">Tarjetas adicionales</h6>
-
-@for ($i = 4; $i <= 7; $i++)
-    <div class="mb-3">
-        <label for="card2_title_{{ $i }}">Título tarjeta {{ $i }}</label>
-        <input type="text" name="card2_title_{{ $i }}" class="form-control" value="{{ old("card2_title_$i", $pagina["card2_title_$i"]) }}">
-    </div>
-
-    <div class="mb-3">
-        <label for="card2_content_{{ $i }}">Contenido tarjeta {{ $i }}</label>
-        <textarea name="card2_content_{{ $i }}" class="form-control" rows="2">{{ old("card2_content_$i", $pagina["card2_content_$i"]) }}</textarea>
-    </div>
-
-    <div class="mb-3">
-        <label for="card2_image_{{ $i }}">Imagen tarjeta {{ $i }}</label>
-        <input type="file" name="card2_image_{{ $i }}" class="form-control">
-
-        @php
-            $imageField = "card2_image_$i";
-        @endphp
-
-        @if (!empty($pagina->$imageField))
-            <div class="mt-2">
-                <img src="{{ asset('images/' . $pagina->$imageField) }}" alt="Imagen tarjeta {{ $i }}" style="max-height: 100px;">
-            </div>
-        @endif
-    </div>
-
-    <hr>
-@endfor
-            </div>
-        </div>
-
-        {{-- Redes y logo --}}
-        <div class="card mb-4">
-            <div class="card-header">Información General</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="facebook" class="form-label">Facebook</label>
-                    <input type="url" name="facebook" class="form-control" value="{{ old('facebook', $pagina->facebook) }}">
-                </div>
-
-                <div class="mb-3">
-                    <label for="instagram" class="form-label">Instagram</label>
-                    <input type="url" name="instagram" class="form-control" value="{{ old('instagram', $pagina->instagram) }}">
-                </div>
-
-                <div class="mb-3">
-                    <label for="whatsapp" class="form-label">WhatsApp</label>
-                    <input type="text" name="whatsapp" class="form-control" value="{{ old('whatsapp', $pagina->whatsapp) }}">
-                </div>
-
-                <div class="mb-3">
-                    <label for="logo" class="form-label">Logo</label>
-                    <input type="file" name="logo" class="form-control">
-                    @if ($pagina->logo)
-                    <img src="{{ asset('images/' . $pagina->logo) }}" height="60" class="mt-2" alt="Logo actual">
-                    @endif
+            {{-- Propiedades (listado destacado) --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-props">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-props" aria-expanded="false" aria-controls="sec-props">
+                        Propiedades (listado destacado) <span class="badge text-bg-success ms-2">Home</span>
+                    </button>
+                </h2>
+                <div id="sec-props" class="accordion-collapse collapse" aria-labelledby="hdr-props" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="h2_propiedades" class="form-label">Título (H2)</label>
+                                <input type="text" name="h2_propiedades" id="h2_propiedades" class="form-control" placeholder="Ej: Propiedades destacadas en Galicia" value="{{ old('h2_propiedades', $pagina->h2_propiedades) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="p_propiedades" class="form-label">Texto</label>
+                                <input type="text" name="p_propiedades" id="p_propiedades" class="form-control" placeholder="Resumen corto…" value="{{ old('p_propiedades', $pagina->p_propiedades) }}">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        {{-- SEO --}}
-<div class="card mb-4">
-    <div class="card-header">Metadatos para SEO</div>
-    <div class="card-body">
-        <div class="mb-3">
-            <label for="meta_title" class="form-label">Meta Title</label>
-            <input type="text" name="meta_title" class="form-control" value="{{ old('meta_title', $pagina->meta->meta_title ?? '') }}">
-        </div>
 
-        <div class="mb-3">
-            <label for="meta_description" class="form-label">Meta Description</label>
-            <textarea name="meta_description" class="form-control" rows="2">{{ old('meta_description', $pagina->meta->meta_description ?? '') }}</textarea>
-        </div>
+            {{-- Experiencias / Chuspombo (mantiene name: h2_hostella / p_hostella) --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-exp">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-exp" aria-expanded="false" aria-controls="sec-exp">
+                        Experiencias / Chuspombo <span class="badge text-bg-success ms-2">Home</span>
+                    </button>
+                </h2>
+                <div id="sec-exp" class="accordion-collapse collapse" aria-labelledby="hdr-exp" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="h2_hostella" class="form-label">Título (H2)</label>
+                                <input type="text" name="h2_hostella" id="h2_hostella" class="form-control" placeholder="Ej: Experiencias de lujo en Galicia" value="{{ old('h2_hostella', $pagina->h2_hostella) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="p_hostella" class="form-label">Texto</label>
+                                <input type="text" name="p_hostella" id="p_hostella" class="form-control" placeholder="Resumen corto…" value="{{ old('p_hostella', $pagina->p_hostella) }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="meta_keywords" class="form-label">Meta Keywords</label>
-            <input type="text" name="meta_keywords" class="form-control" value="{{ old('meta_keywords', $pagina->meta->meta_keywords ?? '') }}">
-        </div>
+            {{-- Tarjetas sección 1 (1–3) --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-cards1">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-cards1" aria-expanded="false" aria-controls="sec-cards1">
+                        Tarjetas sección 1 (1–3) <span class="badge text-bg-success ms-2">Home</span>
+                    </button>
+                </h2>
+                <div id="sec-cards1" class="accordion-collapse collapse" aria-labelledby="hdr-cards1" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-4">
+                            @for ($i = 1; $i <= 3; $i++)
+                                <div class="col-md-6 col-xl-4">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <label class="form-label" for="card1_title_{{ $i }}">Título {{ $i }}</label>
+                                                <input type="text" id="card1_title_{{ $i }}" name="card1_title_{{ $i }}" class="form-control" value="{{ old("card1_title_$i", $pagina["card1_title_$i"]) }}" placeholder="Ej: Ubicación Premium">
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label" for="card1_content_{{ $i }}">Texto {{ $i }}</label>
+                                                <input type="text" id="card1_content_{{ $i }}" name="card1_content_{{ $i }}" class="form-control" value="{{ old("card1_content_$i", $pagina["card1_content_$i"]) }}" placeholder="Breve descripción">
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label" for="card1_image_{{ $i }}">Imagen (opcional)</label>
+                                                <input type="file" id="card1_image_{{ $i }}" name="card1_image_{{ $i }}" class="form-control">
+                                                @php $imageField = "card1_image_$i"; @endphp
+                                                @if (!empty($pagina->$imageField))
+                                                    <img src="{{ asset('images/' . $pagina->$imageField) }}" class="mt-2 img-fluid rounded" style="max-height:100px" alt="Card {{ $i }}">
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="canonical_url" class="form-label">Canonical URL</label>
-            <input type="text" name="canonical_url" class="form-control" value="{{ old('canonical_url', $pagina->meta->canonical_url ?? '') }}">
-        </div>
+            {{-- Lugar favorito (selector de propiedad) --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-fav">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-fav" aria-expanded="false" aria-controls="sec-fav">
+                        Lugar favorito <span class="badge text-bg-success ms-2">Home</span>
+                    </button>
+                </h2>
+                <div id="sec-fav" class="accordion-collapse collapse" aria-labelledby="hdr-fav" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label for="featured_property_id" class="form-label">Propiedad a destacar</label>
+                                <select name="featured_property_id" id="featured_property_id" class="form-select">
+                                    <option value="">— Selecciona una propiedad —</option>
+                                    @foreach(($featuredProperties ?? []) as $p)
+                                        @php
+                                            $id   = $p['_id'] ?? null;
+                                            $tit  = $p['title'] ?? 'Sin título';
+                                            $city = $p['address']['city'] ?? null;
+                                            $ctry = $p['address']['country'] ?? null;
+                                            $loc  = trim(($city ? $city : '') . ($city && $ctry ? ', ' : '') . ($ctry ?: ''));
+                                            $thumb = $p['picture']['thumbnail'] ?? '';
+                                        @endphp
+                                        @if($id)
+                                            <option value="{{ $id }}"
+                                                    data-thumb="{{ $thumb }}"
+                                                    {{ (string)old('featured_property_id', $pagina->featured_property_id) === (string)$id ? 'selected' : '' }}>
+                                                {{ $tit }}@if($loc) — {{ $loc }}@endif
+                                            </option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <div id="favPreview">
+                                    @php
+                                        $sel = collect($featuredProperties ?? [])->firstWhere('_id', old('featured_property_id', $pagina->featured_property_id));
+                                        $selThumb = $sel['picture']['thumbnail'] ?? null;
+                                    @endphp
+                                    @if($selThumb)
+                                        <img src="{{ $selThumb }}" class="img-thumbnail" style="max-height:64px" alt="Preview">
+                                    @endif
+                                </div>
+                            </div>
 
-        <div class="mb-3">
-            <label for="robots" class="form-label">Robots</label>
-            <input type="text" name="robots" class="form-control" value="{{ old('robots', $pagina->meta->robots ?? '') }}">
-        </div>
+                            <div class="col-12">
+                                <label for="p_lugar_favorito" class="form-label">Texto</label>
+                                <input type="text" name="p_lugar_favorito" id="p_lugar_favorito" class="form-control" placeholder="Texto breve…" value="{{ old('p_lugar_favorito', $pagina->p_lugar_favorito) }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="author" class="form-label">Author</label>
-            <input type="text" name="author" class="form-control" value="{{ old('author', $pagina->meta->author ?? '') }}">
-        </div>
+            {{-- ¿Por qué confían? + tarjetas 4–7 --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-trust">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-trust" aria-expanded="false" aria-controls="sec-trust">
+                        ¿Por qué confían? (incluye 4 tarjetas) <span class="badge text-bg-success ms-2">Home</span>
+                    </button>
+                </h2>
+                <div id="sec-trust" class="accordion-collapse collapse" aria-labelledby="hdr-trust" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="h2_confiar" class="form-label">Título (H2)</label>
+                                <input type="text" name="h2_confiar" id="h2_confiar" class="form-control" placeholder="Ej: ¿Por qué elegir Chuspombo?" value="{{ old('h2_confiar', $pagina->h2_confiar) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="p_confiar" class="form-label">Texto</label>
+                                <input type="text" name="p_confiar" id="p_confiar" class="form-control" placeholder="Resumen corto…" value="{{ old('p_confiar', $pagina->p_confiar) }}">
+                            </div>
+                        </div>
 
-        <div class="mb-3">
-            <label for="language" class="form-label">Language</label>
-            <input type="text" name="language" class="form-control" value="{{ old('language', $pagina->meta->language ?? '') }}">
-        </div>
+                        <div class="row g-4">
+                            @for ($i = 4; $i <= 7; $i++)
+                                <div class="col-md-6 col-xl-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <label class="form-label" for="card2_title_{{ $i }}">Título {{ $i }}</label>
+                                                <input type="text" id="card2_title_{{ $i }}" name="card2_title_{{ $i }}" class="form-control" value="{{ old("card2_title_$i", $pagina["card2_title_$i"]) }}" placeholder="Ej: Limpieza impecable">
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label" for="card2_content_{{ $i }}">Texto {{ $i }}</label>
+                                                <input type="text" id="card2_content_{{ $i }}" name="card2_content_{{ $i }}" class="form-control" value="{{ old("card2_content_$i", $pagina["card2_content_$i"]) }}" placeholder="Breve descripción">
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label" for="card2_image_{{ $i }}">Imagen (opcional)</label>
+                                                <input type="file" id="card2_image_{{ $i }}" name="card2_image_{{ $i }}" class="form-control">
+                                                @php $imageField = "card2_image_$i"; @endphp
+                                                @if (!empty($pagina->$imageField))
+                                                    <img src="{{ asset('images/' . $pagina->$imageField) }}" class="mt-2 img-fluid rounded" style="max-height:100px" alt="Card {{ $i }}">
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="viewport" class="form-label">Viewport</label>
-            <input type="text" name="viewport" class="form-control" value="{{ old('viewport', $pagina->meta->viewport ?? '') }}">
-        </div>
+            {{-- Información general --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-info">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-info" aria-expanded="false" aria-controls="sec-info">
+                        Información general <span class="badge text-bg-primary ms-2">Admin</span>
+                    </button>
+                </h2>
+                <div id="sec-info" class="accordion-collapse collapse" aria-labelledby="hdr-info" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="facebook" class="form-label">Facebook</label>
+                                <input type="url" name="facebook" id="facebook" class="form-control" placeholder="https://facebook.com/..." value="{{ old('facebook', $pagina->facebook) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="instagram" class="form-label">Instagram</label>
+                                <input type="url" name="instagram" id="instagram" class="form-control" placeholder="https://instagram.com/..." value="{{ old('instagram', $pagina->instagram) }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="whatsapp" class="form-label">WhatsApp</label>
+                                <input type="text" name="whatsapp" id="whatsapp" class="form-control" placeholder="+57..." value="{{ old('whatsapp', $pagina->whatsapp) }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="logo" class="form-label">Logo</label>
+                                <input type="file" name="logo" id="logo" class="form-control">
+                                @if ($pagina->logo)
+                                    <img src="{{ asset('images/' . $pagina->logo) }}" class="mt-2 img-fluid rounded" style="max-height:60px" alt="Logo actual">
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="mb-3">
-            <label for="charset" class="form-label">Charset</label>
-            <input type="text" name="charset" class="form-control" value="{{ old('charset', $pagina->meta->charset ?? '') }}">
-        </div>
-    </div>
-</div>
+            {{-- SEO --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-seo">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-seo" aria-expanded="false" aria-controls="sec-seo">
+                        SEO <span class="badge text-bg-secondary ms-2">No visible en Home</span>
+                    </button>
+                </h2>
+                <div id="sec-seo" class="accordion-collapse collapse" aria-labelledby="hdr-seo" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="meta_title" class="form-label">Meta Title</label>
+                                <input type="text" name="meta_title" id="meta_title" class="form-control" value="{{ old('meta_title', $pagina->meta->meta_title ?? '') }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="meta_description" class="form-label">Meta Description</label>
+                                <input type="text" name="meta_description" id="meta_description" class="form-control" value="{{ old('meta_description', $pagina->meta->meta_description ?? '') }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="meta_keywords" class="form-label">Meta Keywords</label>
+                                <input type="text" name="meta_keywords" id="meta_keywords" class="form-control" value="{{ old('meta_keywords', $pagina->meta->meta_keywords ?? '') }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="canonical_url" class="form-label">Canonical URL</label>
+                                <input type="text" name="canonical_url" id="canonical_url" class="form-control" value="{{ old('canonical_url', $pagina->meta->canonical_url ?? '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="robots" class="form-label">Robots</label>
+                                <input type="text" name="robots" id="robots" class="form-control" value="{{ old('robots', $pagina->meta->robots ?? '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="author" class="form-label">Author</label>
+                                <input type="text" name="author" id="author" class="form-control" value="{{ old('author', $pagina->meta->author ?? '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="language" class="form-label">Language</label>
+                                <input type="text" name="language" id="language" class="form-control" value="{{ old('language', $pagina->meta->language ?? '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="viewport" class="form-label">Viewport</label>
+                                <input type="text" name="viewport" id="viewport" class="form-control" value="{{ old('viewport', $pagina->meta->viewport ?? '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="charset" class="form-label">Charset</label>
+                                <input type="text" name="charset" id="charset" class="form-control" value="{{ old('charset', $pagina->meta->charset ?? '') }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+        </div> {{-- /accordion --}}
 
-        {{-- Botón guardar --}}
-        <div class="text-end">
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <a href="{{ url()->previous() }}" class="btn btn-outline-secondary">Cancelar</a>
             <button type="submit" class="btn btn-success">Guardar cambios</button>
         </div>
     </form>
-
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('change', function(e){
+  if (e.target && e.target.id === 'featured_property_id') {
+    const opt = e.target.options[e.target.selectedIndex];
+    const thumb = opt.getAttribute('data-thumb');
+    const box = document.getElementById('favPreview');
+    box.innerHTML = thumb ? `<img src="${thumb}" class="img-thumbnail" style="max-height:64px" alt="Preview">` : '';
+  }
+});
+</script>
+@endpush

@@ -232,7 +232,8 @@
             </div>
         </div>
 
-        <div class="row">
+        <div class="row g-4 justify-content-center">
+
             @forelse($featuredProperties as $property)
                 @php
                     $thumb = $property['picture']['thumbnail'] ?? asset('images/property-placeholder.jpg');
@@ -244,8 +245,9 @@
                     $price = $property['prices']['basePrice'] ?? null;
                 @endphp
 
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card h-100 property-card">
+<div class="col-lg-3 col-md-6 mb-4 d-flex">
+    <div class="card h-100 property-card w-100">
+
                         <img src="{{ $thumb }}" class="card-img-top" alt="{{ $property['title'] }}">
                         <div class="card-body">
                             <h5 class="card-title">{{ $property['title'] }}</h5>
@@ -288,10 +290,10 @@
         <div class="row mb-5 text-center">
             <div class="col-lg-8 mx-auto">
                 <h2 class="fw-bold" style="color: #1c2d41;">
-                    {{ $pagina->h2_chuspombo ?? 'Experiencias de lujo en Galicia, España' }}
+                    {{ $pagina->h2_hostella ?? 'Experiencias de lujo en Galicia, España' }}
                 </h2>
                 <p class="text-muted">
-                    {{ $pagina->p_chuspombo ?? '¿Por qué elegir nuestras propiedades en Galicia, España?' }}
+                    {{ $pagina->p_hostella ?? '¿Por qué elegir nuestras propiedades en Galicia, España?' }}
                 </p>
             </div>
         </div>
