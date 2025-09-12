@@ -553,7 +553,7 @@ body {
     background-color: #f8f9fa;
 }
 .text-blue {
-    color: #000066;
+    color: var(--hostella-primary);
 }
 
 /* Tarjetas de características */
