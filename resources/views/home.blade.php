@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Chuspombo - Apartamentos y villas en Galicia, España')
+@section('title', 'Chuspombo Apartamentos')
 
-@section('meta_description', 'Descubre apartamentos y villas exclusivas en Galicia, España con Chuspombo, tu socio confiable para experiencias de lujo inolvidables.')
+@section('meta_description', 'Descubre apartamentos en Galicia, España con Chuspombo, tu socio confiable para experiencias de lujo inolvidables.')
 
 @section('content')
 
@@ -190,7 +190,7 @@ a, .text-primary{ color:var(--hostella-primary) !important; }
             </h1>
 
             <h2 class="lead text-white">
-                {{ $pagina->h2_1 ?? 'Explora villas y apartamentos de lujo en Galicia, España' }}
+                {{ $pagina->h2_1 ?? 'Explora apartamentos de lujo en Galicia, España' }}
             </h2>
 
             <div class="search-box-overlay">

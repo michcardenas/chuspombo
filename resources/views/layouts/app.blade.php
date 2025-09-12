@@ -4,8 +4,8 @@
     <meta charset="{{ $seo->charset ?? 'utf-8' }}">
     <meta name="viewport" content="{{ $seo->viewport ?? 'width=device-width, initial-scale=1.0' }}">
      
-    <title>{{ $seo->meta_title ?? 'Chuspombo - Villas de Lujo' }}</title>
-    <meta name="description" content="{{ $seo->meta_description ?? 'Chuspombo - Administración de propiedades exclusivas y villas de lujo' }}">
+    <title>{{ $seo->meta_title ?? 'Chuspombo Apartamentos' }}</title>
+    <meta name="description" content="{{ $seo->meta_description ?? 'Chuspombo Apartamentos - Administración de propiedades exclusivas' }}">
     <meta name="keywords" content="{{ $seo->meta_keywords ?? '' }}">
     <meta name="author" content="{{ $seo->author ?? '' }}">
     <meta name="language" content="{{ $seo->language ?? 'es' }}">

@@ -119,7 +119,7 @@
             <div class="row">
                 <div class="col-lg-8 col-md-10">
                     <h1 class="chuspombo-main-title">{{ $paginapropiedades->h1 ?? 'Descubre Galicia, España' }}</h1>
-                    <h2 class="chuspombo-subtitle">{{ $paginapropiedades->h2_1 ?? 'Apartamentos y villas exclusivas' }}</h2>
+                    <h2 class="chuspombo-subtitle">{{ $paginapropiedades->h2_1 ?? 'Apartamentos exclusivos' }}</h2>
                 </div>
             </div>
         </div>

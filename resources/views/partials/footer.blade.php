@@ -8,7 +8,7 @@
                         <img src="{{ asset('images/' . ($pagina->logo ?? 'Hostella_logo_horizontal.png')) }}" alt="chuspombo" class="footer-logo" height="80">
                     </div>
                     <p class="footer-description">
-                        Descubre las más exclusivas villas y propiedades de lujo con chuspombo, tu socio confiable para experiencias inolvidables
+                        Descubre las más exclusivas propiedades de lujo con chuspombo, tu socio confiable para experiencias inolvidables
                     </p>
                 </div>
             </div>
