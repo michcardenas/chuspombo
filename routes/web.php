@@ -10,8 +10,8 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PaginaController;
 use App\Http\Controllers\Admin\SmoobuApartmentController;
 use App\Http\Controllers\StripeController;
-
-
+use App\Http\Controllers\PayPalController;
+use App\Http\Controllers\CheckoutController;
 
 /*
 |--------------------------------------------------------------------------
@@ -107,6 +107,16 @@ Route::get('/stripe/redirect', [StripeController::class, 'handleRedirect'])->nam
 Route::prefix('admin/pagos')->name('admin.pagos.')->middleware(['auth'])->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\PagoController::class, 'index'])->name('index');
 });
+
+Route::post('/paypal/pay', [PayPalController::class, 'pay'])->name('paypal.pay');
+Route::get('/paypal/success', [PayPalController::class, 'success'])->name('paypal.success');
+Route::get('/paypal/cancel', [PayPalController::class, 'cancel'])->name('paypal.cancel');
+
+Route::get('/checkout/availability', [CheckoutController::class, 'availability'])->name('checkout.availability'); // disponibilidad (AJAX)
+Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->name('checkout.quote');                     // cotizar (AJAX)
+Route::post('/checkout/start', [CheckoutController::class, 'start'])->name('checkout.start');                     // ir a resumen
+Route::get('/checkout/summary', [CheckoutController::class, 'summary'])->name('checkout.summary');                // resumen
+
 
 Route::get('/pago/exito/{id}', function($id) {
     $payment = \App\Models\PropertyPayment::findOrFail($id);
