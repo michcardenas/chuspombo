@@ -46,7 +46,7 @@
     </main>
 
     <footer class="text-center py-3 bg-dark text-white">
-        © {{ date('Y') }} Hostella - Panel de Administración
+        © {{ date('Y') }} Chuspombo - Panel de Administración
     </footer>
 
     <!-- Scripts -->

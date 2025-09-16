@@ -98,7 +98,7 @@
     <div class="footer-bottom">
         <div class="row align-items-center">
             <div class="col-12 text-center">
-                <p class="mb-0 copyright">&copy; {{ date('Y') }} chuspombo. Todos los derechos reservados.</p>
+                <p class="mb-0 copyright">&copy; {{ date('Y') }} Chuspombo. Todos los derechos reservados.</p>
             </div>
         </div>
     </div>
