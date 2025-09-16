@@ -20,13 +20,10 @@ class PropertiesController extends Controller
         $this->smoobu = $smoobu;
     }
 
-    /**
- * Lista todas las propiedades con filtros opcionales (Smoobu).
- */
 public function index(Request $request)
 {
     try {
-        // Página + SEO (igual que antes)
+        // Página + SEO
         $pagina = \App\Models\Pagina::with('meta')->find(2);
         if (!$pagina) {
             $paginapropiedades = new \App\Models\Pagina();
@@ -36,31 +33,31 @@ public function index(Request $request)
             $seo = $pagina->meta ?? new \App\Models\PaginaMeta();
         }
 
-        // Smoobu: obtener apartamentos (cache corto)
         $api = $this->smoobu;
+
+        // 1) Apartamentos base (cache corto)
         $apartments = Cache::remember('smoobu.apartments', 300, function () use ($api) {
             return $api->apartments(); // [['id'=>..., 'name'=>...], ...]
         });
         $apartments = collect($apartments);
 
-        // ---- NUEVO: soporte para nombre del select "Apartamento" del home ----
+        // 2) Filtro por select "Apartamento" (home) o 'apartment_id'
         $selectedId = $request->input('apartment_id') ?? $request->input('Apartamento');
-
         if (filled($selectedId)) {
             $apartments = $apartments->where('id', (int) $selectedId)->values();
         }
 
-        // Rango de fechas opcional
-        $checkin  = $request->date('checkin');
-        $checkout = $request->date('checkout');
+        // 3) Fechas (normalizadas a inicio de día)
+        $checkin  = optional($request->date('checkin'))->startOfDay();
+        $checkout = optional($request->date('checkout'))->startOfDay();
 
-        // ---- NUEVO: Filtrar por disponibilidad real si hay rango ----
-        if ($checkin && $checkout && $apartments->count() > 0) {
-            $ids = $apartments->pluck('id')->values();
+        // 4) Disponibilidad: mismo flujo, pero cuidando off-by-one (to = checkout - 1)
+        if ($checkin && $checkout && $apartments->isNotEmpty()) {
+            $ids  = $apartments->pluck('id')->values();
             $from = $checkin->format('Y-m-d');
-            $to   = $checkout->format('Y-m-d');
+            $to   = $checkout->copy()->subDay()->format('Y-m-d'); // importante
 
-            // Generar las fechas (noches) del rango [checkin, checkout)
+            // Noches del rango [checkin, checkout)
             $dates = [];
             $cursor = $checkin->copy();
             while ($cursor->lt($checkout)) {
@@ -70,16 +67,13 @@ public function index(Request $request)
 
             $availableIds = collect();
 
-            // 1) Intentar un endpoint de availability del wrapper (si existe)
             try {
-                // Estructura esperada: ['data' => [aptId => ['Y-m-d' => true/false|'available'|'booked'...]]]
                 $availabilityResponse = $api->availability($from, $to, $ids->all());
-                $data = collect($availabilityResponse['data'] ?? []);
+                $data = collect($availabilityResponse['data'] ?? [])->keyBy(fn($v, $k) => (int) $k);
 
                 $availableIds = $data->filter(function ($byDay) use ($dates) {
                     foreach ($dates as $d) {
                         $v = $byDay[$d] ?? null;
-                        // considera no disponible si es false/0/'booked'/'unavailable' o null
                         if ($v === false || $v === 0 || $v === 'booked' || $v === 'unavailable' || $v === null) {
                             return false;
                         }
@@ -87,10 +81,7 @@ public function index(Request $request)
                     return true;
                 })->keys()->map(fn ($k) => (int) $k);
             } catch (\Throwable $e1) {
-                // 2) Fallback: revisar reservas y detectar solape
                 try {
-                    // Estructura común esperada:
-                    // ['data' => [ ['apartment_id'=>..., 'checkin'=>..., 'checkout'=>...], ... ]]
                     $reservationsResp = $api->reservations($from, $to, $ids->all());
                     $reservations = collect($reservationsResp['data'] ?? []);
 
@@ -98,18 +89,15 @@ public function index(Request $request)
                         return (int) ($r['apartment_id'] ?? $r['apartmentId'] ?? $r['apartment'] ?? 0);
                     })->filter(function ($rows) use ($checkin, $checkout) {
                         return $rows->contains(function ($r) use ($checkin, $checkout) {
-                            // normalizar campos
-                            $ci = \Illuminate\Support\Carbon::parse($r['checkin'] ?? $r['checkIn'] ?? $r['from'] ?? null);
-                            $co = \Illuminate\Support\Carbon::parse($r['checkout'] ?? $r['checkOut'] ?? $r['to'] ?? null);
+                            $ci = \Illuminate\Support\Carbon::parse($r['checkin'] ?? $r['checkIn'] ?? $r['from'] ?? null)?->startOfDay();
+                            $co = \Illuminate\Support\Carbon::parse($r['checkout'] ?? $r['checkOut'] ?? $r['to'] ?? null)?->startOfDay();
                             if (!$ci || !$co) return false;
-                            // solape si (ci < checkout) y (co > checkin)
                             return $ci->lt($checkout) && $co->gt($checkin);
                         });
                     })->keys();
 
                     $availableIds = $ids->diff($unavailableById)->values();
                 } catch (\Throwable $e2) {
-                    // Si tampoco hay reservas, no filtramos por disponibilidad
                     \Log::warning('No availability source; skipping availability filter', [
                         'e1' => $e1->getMessage(),
                         'e2' => $e2->getMessage(),
@@ -118,54 +106,146 @@ public function index(Request $request)
                 }
             }
 
-            // Aplicar filtro final por disponibilidad
             $apartments = $apartments->whereIn('id', $availableIds->all())->values();
         }
 
-        // Rates (promedio simple) para los que quedaron
-        $ratesByApt = [];
-        if ($checkin && $checkout && $apartments->count() > 0) {
-            try {
-                $ids = $apartments->pluck('id')->values()->all();
-                $ratesResponse = $api->rates($checkin->format('Y-m-d'), $checkout->format('Y-m-d'), $ids);
+        // 5) IDs definitivos a mostrar
+        $ids = $apartments->pluck('id')->map(fn($v) => (int)$v)->filter()->values()->all();
 
-                $byId = $ratesResponse['data'] ?? [];
-                foreach ($byId as $aptId => $days) {
-                    $prices = [];
-                    foreach ($days as $day => $info) {
-                        $p = $info['price'] ?? null;
-                        if (is_numeric($p) && $p > 0) $prices[] = (float)$p;
+        // 6) Detalles por ID (cache 5 min) -> igual que en Home
+        $details = [];
+        foreach ($ids as $aid) {
+            $details[$aid] = Cache::remember("smoobu.apartment.$aid", 300, function () use ($api, $aid) {
+                try { return $api->apartment((int)$aid); }
+                catch (\Throwable $e) {
+                    \Log::warning('No se pudo obtener detalle de apartment', ['id' => $aid, 'e' => $e->getMessage()]);
+                    return [];
+                }
+            });
+        }
+
+        // 7) Metas + imágenes locales activas (para esos IDs)
+        $metas = \App\Models\SmoobuApartmentMeta::with(['images' => function ($q) {
+                $q->where('is_active', true)->orderBy('sort_order');
+            }])
+            ->whereIn('apartment_id', $ids)
+            ->get()
+            ->keyBy('apartment_id');
+
+        // 8) Rates:
+        //    - Si hay checkin/checkout: usar ese rango (to = checkout - 1).
+        //    - Si NO hay fechas: promedio 7d con fallback 30d (como en Home).
+        $ratesByApt = [];
+        if (!empty($ids)) {
+            try {
+                if ($checkin && $checkout) {
+                    $from = $checkin->format('Y-m-d');
+                    $to   = $checkout->copy()->subDay()->format('Y-m-d');
+                    $resp = $api->rates($from, $to, $ids);
+                    $matrix = $resp['data'] ?? [];
+                    foreach ($ids as $aid) {
+                        $rows   = $matrix[$aid] ?? [];
+                        $prices = [];
+                        foreach ($rows as $r) {
+                            $p = $r['price'] ?? null;
+                            if (is_numeric($p) && $p > 0) $prices[] = (float)$p;
+                        }
+                        $ratesByApt[$aid] = count($prices) ? (int)round(array_sum($prices) / count($prices)) : null;
                     }
-                    $ratesByApt[$aptId] = count($prices) ? round(array_sum($prices) / count($prices)) : null;
+                } else {
+                    // 7 días
+                    $start = now()->toDateString();
+                    $end   = now()->addDays(7)->toDateString();
+                    $resp  = $api->rates($start, $end, $ids);
+                    $matrix = $resp['data'] ?? [];
+                    foreach ($ids as $aid) {
+                        $rows   = $matrix[$aid] ?? [];
+                        $prices = [];
+                        foreach ($rows as $r) {
+                            $p = $r['price'] ?? null;
+                            if (is_numeric($p) && $p > 0) $prices[] = (float)$p;
+                        }
+                        $ratesByApt[$aid] = count($prices) ? (int)round(array_sum($prices) / count($prices)) : null;
+                    }
+
+                    // Fallback 30 días si todo vino vacío
+                    if (empty(array_filter($ratesByApt, fn($v) => is_numeric($v) && $v > 0))) {
+                        $start2 = now()->toDateString();
+                        $end2   = now()->addDays(30)->toDateString();
+                        $resp2  = $api->rates($start2, $end2, $ids);
+                        $matrix2 = $resp2['data'] ?? [];
+                        foreach ($ids as $aid) {
+                            if (isset($ratesByApt[$aid]) && $ratesByApt[$aid] > 0) continue;
+                            $rows   = $matrix2[$aid] ?? [];
+                            $prices = [];
+                            foreach ($rows as $r) {
+                                $p = $r['price'] ?? null;
+                                if (is_numeric($p) && $p > 0) $prices[] = (float)$p;
+                            }
+                            $ratesByApt[$aid] = count($prices) ? (int)round(array_sum($prices) / count($prices)) : null;
+                        }
+                    }
                 }
             } catch (\Throwable $e) {
-                Log::warning('No se pudieron obtener rates en index()', ['e' => $e->getMessage()]);
-                $ratesByApt = [];
+                \Log::warning('No se pudieron obtener rates en properties@index', ['e' => $e->getMessage()]);
             }
         }
 
-        // Mapear al formato que la vista espera
-        $properties = $apartments->map(function ($apt) use ($ratesByApt) {
-            $id   = $apt['id'] ?? null;
-            $name = trim($apt['name'] ?? 'Propiedad');
+        // 9) Mapear al mismo shape “rico” que usa Home (detalle + metas + rates)
+        $properties = $apartments->map(function ($apt) use ($details, $metas, $ratesByApt) {
+            $id = (int)($apt['id'] ?? $apt['apartmentId'] ?? $apt['apartment_id'] ?? 0);
+            $d  = $details[$id] ?? [];
+            /** @var \App\Models\SmoobuApartmentMeta|null $m */
+            $m  = $metas->get($id);
 
-            // Imagen local por ID; fallback a placeholder
-            $thumb = (function () use ($id) {
-                foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.png"] as $rel) {
-                    if (file_exists(public_path($rel))) return asset($rel);
-                }
-                return asset('images/property-placeholder.jpg');
-            })();
+            // Título
+            $name = trim($m->title ?? ($d['name'] ?? ($apt['name'] ?? 'Propiedad')));
+
+            // Ubicación
+            $loc     = $d['location'] ?? [];
+            $city    = $m->city ?? ($loc['city'] ?? 'Galicia');
+            $country = $m->country ?? ($loc['country'] ?? 'España');
+
+            // Habitaciones / baños
+            $roomsApi         = $d['rooms'] ?? [];
+            $bedroomsFromApi  = $roomsApi['bedrooms']   ?? ($d['bedrooms'] ?? $d['numberOfBedrooms']  ?? 0);
+            $bathroomsFromApi = $roomsApi['bathrooms']  ?? ($d['bathrooms'] ?? $d['numberOfBathrooms'] ?? 0);
+            $bedrooms         = isset($m) && $m->bedrooms  !== null ? (int)$m->bedrooms   : (int)$bedroomsFromApi;
+            $bathrooms        = isset($m) && $m->bathrooms !== null ? (float)$m->bathrooms : (float)$bathroomsFromApi;
+
+            // Imagen
+            $firstImagePath = $m?->images?->first()?->path;
+            $thumb = $firstImagePath
+                ? asset($firstImagePath)
+                : ( $m?->cover_image_path
+                    ? asset($m->cover_image_path)
+                    : ($this->firstExistingAsset([
+                        "images/smoobu/{$id}.webp",
+                        "images/smoobu/{$id}.jpg",
+                        "images/smoobu/{$id}.png",
+                    ]) ?? asset('images/property-placeholder.jpg'))
+                  );
+
+            // Precio
+            $priceOverride = $m?->base_price_override;
+            $apiMinimal    = data_get($d, 'price.minimal');
+            $apiMaximal    = data_get($d, 'price.maximal');
+
+            $raw = (is_numeric($priceOverride) && $priceOverride > 0)
+                ? (float)$priceOverride
+                : ($ratesByApt[$id] ?? $apiMinimal ?? $apiMaximal ?? null);
+
+            $price = (is_numeric($raw) && $raw > 0) ? (int)round($raw) : null;
 
             return [
                 '_id'       => $id,
                 'title'     => $name,
                 'picture'   => ['thumbnail' => $thumb],
-                'address'   => ['city' => 'Galicia', 'country' => 'España'],
-                'bedrooms'  => 0,
-                'bathrooms' => 0,
+                'address'   => ['city' => $city, 'country' => $country],
+                'bedrooms'  => $bedrooms,
+                'bathrooms' => $bathrooms,
                 'prices'    => [
-                    'basePrice' => $ratesByApt[$id] ?? null,
+                    'basePrice' => $price,
                     'currency'  => 'EUR',
                 ],
                 'rating'    => 5,
@@ -178,8 +258,8 @@ public function index(Request $request)
             'paginapropiedades' => $paginapropiedades,
             'seo'               => $seo
         ]);
-    } catch (\Exception $e) {
-        Log::error('Error en index properties:', ['e' => $e->getMessage()]);
+    } catch (\Throwable $e) {
+        \Log::error('Error en index properties (enriquecido):', ['e' => $e->getMessage()]);
         return view('properties.index', [
             'properties'        => [],
             'filters'           => $request->all(),
@@ -188,6 +268,17 @@ public function index(Request $request)
             'error'             => 'No se pudieron cargar las propiedades. Inténtelo de nuevo más tarde.'
         ]);
     }
+}
+
+/** ========= Helpers privados (pégalos en el controlador si no existen) ========= */
+private function firstExistingAsset(array $relativePaths): ?string
+{
+    foreach ($relativePaths as $rel) {
+        if (file_exists(public_path($rel))) {
+            return asset($rel);
+        }
+    }
+    return null;
 }
 
 
