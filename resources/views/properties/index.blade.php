@@ -129,62 +129,53 @@
 <div class="container mt-5">
     <h1 class="fw-bold text-center mb-4">Propiedades disponibles</h1>
 
-    @if(isset($properties) && count($properties) > 0)
-        <div class="row">
+    @if(!empty($properties) && count($properties) > 0)
+        <div class="row g-4 justify-content-center">
+
             @foreach($properties as $property)
                 @php
-                    $title = $property['title'] ?? 'Apartamento';
-                    $img   = $mainImageForProperty($property);
-
-                    $city    = $property['address']['city'] ?? 'Galicia';
-                    $country = $property['address']['country'] ?? 'España';
-                    $location = trim(($city ? $city : '') . ($city ? ', ' : '') . $country);
-
-                    $bedrooms  = (int)($property['bedrooms']  ?? 0);
-                    $bathrooms = (int)($property['bathrooms'] ?? 0);
-
-                    $price = $property['prices']['basePrice'] ?? null;
-                    $priceStr = is_numeric($price) ? '€' . number_format((float)$price, 0, ',', '.') . '/noche' : 'Consultar';
-
-                    $pid = $property['_id'] ?? null;
+                    $thumb     = $property['picture']['thumbnail'] ?? asset('images/property-placeholder.jpg');
+                    $city      = $property['address']['city'] ?? null;
+                    $country   = $property['address']['country'] ?? null;
+                    $location  = trim(($city ? $city : '') . ($city && $country ? ', ' : '') . ($country ? $country : ''));
+                    $bedrooms  = $property['bedrooms']  ?? 0;
+                    $bathrooms = $property['bathrooms'] ?? 0;
+                    $price     = $property['prices']['basePrice'] ?? null;
                 @endphp
 
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card h-100 shadow-sm">
-                        <img src="{{ $img }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy">
+                <div class="col-lg-3 col-md-6 mb-4 d-flex">
+                    <div class="card h-100 property-card w-100">
+                        <img src="{{ $thumb }}" class="card-img-top property-img" alt="{{ $property['title'] ?? 'Apartamento' }}" loading="lazy">
                         <div class="card-body">
-                            <h5 class="card-title">{{ $title }}</h5>
-                            <p class="text-muted mb-2">
-                                <i class="fas fa-map-marker-alt me-1"></i> {{ $location }}
+                            <h5 class="card-title">{{ $property['title'] ?? 'Apartamento' }}</h5>
+                            <p class="card-text text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                {{ $location !== '' ? $location : 'Galicia, España' }}
                             </p>
-
-                            @if($bedrooms > 0 || $bathrooms > 0)
-                                <div class="d-flex justify-content-between text-muted">
-                                    @if($bedrooms > 0)
-                                        <span><i class="fas fa-bed"></i> {{ $bedrooms }} Hab.</span>
-                                    @else
-                                        <span></span>
-                                    @endif
-                                    @if($bathrooms > 0)
-                                        <span><i class="fas fa-bath"></i> {{ $bathrooms }} Baños</span>
-                                    @endif
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-bed me-1"></i> {{ $bedrooms }}
+                                    <i class="fas fa-bath ms-2 me-1"></i> {{ $bathrooms }}
                                 </div>
-                            @endif
-
-                            <div class="mt-3 text-end">
-                                <strong>{{ $priceStr }}</strong>
+                                <strong>
+                                    @if(is_numeric($price))
+                                        €{{ $price }}/noche
+                                    @else
+                                        Consultar
+                                    @endif
+                                </strong>
                             </div>
                         </div>
-                        <div class="card-footer bg-white text-center">
-                            @if($pid)
-                                <a href="{{ route('properties.show', $pid) }}" class="btn btn-primary w-100">
-                                    Ver Apartamento
-                                </a>
+                        <div class="card-footer bg-white border-top-0">
+                            @if(!empty($property['_id']))
+                                <a href="{{ route('properties.show', $property['_id']) }}"
+                                   class="btn btn-outline-primary w-100">Ver disponibilidad</a>
                             @endif
                         </div>
                     </div>
                 </div>
             @endforeach
+
         </div>
     @else
         <div class="text-center py-5">
@@ -194,6 +185,7 @@
         </div>
     @endif
 </div>
+
 
 <style>
 .chuspombo-hero-banner{
