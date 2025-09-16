@@ -51,15 +51,31 @@
                         <div class="icon-wrapper">
                             <i class="fas fa-phone"></i>
                         </div>
-                        <span>
-                            @if (isset($pagina) && $pagina->whatsapp)
-                                {{ preg_match('/^\+?(\d{1,3})(\d{3})(\d{3})(\d{4})$/', preg_replace('/[^0-9]/', '', $pagina->whatsapp), $matches)
-                                    ? "+{$matches[1]} ({$matches[2]}) {$matches[3]}-{$matches[4]}"
-                                    : $pagina->whatsapp }}
-                            @else
-                                +1 (123) 456-7890
-                            @endif
-                        </span>
+                       <span>
+    @if (isset($pagina) && $pagina->whatsapp)
+        @php
+            // Deja solo números
+            $clean = preg_replace('/\D+/', '', $pagina->whatsapp);
+
+            // Si empieza por 34 lo tomamos como España, si no le añadimos 34
+            if (str_starts_with($clean, '34')) {
+                $prefix = '+34';
+                $number = substr($clean, 2); // quita el 34
+            } else {
+                $prefix = '+34';
+                $number = ltrim($clean, '0'); // quita 0 inicial si lo hubiera
+            }
+
+            // Aquí decides cómo mostrarlo: junto o con espacios
+            $formatted = $prefix . ' ' . $number;
+        @endphp
+
+        {{ $formatted }}
+    @else
+        +34 623788330
+    @endif
+</span>
+
                     </li>
 
                     <li>
