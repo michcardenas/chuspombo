@@ -7,7 +7,7 @@
 @php
     use Illuminate\Support\Arr;
 
-    // ===== Banner con fallback =====
+    // ===== Banner (igual que tenías, con fallback) =====
     $totalImages = 100;
     $randomNumber = rand(1, $totalImages);
 
@@ -32,7 +32,7 @@
         }
     }
 
-    // ===== Helpers para imágenes =====
+    // ===== Helpers para IMÁGENES DE PROPIEDAD =====
     $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
     $skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy'];
 
@@ -42,6 +42,7 @@
         return 1;
     };
 
+    // Extrae posibles URLs del array de la propiedad
     $extractFromArray = function (array $p) use ($validExt, $skipSubstr, $priorityRank) {
         return collect(Arr::dot($p))
             ->values()
@@ -58,19 +59,27 @@
             ->values();
     };
 
+    // Busca en /public/images/smoobu/{ID}/ y variantes directas
     $findLocalImageCandidates = function ($id) use ($validExt, $priorityRank, $skipSubstr) {
         $candidates = collect();
+
+        // 1) Carpeta por ID
         $dir = public_path("images/smoobu/{$id}");
-        if ($id && is_dir($dir)) {
+        if (is_dir($dir)) {
             $files = glob($dir . '/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
             foreach ($files as $abs) {
                 $rel = 'images/smoobu/' . $id . '/' . basename($abs);
                 $candidates->push(asset($rel));
             }
         }
-        foreach (["images/smoobu/{$id}.webp","images/smoobu/{$id}.avif","images/smoobu/{$id}.jpg","images/smoobu/{$id}.jpeg","images/smoobu/{$id}.png"] as $rel) {
-            if ($id && file_exists(public_path($rel))) $candidates->push(asset($rel));
+
+        // 2) Archivos sueltos por ID
+        foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.avif", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.jpeg", "images/smoobu/{$id}.png"] as $rel) {
+            if (file_exists(public_path($rel))) {
+                $candidates->push(asset($rel));
+            }
         }
+
         return $candidates
             ->filter(fn ($u) => is_string($u) && preg_match($validExt, $u))
             ->reject(function ($u) use ($skipSubstr) {
@@ -83,14 +92,21 @@
             ->values();
     };
 
+    // Imagen principal para tarjeta
     $mainImageForProperty = function (array $prop) use ($extractFromArray, $findLocalImageCandidates) {
         $id = $prop['_id'] ?? null;
+
+        // 1) Locales
         if ($id) {
             $local = $findLocalImageCandidates($id);
             if ($local->isNotEmpty()) return $local->first();
         }
+
+        // 2) URLs que vengan en el array (picture/gallery/…)
         $fromArray = $extractFromArray($prop);
         if ($fromArray->isNotEmpty()) return $fromArray->first();
+
+        // 3) Fallback
         return asset('images/property-placeholder.jpg');
     };
 @endphp
@@ -144,21 +160,27 @@
                             <p class="text-muted mb-2">
                                 <i class="fas fa-map-marker-alt me-1"></i> {{ $location }}
                             </p>
-                            <div class="d-flex justify-content-between text-muted">
-                                <span><i class="fas fa-bed me-1"></i> {{ $bedrooms }}</span>
-                                <span><i class="fas fa-bath me-1"></i> {{ $bathrooms }}</span>
-                            </div>
+
+                            @if($bedrooms > 0 || $bathrooms > 0)
+                                <div class="d-flex justify-content-between text-muted">
+                                    <span>@if($bedrooms > 0)<i class="fas fa-bed"></i> {{ $bedrooms }} Hab.@endif</span>
+                                    <span>@if($bathrooms > 0)<i class="fas fa-bath"></i> {{ $bathrooms }} Baños@endif</span>
+                                </div>
+                            @endif
+
                             <div class="mt-3 text-end">
                                 <strong>{{ $priceStr }}</strong>
                             </div>
                         </div>
                         <div class="card-footer bg-white text-center border-0">
                             @if($pid > 0)
-                                {{-- Importante: aquí pasamos id porque la ruta es propiedades/{id} --}}
-                                <a href="{{ route('properties.show', ['id' => $pid]) }}"
-                                   class="btn btn-primary w-100"
-                                   data-id="{{ $pid }}">
-                                    Ver disponibilidad
+                                {{-- Evitamos el helper route() para no requerir nombre de parámetro --}}
+                                <a
+                                  href="{{ url('propiedades/'.$pid) }}"
+                                  class="btn btn-primary w-100"
+                                  data-id="{{ $pid }}"
+                                >
+                                  Ver disponibilidad
                                 </a>
                             @endif
                         </div>
@@ -182,12 +204,15 @@
 }
 .chuspombo-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.55))}
 .chuspombo-hero-content{position:relative;z-index:2;display:flex;align-items:end;height:100%;padding-bottom:40px;color:#fff}
-.property-card{display:flex;flex-direction:column;}
-.property-card .card-body{flex:1 1 auto;}
-.property-img{width:100%;aspect-ratio:16/10;object-fit:cover;}
+
+/* Tarjetas consistentes */
+.property-card{ display:flex; flex-direction:column; }
+.property-card .card-body{ flex:1 1 auto; }
+.property-img{ width:100%; height:auto; aspect-ratio:16/10; object-fit:cover; }
+
 @media (max-width:576px){
   .chuspombo-hero-banner{height:360px}
-  .property-img{aspect-ratio:4/3;}
+  .property-img{ aspect-ratio:16/12; }
 }
 </style>
 
