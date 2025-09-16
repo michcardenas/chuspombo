@@ -129,53 +129,67 @@
 <div class="container mt-5">
     <h1 class="fw-bold text-center mb-4">Propiedades disponibles</h1>
 
-    @if(!empty($properties) && count($properties) > 0)
-        <div class="row g-4 justify-content-center">
-
+    @if(isset($properties) && count($properties) > 0)
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             @foreach($properties as $property)
                 @php
-                    $thumb     = $property['picture']['thumbnail'] ?? asset('images/property-placeholder.jpg');
-                    $city      = $property['address']['city'] ?? null;
-                    $country   = $property['address']['country'] ?? null;
-                    $location  = trim(($city ? $city : '') . ($city && $country ? ', ' : '') . ($country ? $country : ''));
-                    $bedrooms  = $property['bedrooms']  ?? 0;
-                    $bathrooms = $property['bathrooms'] ?? 0;
-                    $price     = $property['prices']['basePrice'] ?? null;
+                    $title = $property['title'] ?? 'Apartamento';
+
+                    // Usa thumbnail si existe; si no, aplica helper
+                    $thumbFromProp = Arr::get($property, 'picture.thumbnail');
+                    $img   = is_string($thumbFromProp) && $thumbFromProp !== ''
+                                ? $thumbFromProp
+                                : $mainImageForProperty($property);
+
+                    $city    = $property['address']['city'] ?? 'Galicia';
+                    $country = $property['address']['country'] ?? 'España';
+                    $location = trim(($city ? $city : '') . ($city ? ', ' : '') . $country);
+
+                    $bedrooms  = (int)($property['bedrooms']  ?? 0);
+                    $bathrooms = (int)($property['bathrooms'] ?? 0);
+
+                    $price = $property['prices']['basePrice'] ?? null;
+                    $priceStr = is_numeric($price) ? '€' . number_format((float)$price, 0, ',', '.') . '/noche' : 'Consultar';
+
+                    // ID fuertemente tipado
+                    $pid = (int)($property['_id'] ?? 0);
                 @endphp
 
-                <div class="col-lg-3 col-md-6 mb-4 d-flex">
-                    <div class="card h-100 property-card w-100">
-                        <img src="{{ $thumb }}" class="card-img-top property-img" alt="{{ $property['title'] ?? 'Apartamento' }}" loading="lazy">
+                <div class="col">
+                    <div class="card h-100 shadow-sm property-card">
+                        <img src="{{ $img }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy" width="1280" height="800">
                         <div class="card-body">
-                            <h5 class="card-title">{{ $property['title'] ?? 'Apartamento' }}</h5>
-                            <p class="card-text text-muted">
-                                <i class="fas fa-map-marker-alt me-1"></i>
-                                {{ $location !== '' ? $location : 'Galicia, España' }}
+                            <h5 class="card-title">{{ $title }}</h5>
+                            <p class="text-muted mb-2">
+                                <i class="fas fa-map-marker-alt me-1"></i> {{ $location }}
                             </p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="fas fa-bed me-1"></i> {{ $bedrooms }}
-                                    <i class="fas fa-bath ms-2 me-1"></i> {{ $bathrooms }}
+
+                            @if($bedrooms > 0 || $bathrooms > 0)
+                                <div class="d-flex justify-content-between text-muted">
+                                    <span>@if($bedrooms > 0)<i class="fas fa-bed"></i> {{ $bedrooms }} Hab.@endif</span>
+                                    <span>@if($bathrooms > 0)<i class="fas fa-bath"></i> {{ $bathrooms }} Baños@endif</span>
                                 </div>
-                                <strong>
-                                    @if(is_numeric($price))
-                                        €{{ $price }}/noche
-                                    @else
-                                        Consultar
-                                    @endif
-                                </strong>
+                            @endif
+
+                            <div class="mt-3 text-end">
+                                <strong>{{ $priceStr }}</strong>
                             </div>
                         </div>
-                        <div class="card-footer bg-white border-top-0">
-                            @if(!empty($property['_id']))
-                                <a href="{{ route('properties.show', $property['_id']) }}"
-                                   class="btn btn-outline-primary w-100">Ver disponibilidad</a>
+                        <div class="card-footer bg-white text-center border-0">
+                            @if($pid > 0)
+                                {{-- Pasamos el ID con posibles nombres de parámetro para evitar binding incorrecto --}}
+                                <a
+                                  href="{{ route('properties.show', ['property' => $pid, 'id' => $pid, 'apartment' => $pid]) }}"
+                                  class="btn btn-primary w-100"
+                                  data-id="{{ $pid }}"
+                                >
+                                  Ver disponibilidad
+                                </a>
                             @endif
                         </div>
                     </div>
                 </div>
             @endforeach
-
         </div>
     @else
         <div class="text-center py-5">
@@ -186,7 +200,6 @@
     @endif
 </div>
 
-
 <style>
 .chuspombo-hero-banner{
     position:relative;height:500px;background-image:url('{{ $bannerImage }}');
@@ -194,10 +207,15 @@
 }
 .chuspombo-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.55))}
 .chuspombo-hero-content{position:relative;z-index:2;display:flex;align-items:end;height:100%;padding-bottom:40px;color:#fff}
-.property-img{height:250px;object-fit:cover}
+
+/* Tarjetas consistentes */
+.property-card{ display:flex; flex-direction:column; }
+.property-card .card-body{ flex:1 1 auto; }
+.property-img{ width:100%; height:auto; aspect-ratio:16/10; object-fit:cover; }
+
 @media (max-width:576px){
   .chuspombo-hero-banner{height:360px}
-  .property-img{height:210px}
+  .property-img{ aspect-ratio:16/12; }
 }
 </style>
 
