@@ -134,57 +134,33 @@
             @foreach($properties as $property)
                 @php
                     $title = $property['title'] ?? 'Apartamento';
-
-                    // Usa thumbnail si existe; si no, aplica helper
-                    $thumbFromProp = Arr::get($property, 'picture.thumbnail');
-                    $img   = is_string($thumbFromProp) && $thumbFromProp !== ''
-                                ? $thumbFromProp
-                                : $mainImageForProperty($property);
-
-                    $city    = $property['address']['city'] ?? 'Galicia';
+                    $thumb = $property['picture']['thumbnail'] ?? asset('images/property-placeholder.jpg');
+                    $city = $property['address']['city'] ?? 'Galicia';
                     $country = $property['address']['country'] ?? 'España';
                     $location = trim(($city ? $city : '') . ($city ? ', ' : '') . $country);
-
-                    $bedrooms  = (int)($property['bedrooms']  ?? 0);
+                    $bedrooms = (int)($property['bedrooms'] ?? 0);
                     $bathrooms = (int)($property['bathrooms'] ?? 0);
-
                     $price = $property['prices']['basePrice'] ?? null;
-                    $priceStr = is_numeric($price) ? '€' . number_format((float)$price, 0, ',', '.') . '/noche' : 'Consultar';
-
-                    // ID fuertemente tipado
+                    $priceStr = is_numeric($price) ? '€' . number_format($price, 0, ',', '.') . '/noche' : 'Consultar';
                     $pid = (int)($property['_id'] ?? 0);
                 @endphp
 
                 <div class="col">
-                    <div class="card h-100 shadow-sm property-card">
-                        <img src="{{ $img }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy" width="1280" height="800">
+                    <div class="card h-100 shadow-sm">
+                        <img src="{{ $thumb }}" class="card-img-top property-img" alt="{{ $title }}">
                         <div class="card-body">
                             <h5 class="card-title">{{ $title }}</h5>
-                            <p class="text-muted mb-2">
-                                <i class="fas fa-map-marker-alt me-1"></i> {{ $location }}
-                            </p>
-
-                            @if($bedrooms > 0 || $bathrooms > 0)
-                                <div class="d-flex justify-content-between text-muted">
-                                    <span>@if($bedrooms > 0)<i class="fas fa-bed"></i> {{ $bedrooms }} Hab.@endif</span>
-                                    <span>@if($bathrooms > 0)<i class="fas fa-bath"></i> {{ $bathrooms }} Baños@endif</span>
-                                </div>
-                            @endif
-
-                            <div class="mt-3 text-end">
-                                <strong>{{ $priceStr }}</strong>
+                            <p class="text-muted mb-2"><i class="fas fa-map-marker-alt me-1"></i> {{ $location }}</p>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span><i class="fas fa-bed me-1"></i> {{ $bedrooms }}</span>
+                                <span><i class="fas fa-bath me-1"></i> {{ $bathrooms }}</span>
                             </div>
+                            <div class="mt-3 text-end"><strong>{{ $priceStr }}</strong></div>
                         </div>
-                        <div class="card-footer bg-white text-center border-0">
+                        <div class="card-footer bg-white text-center">
                             @if($pid > 0)
-                                {{-- Pasamos el ID con posibles nombres de parámetro para evitar binding incorrecto --}}
-                                <a
-                                  href="{{ route('properties.show', ['property' => $pid, 'id' => $pid, 'apartment' => $pid]) }}"
-                                  class="btn btn-primary w-100"
-                                  data-id="{{ $pid }}"
-                                >
-                                  Ver disponibilidad
-                                </a>
+                                <a href="{{ route('properties.show', ['property' => $pid]) }}"
+                                   class="btn btn-outline-primary w-100">Ver disponibilidad</a>
                             @endif
                         </div>
                     </div>
@@ -195,7 +171,6 @@
         <div class="text-center py-5">
             <i class="fas fa-home fa-3x text-muted mb-3"></i>
             <p class="text-muted fs-5">No hay propiedades disponibles por ahora.</p>
-            <p class="text-muted">Explora pronto para encontrar tu estancia perfecta.</p>
         </div>
     @endif
 </div>
