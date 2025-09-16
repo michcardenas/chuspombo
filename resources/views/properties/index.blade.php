@@ -130,12 +130,11 @@
     <h1 class="fw-bold text-center mb-4">Propiedades disponibles</h1>
 
     @if(isset($properties) && count($properties) > 0)
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <div class="row">
             @foreach($properties as $property)
                 @php
                     $title = $property['title'] ?? 'Apartamento';
-                    $thumb = Arr::get($property, 'picture.thumbnail');
-                    $img   = $thumb ?: $mainImageForProperty($property);
+                    $img   = $mainImageForProperty($property);
 
                     $city    = $property['address']['city'] ?? 'Galicia';
                     $country = $property['address']['country'] ?? 'España';
@@ -145,16 +144,14 @@
                     $bathrooms = (int)($property['bathrooms'] ?? 0);
 
                     $price = $property['prices']['basePrice'] ?? null;
-                    $priceStr = is_numeric($price)
-                        ? '€' . number_format((float)$price, 0, ',', '.') . '/noche'
-                        : 'Consultar';
+                    $priceStr = is_numeric($price) ? '€' . number_format((float)$price, 0, ',', '.') . '/noche' : 'Consultar';
 
-                    $pid = (int)($property['_id'] ?? 0);
+                    $pid = $property['_id'] ?? null;
                 @endphp
 
-                <div class="col">
-                    <div class="card h-100 shadow-sm property-card">
-                        <img src="{{ $img }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy" width="1280" height="800">
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="{{ $img }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy">
                         <div class="card-body">
                             <h5 class="card-title">{{ $title }}</h5>
                             <p class="text-muted mb-2">
@@ -163,8 +160,14 @@
 
                             @if($bedrooms > 0 || $bathrooms > 0)
                                 <div class="d-flex justify-content-between text-muted">
-                                    <span>@if($bedrooms > 0)<i class="fas fa-bed"></i> {{ $bedrooms }} Hab.@endif</span>
-                                    <span>@if($bathrooms > 0)<i class="fas fa-bath"></i> {{ $bathrooms }} Baños@endif</span>
+                                    @if($bedrooms > 0)
+                                        <span><i class="fas fa-bed"></i> {{ $bedrooms }} Hab.</span>
+                                    @else
+                                        <span></span>
+                                    @endif
+                                    @if($bathrooms > 0)
+                                        <span><i class="fas fa-bath"></i> {{ $bathrooms }} Baños</span>
+                                    @endif
                                 </div>
                             @endif
 
@@ -172,15 +175,10 @@
                                 <strong>{{ $priceStr }}</strong>
                             </div>
                         </div>
-                        <div class="card-footer bg-white text-center border-0">
-                            @if($pid > 0)
-                                {{-- Evitamos el helper route() para no requerir nombre de parámetro --}}
-                                <a
-                                  href="{{ url('propiedades/'.$pid) }}"
-                                  class="btn btn-primary w-100"
-                                  data-id="{{ $pid }}"
-                                >
-                                  Ver disponibilidad
+                        <div class="card-footer bg-white text-center">
+                            @if($pid)
+                                <a href="{{ route('properties.show', $pid) }}" class="btn btn-primary w-100">
+                                    Ver Apartamento
                                 </a>
                             @endif
                         </div>
@@ -204,15 +202,10 @@
 }
 .chuspombo-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.55))}
 .chuspombo-hero-content{position:relative;z-index:2;display:flex;align-items:end;height:100%;padding-bottom:40px;color:#fff}
-
-/* Tarjetas consistentes */
-.property-card{ display:flex; flex-direction:column; }
-.property-card .card-body{ flex:1 1 auto; }
-.property-img{ width:100%; height:auto; aspect-ratio:16/10; object-fit:cover; }
-
+.property-img{height:250px;object-fit:cover}
 @media (max-width:576px){
   .chuspombo-hero-banner{height:360px}
-  .property-img{ aspect-ratio:16/12; }
+  .property-img{height:210px}
 }
 </style>
 
