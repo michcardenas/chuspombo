@@ -34,11 +34,10 @@ class SmoobuApartmentMeta extends Model
         'extras' => 'array',
     ];
 
-    public function mainImage()
+    public function images()
     {
-        // Imagen activa con menor sort_order (cubre el caso sort_order=1)
-        return $this->hasOne(SmoobuApartmentImage::class, 'apartment_id', 'apartment_id')
+        return $this->hasMany(SmoobuApartmentImage::class, 'apartment_id', 'apartment_id')
             ->where('is_active', true)
-            ->oldestOfMany('sort_order'); // min(sort_order)
+            ->orderBy('sort_order');
     }
 }
