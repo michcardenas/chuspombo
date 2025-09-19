@@ -3,25 +3,22 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Iniciar sesión | Chuspombo</title>
+    <title>Restablecer contraseña | Chuspombo</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="icon" href="{{ asset('images/Hostella_logo_horizontal.png') }}" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
+    <!-- copia EXACTA del <style> usado arriba -->
     <style>
         :root {
             --hostella-primary: #1a1a1a;
-            /* negro principal */
             --hostella-secondary: #FFD700;
-            /* dorado */
             --hostella-light: #f8f9fa;
-            --hostella-dark: #000000;
+            --hostella-dark: #000;
             --hostella-accent: #D4AF37;
-            /* dorado suave */
         }
 
         * {
-            box-sizing: border-box;
+            box-sizing: border-box
         }
 
         body {
@@ -33,7 +30,6 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            /* Fondo oscuro con halos dorados suaves */
             background:
                 radial-gradient(900px circle at 10% 15%, rgba(212, 175, 55, .18), transparent 40%),
                 radial-gradient(900px circle at 85% 85%, rgba(212, 175, 55, .12), transparent 45%),
@@ -41,9 +37,9 @@
         }
 
         .login-container {
-            background-color: #fff;
+            background: #fff;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
             width: 100%;
             max-width: 420px;
             padding: 40px 30px;
@@ -58,7 +54,15 @@
         h2 {
             color: var(--hostella-primary);
             font-size: 22px;
-            margin-bottom: 22px;
+            margin-bottom: 10px;
+        }
+
+        .title-underline {
+            width: 56px;
+            height: 3px;
+            margin: 10px auto 0;
+            background: linear-gradient(90deg, var(--hostella-secondary), transparent);
+            border-radius: 2px;
         }
 
         .form-group {
@@ -91,7 +95,7 @@
 
         .btn-login {
             width: 100%;
-            background-color: var(--hostella-primary);
+            background: var(--hostella-primary);
             color: #fff;
             padding: 12px;
             border: none;
@@ -103,77 +107,70 @@
         }
 
         .btn-login:hover {
-            filter: brightness(.93);
+            filter: brightness(.93)
         }
 
         .btn-login:active {
-            transform: translateY(1px);
+            transform: translateY(1px)
         }
 
         .error {
             color: #d33;
-            font-size: 0.95rem;
+            font-size: .95rem;
             margin-bottom: 14px;
         }
 
-        /* Detalle dorado fino bajo el título */
-        .title-underline {
-            width: 56px;
-            height: 3px;
-            margin: 10px auto 0;
-            background: linear-gradient(90deg, var(--hostella-secondary), transparent);
-            border-radius: 2px;
+        .muted-link {
+            display: block;
+            margin-top: 14px;
+            font-size: .9rem;
+            color: var(--hostella-accent);
+            font-weight: 600;
+            text-decoration: none;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width:480px) {
             .login-container {
-                padding: 28px 20px;
+                padding: 28px 20px
             }
 
             .login-logo {
-                width: 150px;
+                width: 150px
             }
         }
     </style>
 </head>
 
 <body>
-
     <div class="login-container">
-        <img src="{{ asset('images/Hostella_logo_horizontal.png') }}" alt="Hostella Logo" class="login-logo">
-
-        <h2>Iniciar Sesión</h2>
+        <img src="{{ asset('images/Hostella_logo_horizontal.png') }}" alt="Logo" class="login-logo">
+        <h2>Restablecer contraseña</h2>
         <div class="title-underline"></div>
 
         @if ($errors->any())
-        <div class="error">
-            {{ $errors->first() }}
-        </div>
+        <div class="error">{{ $errors->first() }}</div>
         @endif
 
-        <form method="POST" action="{{ route('login') }}">
+        <form method="POST" action="{{ route('password.update') }}">
             @csrf
+            <input type="hidden" name="token" value="{{ $token }}">
+            <input type="hidden" name="email" value="{{ $email }}">
 
             <div class="form-group">
-                <label for="email">Correo electrónico</label>
-                <input type="email" name="email" id="email" value="{{ old('email') }}" required autofocus>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Contraseña</label>
+                <label for="password">Nueva contraseña</label>
                 <input type="password" name="password" id="password" required>
             </div>
 
-            <button type="submit" class="btn-login">Ingresar</button>
-
-            <div style="margin-top:14px; font-size:0.9rem;">
-                <a href="{{ route('password.request') }}" style="color: var(--hostella-accent); font-weight:600; text-decoration:none;">
-                    ¿Olvidaste tu contraseña?
-                </a>
+            <div class="form-group">
+                <label for="password_confirmation">Confirmar contraseña</label>
+                <input type="password" name="password_confirmation" id="password_confirmation" required>
             </div>
-        </form>
-    </div>
 
+            <button type="submit" class="btn-login">Restablecer</button>
+        </form>
+
+        <a href="{{ route('login') }}" class="muted-link">← Volver al login</a>
+    </div>
 </body>
 
 </html>

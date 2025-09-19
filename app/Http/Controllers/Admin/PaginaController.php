@@ -106,8 +106,6 @@ class PaginaController extends Controller
 }
 
 
-
-
     public function editPropiedades()
     {
         $paginaPropiedades = \App\Models\Pagina::with('meta')->where('id', 2)->first();
@@ -234,7 +232,7 @@ public function updateContacto(Request $request)
         'postal_code'        => 'nullable|string|max:255',
         'country'            => 'nullable|string|max:255',
 
-        'map_embed_url'      => 'nullable|string|max:255',
+        'map_embed_url'      => 'nullable|string',
         'latitude'           => 'nullable|numeric',
         'longitude'          => 'nullable|numeric',
 

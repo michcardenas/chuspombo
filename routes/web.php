@@ -70,6 +70,13 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Recuperar / Reset
+Route::get('/forgot-password', [AuthController::class, 'showForgotPasswordForm'])->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+
 Route::middleware('auth')->get('/admin', [DashboardController::class, 'index'])->name('admin.dashboard');
 Route::middleware('auth')->put('/pagina/{id}', [PaginaController::class, 'update'])->name('admin.pagina.update');
 Route::middleware('auth')->get('/admin/pagina/propiedades', [PaginaController::class, 'showPropiedades'])->name('admin.pagina.propiedades');

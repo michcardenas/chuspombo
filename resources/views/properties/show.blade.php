@@ -127,7 +127,7 @@
             @php $shortDescription = \Illuminate\Support\Str::limit(strip_tags($description), 250); @endphp
             @if(!empty($description))
                 <div class="mb-4 description-section">
-                    <p class="description-text" style="line-height: 1.7%;">
+                    <p class="description-text" style="line-height: 1.7;">
                         <span class="short-text">{{ $shortDescription }}</span>
                         <span class="full-text d-none">{!! nl2br(e($description)) !!}</span>
                     </p>
@@ -442,5 +442,48 @@ document.addEventListener('DOMContentLoaded', function () {
   loadAvailability();
 });
 </script>
+<script>
+document.addEventListener('click', function (e) {
+  // Toggle de la descripción principal
+  const moreDesc = e.target.closest('.see-more-link');
+  if (moreDesc) {
+    e.preventDefault();
+    const wrapper = moreDesc.closest('.description-section');
+    if (!wrapper) return;
+
+    const shortEl = wrapper.querySelector('.short-text');
+    const fullEl  = wrapper.querySelector('.full-text');
+    if (!shortEl || !fullEl) return;
+
+    const expanded = !fullEl.classList.contains('d-none');
+    // Alternar visibilidad
+    fullEl.classList.toggle('d-none',  expanded);
+    shortEl.classList.toggle('d-none', !expanded);
+
+    // Cambiar texto del enlace
+    moreDesc.textContent = expanded ? 'Ver más >>' : 'Ver menos <<';
+    return;
+  }
+
+  // Toggle de cada reseña
+  const moreReview = e.target.closest('.see-more-review');
+  if (moreReview) {
+    e.preventDefault();
+    const card = moreReview.closest('.card');
+    if (!card) return;
+
+    const shortEl = card.querySelector('.review-text .short-text');
+    const fullEl  = card.querySelector('.review-text .full-text');
+    if (!shortEl || !fullEl) return;
+
+    const expanded = !fullEl.classList.contains('d-none');
+    fullEl.classList.toggle('d-none',  expanded);
+    shortEl.classList.toggle('d-none', !expanded);
+
+    moreReview.textContent = expanded ? 'Ver más >>' : 'Ver menos <<';
+  }
+});
+</script>
+
 
 @endsection
