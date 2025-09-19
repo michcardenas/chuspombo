@@ -5,8 +5,6 @@
 @section('content')
 
 @php
-    use Illuminate\Support\Arr;
-
     // ===== Banner (igual que tenías, con fallback) =====
     $totalImages = 100;
     $randomNumber = rand(1, $totalImages);
@@ -31,107 +29,6 @@
             $bannerImage = $foundImage ?? asset('images/property-placeholder.jpg');
         }
     }
-
-    // ===== Helpers para IMÁGENES DE PROPIEDAD =====
-    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy'];
-
-    $priorityRank = function (string $u) {
-        if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
-        if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
-        return 1;
-    };
-
-    // Extrae posibles URLs del array de la propiedad
-    $extractFromArray = function (array $p) use ($skipSubstr, $priorityRank) {
-        return collect(Arr::dot($p))
-            ->values()
-            ->filter(fn ($v) => is_string($v))
-            ->map(fn ($u) => trim($u))
-            ->filter(fn ($u) =>
-                $u !== '' &&
-                !str_starts_with($u, 'data:') &&
-                preg_match('/\.(jpe?g|png|webp|avif)(\?.*)?$/i', $u) // regex inline
-            )
-            ->reject(function ($u) use ($skipSubstr) {
-                $lu = strtolower($u);
-                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-                return false;
-            })
-            ->unique()
-            ->sortBy(fn ($u) => $priorityRank($u))
-            ->values();
-    };
-
-    // Busca en /public/images/smoobu/{ID}/ y variantes directas
-    $findLocalImageCandidates = function ($id) use ($priorityRank, $skipSubstr) {
-        $candidates = collect();
-
-        // 1) Carpeta por ID
-        $dir = public_path("images/smoobu/{$id}");
-        if (is_dir($dir)) {
-            $files = glob($dir . '/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
-            foreach ($files as $abs) {
-                $rel = 'images/smoobu/' . $id . '/' . basename($abs);
-                $candidates->push(asset($rel));
-            }
-        }
-
-        // 2) Archivos sueltos por ID
-        foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.avif", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.jpeg", "images/smoobu/{$id}.png"] as $rel) {
-            if (file_exists(public_path($rel))) {
-                $candidates->push(asset($rel));
-            }
-        }
-
-        return $candidates
-            ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)(\?.*)?$/i', $u)) // regex inline
-            ->reject(function ($u) use ($skipSubstr) {
-                $lu = strtolower($u);
-                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-                return false;
-            })
-            ->unique()
-            ->sortBy(fn ($u) => $priorityRank($u))
-            ->values();
-    };
-
-    // ===== Imagen principal para tarjeta (prioriza la primera en sortOrder) =====
-    $mainImageForProperty = function (array $prop) use ($extractFromArray, $findLocalImageCandidates) {
-        $id = $prop['_id'] ?? null;
-
-        // 1) Galería con sortOrder
-        if (!empty($prop['gallery']) && is_array($prop['gallery'])) {
-            $first = collect($prop['gallery'])
-                ->sortBy('sortOrder')
-                ->pluck('url')
-                ->filter(fn ($u) => !empty($u))
-                ->first();
-            if ($first) return $first;
-        }
-
-        // 2) Pictures con sortOrder
-        if (!empty($prop['pictures']) && is_array($prop['pictures'])) {
-            $first = collect($prop['pictures'])
-                ->sortBy('sortOrder')
-                ->map(fn ($p) => $p['original'] ?? $p['thumbnail'] ?? null)
-                ->filter(fn ($u) => !empty($u))
-                ->first();
-            if ($first) return $first;
-        }
-
-        // 3) Locales
-        if ($id) {
-            $local = $findLocalImageCandidates($id);
-            if ($local->isNotEmpty()) return $local->first();
-        }
-
-        // 4) Extraer URLs genéricas
-        $fromArray = $extractFromArray($prop);
-        if ($fromArray->isNotEmpty()) return $fromArray->first();
-
-        // 5) Fallback
-        return asset('images/property-placeholder.jpg');
-    };
 @endphp
 
 <!-- Banner hero -->
@@ -156,25 +53,56 @@
         <div class="row">
             @foreach($properties as $property)
                 @php
+                    // Datos base (vienen del controlador en array)
                     $title = $property['title'] ?? 'Apartamento';
-                    $img   = $mainImageForProperty($property);
+                    $pid   = (int)($property['_id'] ?? 0);
 
-                    $city    = $property['address']['city'] ?? 'Galicia';
-                    $country = $property['address']['country'] ?? 'España';
-                    $location = trim(($city ? $city : '') . ($city ? ', ' : '') . $country);
+                    // ===== Portada desde BD: sort_order = 1 (fallback: menor sort_order) =====
+                    $imgPath = null;
+                    if ($pid) {
+                        $imgPath = Cache::remember("apt.mainimg.$pid", 300, function () use ($pid) {
+                            $q = \App\Models\SmoobuApartmentImage::query()
+                                ->where('apartment_id', $pid)
+                                ->where('is_active', 1);
 
+                            // Primero intentamos exactamente sort_order = 1
+                            $exact = (clone $q)->where('sort_order', 1)->value('path');
+                            if ($exact) return $exact;
+
+                            // Si no existe, tomamos la primera por sort_order
+                            return $q->orderBy('sort_order')->value('path');
+                        });
+                    }
+
+                    // Fallbacks: cover local del mapping -> archivos locales por ID -> placeholder
+                    $thumb = $imgPath
+                        ? asset($imgPath)
+                        : ($property['picture']['thumbnail'] ?? null);
+
+                    if (!$thumb) {
+                        $thumb = $pid && file_exists(public_path("images/smoobu/{$pid}.webp")) ? asset("images/smoobu/{$pid}.webp")
+                            : ($pid && file_exists(public_path("images/smoobu/{$pid}.jpg")) ? asset("images/smoobu/{$pid}.jpg")
+                            : ($pid && file_exists(public_path("images/smoobu/{$pid}.png")) ? asset("images/smoobu/{$pid}.png")
+                            : asset('images/property-placeholder.jpg')));
+                    }
+
+                    // Ubicación
+                    $city     = $property['address']['city'] ?? 'Galicia';
+                    $country  = $property['address']['country'] ?? 'España';
+                    $location = trim(($city ?: '') . ($city ? ', ' : '') . $country);
+
+                    // Habitaciones / baños
                     $bedrooms  = (int)($property['bedrooms']  ?? 0);
                     $bathrooms = (int)($property['bathrooms'] ?? 0);
 
-                    $price = $property['prices']['basePrice'] ?? null;
+                    // Precio
+                    $price   = $property['prices']['basePrice'] ?? null;
                     $priceStr = is_numeric($price) ? '€' . number_format((float)$price, 0, ',', '.') . '/noche' : 'Consultar';
-
-                    $pid = $property['_id'] ?? null;
                 @endphp
 
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="card h-100 shadow-sm">
-                        <img src="{{ $img }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy">
+                        <img src="{{ $thumb }}" class="card-img-top property-img" alt="{{ $title }}" loading="lazy">
                         <div class="card-body">
                             <h5 class="card-title">{{ $title }}</h5>
                             <p class="text-muted mb-2">
