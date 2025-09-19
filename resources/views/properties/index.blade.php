@@ -53,38 +53,12 @@
         <div class="row">
             @foreach($properties as $property)
                 @php
-                    // Datos base (vienen del controlador en array)
                     $title = $property['title'] ?? 'Apartamento';
                     $pid   = (int)($property['_id'] ?? 0);
 
-                    // ===== Portada desde BD: sort_order = 1 (fallback: menor sort_order) =====
-                    $imgPath = null;
-                    if ($pid) {
-                        $imgPath = Cache::remember("apt.mainimg.$pid", 300, function () use ($pid) {
-                            $q = \App\Models\SmoobuApartmentImage::query()
-                                ->where('apartment_id', $pid)
-                                ->where('is_active', 1);
-
-                            // Primero intentamos exactamente sort_order = 1
-                            $exact = (clone $q)->where('sort_order', 1)->value('path');
-                            if ($exact) return $exact;
-
-                            // Si no existe, tomamos la primera por sort_order
-                            return $q->orderBy('sort_order')->value('path');
-                        });
-                    }
-
-                    // Fallbacks: cover local del mapping -> archivos locales por ID -> placeholder
-                    $thumb = $imgPath
-                        ? asset($imgPath)
-                        : ($property['picture']['thumbnail'] ?? null);
-
-                    if (!$thumb) {
-                        $thumb = $pid && file_exists(public_path("images/smoobu/{$pid}.webp")) ? asset("images/smoobu/{$pid}.webp")
-                            : ($pid && file_exists(public_path("images/smoobu/{$pid}.jpg")) ? asset("images/smoobu/{$pid}.jpg")
-                            : ($pid && file_exists(public_path("images/smoobu/{$pid}.png")) ? asset("images/smoobu/{$pid}.png")
-                            : asset('images/property-placeholder.jpg')));
-                    }
+                    // >>> Usar lo que manda el controlador <<<
+                    $thumb = $property['picture']['thumbnail']
+                        ?? asset('images/property-placeholder.jpg');
 
                     // Ubicación
                     $city     = $property['address']['city'] ?? 'Galicia';
