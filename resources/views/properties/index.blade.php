@@ -5,8 +5,6 @@
 @section('content')
 
 @php
-    use Illuminate\Support\Arr;
-
     // ===== Banner (igual que tenías, con fallback) =====
     $totalImages = 100;
     $randomNumber = rand(1, $totalImages);
@@ -31,84 +29,6 @@
             $bannerImage = $foundImage ?? asset('images/property-placeholder.jpg');
         }
     }
-
-    // ===== Helpers para IMÁGENES DE PROPIEDAD =====
-    $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
-    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy'];
-
-    $priorityRank = function (string $u) {
-        if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
-        if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
-        return 1;
-    };
-
-    // Extrae posibles URLs del array de la propiedad
-    $extractFromArray = function (array $p) use ($validExt, $skipSubstr, $priorityRank) {
-        return collect(Arr::dot($p))
-            ->values()
-            ->filter(fn ($v) => is_string($v))
-            ->map(fn ($u) => trim($u))
-            ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
-            ->reject(function ($u) use ($skipSubstr) {
-                $lu = strtolower($u);
-                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-                return false;
-            })
-            ->unique()
-            ->sortBy(fn ($u) => $priorityRank($u))
-            ->values();
-    };
-
-    // Busca en /public/images/smoobu/{ID}/ y variantes directas
-    $findLocalImageCandidates = function ($id) use ($validExt, $priorityRank, $skipSubstr) {
-        $candidates = collect();
-
-        // 1) Carpeta por ID
-        $dir = public_path("images/smoobu/{$id}");
-        if (is_dir($dir)) {
-            $files = glob($dir . '/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
-            foreach ($files as $abs) {
-                $rel = 'images/smoobu/' . $id . '/' . basename($abs);
-                $candidates->push(asset($rel));
-            }
-        }
-
-        // 2) Archivos sueltos por ID
-        foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.avif", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.jpeg", "images/smoobu/{$id}.png"] as $rel) {
-            if (file_exists(public_path($rel))) {
-                $candidates->push(asset($rel));
-            }
-        }
-
-        return $candidates
-            ->filter(fn ($u) => is_string($u) && preg_match($validExt, $u))
-            ->reject(function ($u) use ($skipSubstr) {
-                $lu = strtolower($u);
-                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-                return false;
-            })
-            ->unique()
-            ->sortBy(fn ($u) => $priorityRank($u))
-            ->values();
-    };
-
-    // Imagen principal para tarjeta
-    $mainImageForProperty = function (array $prop) use ($extractFromArray, $findLocalImageCandidates) {
-        $id = $prop['_id'] ?? null;
-
-        // 1) Locales
-        if ($id) {
-            $local = $findLocalImageCandidates($id);
-            if ($local->isNotEmpty()) return $local->first();
-        }
-
-        // 2) URLs que vengan en el array (picture/gallery/…)
-        $fromArray = $extractFromArray($prop);
-        if ($fromArray->isNotEmpty()) return $fromArray->first();
-
-        // 3) Fallback
-        return asset('images/property-placeholder.jpg');
-    };
 @endphp
 
 <!-- Banner hero -->
@@ -134,16 +54,18 @@
             @foreach($properties as $property)
                 @php
                     $title = $property['title'] ?? 'Apartamento';
-                    $img   = $mainImageForProperty($property);
 
-                    $city    = $property['address']['city'] ?? 'Galicia';
-                    $country = $property['address']['country'] ?? 'España';
+                    // ✅ Usar SOLO cover_image_path que viene del controlador
+                    $img = $property['cover_image_path'] ?? asset('images/property-placeholder.jpg');
+
+                    $city    = data_get($property, 'address.city', 'Galicia');
+                    $country = data_get($property, 'address.country', 'España');
                     $location = trim(($city ? $city : '') . ($city ? ', ' : '') . $country);
 
                     $bedrooms  = (int)($property['bedrooms']  ?? 0);
                     $bathrooms = (int)($property['bathrooms'] ?? 0);
 
-                    $price = $property['prices']['basePrice'] ?? null;
+                    $price = data_get($property, 'prices.basePrice');
                     $priceStr = is_numeric($price) ? '€' . number_format((float)$price, 0, ',', '.') . '/noche' : 'Consultar';
 
                     $pid = $property['_id'] ?? null;

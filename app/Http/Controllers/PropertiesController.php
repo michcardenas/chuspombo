@@ -51,7 +51,7 @@ public function index(Request $request)
         $checkin  = optional($request->date('checkin'))->startOfDay();
         $checkout = optional($request->date('checkout'))->startOfDay();
 
-        // 4) Disponibilidad: mismo flujo, pero cuidando off-by-one (to = checkout - 1)
+        // 4) Disponibilidad
         if ($checkin && $checkout && $apartments->isNotEmpty()) {
             $ids  = $apartments->pluck('id')->values();
             $from = $checkin->format('Y-m-d');
@@ -79,7 +79,7 @@ public function index(Request $request)
                         }
                     }
                     return true;
-                })->keys()->map(fn ($k) => (int) $k);
+                })->keys()->map(fn($k) => (int) $k);
             } catch (\Throwable $e1) {
                 try {
                     $reservationsResp = $api->reservations($from, $to, $ids->all());
@@ -112,29 +112,26 @@ public function index(Request $request)
         // 5) IDs definitivos a mostrar
         $ids = $apartments->pluck('id')->map(fn($v) => (int)$v)->filter()->values()->all();
 
-        // 6) Detalles por ID (cache 5 min) -> igual que en Home
+        // 6) Detalles por ID (cache 5 min)
         $details = [];
         foreach ($ids as $aid) {
             $details[$aid] = Cache::remember("smoobu.apartment.$aid", 300, function () use ($api, $aid) {
-                try { return $api->apartment((int)$aid); }
-                catch (\Throwable $e) {
+                try {
+                    return $api->apartment((int)$aid);
+                } catch (\Throwable $e) {
                     \Log::warning('No se pudo obtener detalle de apartment', ['id' => $aid, 'e' => $e->getMessage()]);
                     return [];
                 }
             });
         }
 
-        // 7) Metas + imágenes locales activas (para esos IDs)
-        $metas = \App\Models\SmoobuApartmentMeta::with(['images' => function ($q) {
-                $q->where('is_active', true)->orderBy('sort_order');
-            }])
+        // 7) Metas (SOLO metas; no necesitamos eager load de images)
+        $metas = \App\Models\SmoobuApartmentMeta::query()
             ->whereIn('apartment_id', $ids)
             ->get()
             ->keyBy('apartment_id');
 
-        // 8) Rates:
-        //    - Si hay checkin/checkout: usar ese rango (to = checkout - 1).
-        //    - Si NO hay fechas: promedio 7d con fallback 30d (como en Home).
+        // 8) Rates (igual que tenías)
         $ratesByApt = [];
         if (!empty($ids)) {
             try {
@@ -191,7 +188,7 @@ public function index(Request $request)
             }
         }
 
-        // 9) Mapear al mismo shape “rico” que usa Home (detalle + metas + rates)
+        // 9) Mapear shape para la vista (usando SOLO cover_image_path de BD)
         $properties = $apartments->map(function ($apt) use ($details, $metas, $ratesByApt) {
             $id = (int)($apt['id'] ?? $apt['apartmentId'] ?? $apt['apartment_id'] ?? 0);
             $d  = $details[$id] ?? [];
@@ -213,18 +210,11 @@ public function index(Request $request)
             $bedrooms         = isset($m) && $m->bedrooms  !== null ? (int)$m->bedrooms   : (int)$bedroomsFromApi;
             $bathrooms        = isset($m) && $m->bathrooms !== null ? (float)$m->bathrooms : (float)$bathroomsFromApi;
 
-            // Imagen
-            $firstImagePath = $m?->images?->first()?->path;
-            $thumb = $firstImagePath
-                ? asset($firstImagePath)
-                : ( $m?->cover_image_path
-                    ? asset($m->cover_image_path)
-                    : ($this->firstExistingAsset([
-                        "images/smoobu/{$id}.webp",
-                        "images/smoobu/{$id}.jpg",
-                        "images/smoobu/{$id}.png",
-                    ]) ?? asset('images/property-placeholder.jpg'))
-                  );
+            // IMAGEN: SOLO cover_image_path (BD)
+            $cover = $m?->cover_image_path;
+            $coverUrl = $cover
+                ? (preg_match('/^(https?:)?\/\//i', $cover) ? $cover : asset($cover))
+                : asset('images/property-placeholder.jpg');
 
             // Precio
             $priceOverride = $m?->base_price_override;
@@ -240,7 +230,8 @@ public function index(Request $request)
             return [
                 '_id'       => $id,
                 'title'     => $name,
-                'picture'   => ['thumbnail' => $thumb],
+                // 👉 mandamos la URL final ya lista para usar en la vista
+                'cover_image_path' => $coverUrl,
                 'address'   => ['city' => $city, 'country' => $country],
                 'bedrooms'  => $bedrooms,
                 'bathrooms' => $bathrooms,
@@ -270,155 +261,155 @@ public function index(Request $request)
     }
 }
 
-/** ========= Helpers privados (pégalos en el controlador si no existen) ========= */
-private function firstExistingAsset(array $relativePaths): ?string
-{
-    foreach ($relativePaths as $rel) {
-        if (file_exists(public_path($rel))) {
-            return asset($rel);
+    /** ========= Helpers privados (pégalos en el controlador si no existen) ========= */
+    private function firstExistingAsset(array $relativePaths): ?string
+    {
+        foreach ($relativePaths as $rel) {
+            if (file_exists(public_path($rel))) {
+                return asset($rel);
+            }
         }
+        return null;
     }
-    return null;
-}
 
 
 
-   /**
- * Detalle de propiedad (Smoobu).
- */
-public function show($id)
-{
-    try {
-        $api = $this->smoobu;
-        $id  = (int) $id;
-
-        // Detalle (cache 5 min)
-        $detail = Cache::remember("smoobu.apartment.$id", 300, fn() => $api->apartment($id));
-        if (empty($detail)) {
-            return redirect()->route('properties.index')->with('error', 'Propiedad no encontrada.');
-        }
-
-        // Overrides locales (meta + galería)
-        $meta    = SmoobuApartmentMeta::find($id);
-        $imagesQ = SmoobuApartmentImage::where('apartment_id', $id)
-            ->where('is_active', true)->orderBy('sort_order')->get();
-        $gallery = $imagesQ->map(fn($i) => asset($i->path))->values()->all();
-
-        // Precio: promedio rates 7d -> 30d | override | minimal | maximal
-        $priceFromRates = null;
+    /**
+     * Detalle de propiedad (Smoobu).
+     */
+    public function show($id)
+    {
         try {
-            $start = now()->toDateString();
-            $end   = now()->addDays(7)->toDateString();
-            $resp  = $api->rates($start, $end, [$id]);
-            $rows  = $resp['data'][$id] ?? [];
-            $nums  = [];
-            foreach ($rows as $r) {
-                $p = $r['price'] ?? null;
-                if (is_numeric($p) && $p > 0) $nums[] = (float) $p;
-            }
-            if (count($nums)) $priceFromRates = (int) round(array_sum($nums) / count($nums));
+            $api = $this->smoobu;
+            $id  = (int) $id;
 
-            if (!$priceFromRates) {
-                $start2 = now()->toDateString();
-                $end2   = now()->addDays(30)->toDateString();
-                $resp2  = $api->rates($start2, $end2, [$id]);
-                $rows2  = $resp2['data'][$id] ?? [];
-                $nums2  = [];
-                foreach ($rows2 as $r) {
+            // Detalle (cache 5 min)
+            $detail = Cache::remember("smoobu.apartment.$id", 300, fn() => $api->apartment($id));
+            if (empty($detail)) {
+                return redirect()->route('properties.index')->with('error', 'Propiedad no encontrada.');
+            }
+
+            // Overrides locales (meta + galería)
+            $meta    = SmoobuApartmentMeta::find($id);
+            $imagesQ = SmoobuApartmentImage::where('apartment_id', $id)
+                ->where('is_active', true)->orderBy('sort_order')->get();
+            $gallery = $imagesQ->map(fn($i) => asset($i->path))->values()->all();
+
+            // Precio: promedio rates 7d -> 30d | override | minimal | maximal
+            $priceFromRates = null;
+            try {
+                $start = now()->toDateString();
+                $end   = now()->addDays(7)->toDateString();
+                $resp  = $api->rates($start, $end, [$id]);
+                $rows  = $resp['data'][$id] ?? [];
+                $nums  = [];
+                foreach ($rows as $r) {
                     $p = $r['price'] ?? null;
-                    if (is_numeric($p) && $p > 0) $nums2[] = (float)$p;
+                    if (is_numeric($p) && $p > 0) $nums[] = (float) $p;
                 }
-                if (count($nums2)) $priceFromRates = (int) round(array_sum($nums2) / count($nums2));
+                if (count($nums)) $priceFromRates = (int) round(array_sum($nums) / count($nums));
+
+                if (!$priceFromRates) {
+                    $start2 = now()->toDateString();
+                    $end2   = now()->addDays(30)->toDateString();
+                    $resp2  = $api->rates($start2, $end2, [$id]);
+                    $rows2  = $resp2['data'][$id] ?? [];
+                    $nums2  = [];
+                    foreach ($rows2 as $r) {
+                        $p = $r['price'] ?? null;
+                        if (is_numeric($p) && $p > 0) $nums2[] = (float)$p;
+                    }
+                    if (count($nums2)) $priceFromRates = (int) round(array_sum($nums2) / count($nums2));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('No se pudieron obtener rates para show()', ['id' => $id, 'e' => $e->getMessage()]);
             }
+
+            $priceOverride = $meta?->base_price_override;
+            $priceMinimal  = $detail['price']['minimal'] ?? null;
+            $priceMaximal  = $detail['price']['maximal'] ?? null;
+
+            $finalPrice = $priceOverride
+                ?? $priceFromRates
+                ?? $priceMinimal
+                ?? $priceMaximal
+                ?? null;
+
+            // Campos principales (por defecto Galicia, España)
+            $title   = $meta?->title ?: ($detail['name'] ?? 'Propiedad');
+            $city    = $meta?->city ?? ($detail['location']['city'] ?? 'Galicia');
+            $country = $meta?->country ?? ($detail['location']['country'] ?? 'España');
+            $desc    = $meta?->description ?? ($detail['description'] ?? null);
+
+            // Habitaciones / baños
+            $rooms = $detail['rooms'] ?? [];
+            $bedrooms  = is_numeric($meta?->bedrooms)  ? (int)$meta->bedrooms  : (
+                (isset($rooms['bedrooms']) && is_numeric($rooms['bedrooms'])) ? (int)$rooms['bedrooms'] : ((isset($detail['bedrooms']) && is_numeric($detail['bedrooms'])) ? (int)$detail['bedrooms'] : 0)
+            );
+            $bathrooms = is_numeric($meta?->bathrooms) ? (float)$meta->bathrooms : (
+                (isset($rooms['bathrooms']) && is_numeric($rooms['bathrooms'])) ? (float)$rooms['bathrooms'] : ((isset($detail['bathrooms']) && is_numeric($detail['bathrooms'])) ? (float)$detail['bathrooms'] : 0.0)
+            );
+
+            $beds         = $detail['beds'] ?? ($rooms['beds'] ?? null);
+            $accommodates = $detail['accommodates'] ?? null;
+
+            // Galería (local por ID -> fallback -> placeholder)
+            if (empty($gallery)) {
+                foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.png"] as $rel) {
+                    if (file_exists(public_path($rel))) {
+                        $gallery[] = asset($rel);
+                        break;
+                    }
+                }
+            }
+            if (empty($gallery)) {
+                $gallery[] = asset('images/property-placeholder.jpg');
+            }
+
+            // Booking URL (iframe Smoobu) - opcional
+            $bookingBase = config('services.smoobu.booking_base_url'); // ej: https://bookings.smoobu.com/es/TU_CUENTA
+            $bookingUrl  = $bookingBase
+                ? rtrim($bookingBase, '/') . '?apartmentId=' . urlencode($id) . '&lang=es&iframe=true'
+                : null;
+
+            // === Calendar verification (para el Single Calendar Widget) ===
+            $calendarVerification =
+                ($meta && !empty($meta->calendar_verification)) ? $meta->calendar_verification : (config('services.smoobu.calendar_verifications')[$id] ?? null)
+                ?? config('services.smoobu.default_calendar_verification');
+
+            // Payload para la vista
+            $property = [
+                '_id'    => $id,
+                'title'  => $title,
+                'gallery' => $gallery,
+                'pictures' => collect($gallery)->map(fn($u) => ['original' => $u, 'thumbnail' => $u])->values()->all(),
+                'address' => [
+                    'full'    => trim(($city ?: '') . (($city && $country) ? ', ' : '') . ($country ?: '')),
+                    'city'    => $city,
+                    'country' => $country,
+                ],
+                'bedrooms'     => $bedrooms,
+                'bathrooms'    => $bathrooms,
+                'beds'         => $beds,
+                'accommodates' => $accommodates,
+                'prices'       => [
+                    'basePrice' => (is_numeric($finalPrice) && $finalPrice > 0) ? (int)round($finalPrice) : null,
+                    'currency'  => 'EUR', // <<< EUR
+                ],
+                'description'            => $desc,
+                'amenities'              => $detail['amenities'] ?? [],
+                'bookingUrl'             => $bookingUrl,
+                'calendar_verification'  => $calendarVerification,
+            ];
+
+            $reviews = []; // sin Guesty
+
+            return view('properties.show', compact('property', 'reviews'));
         } catch (\Throwable $e) {
-            Log::warning('No se pudieron obtener rates para show()', ['id' => $id, 'e' => $e->getMessage()]);
+            Log::error('Error en show() Smoobu: ' . $e->getMessage(), ['id' => $id]);
+            return redirect()->route('properties.index')->with('error', 'No se pudo cargar la propiedad.');
         }
-
-        $priceOverride = $meta?->base_price_override;
-        $priceMinimal  = $detail['price']['minimal'] ?? null;
-        $priceMaximal  = $detail['price']['maximal'] ?? null;
-
-        $finalPrice = $priceOverride
-            ?? $priceFromRates
-            ?? $priceMinimal
-            ?? $priceMaximal
-            ?? null;
-
-        // Campos principales (por defecto Galicia, España)
-        $title   = $meta?->title ?: ($detail['name'] ?? 'Propiedad');
-        $city    = $meta?->city ?? ($detail['location']['city'] ?? 'Galicia');
-        $country = $meta?->country ?? ($detail['location']['country'] ?? 'España');
-        $desc    = $meta?->description ?? ($detail['description'] ?? null);
-
-        // Habitaciones / baños
-        $rooms = $detail['rooms'] ?? [];
-        $bedrooms  = is_numeric($meta?->bedrooms)  ? (int)$meta->bedrooms  : (
-            (isset($rooms['bedrooms']) && is_numeric($rooms['bedrooms'])) ? (int)$rooms['bedrooms'] : ((isset($detail['bedrooms']) && is_numeric($detail['bedrooms'])) ? (int)$detail['bedrooms'] : 0)
-        );
-        $bathrooms = is_numeric($meta?->bathrooms) ? (float)$meta->bathrooms : (
-            (isset($rooms['bathrooms']) && is_numeric($rooms['bathrooms'])) ? (float)$rooms['bathrooms'] : ((isset($detail['bathrooms']) && is_numeric($detail['bathrooms'])) ? (float)$detail['bathrooms'] : 0.0)
-        );
-
-        $beds         = $detail['beds'] ?? ($rooms['beds'] ?? null);
-        $accommodates = $detail['accommodates'] ?? null;
-
-        // Galería (local por ID -> fallback -> placeholder)
-        if (empty($gallery)) {
-            foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.png"] as $rel) {
-                if (file_exists(public_path($rel))) {
-                    $gallery[] = asset($rel);
-                    break;
-                }
-            }
-        }
-        if (empty($gallery)) {
-            $gallery[] = asset('images/property-placeholder.jpg');
-        }
-
-        // Booking URL (iframe Smoobu) - opcional
-        $bookingBase = config('services.smoobu.booking_base_url'); // ej: https://bookings.smoobu.com/es/TU_CUENTA
-        $bookingUrl  = $bookingBase
-            ? rtrim($bookingBase, '/') . '?apartmentId=' . urlencode($id) . '&lang=es&iframe=true'
-            : null;
-
-        // === Calendar verification (para el Single Calendar Widget) ===
-        $calendarVerification =
-            ($meta && !empty($meta->calendar_verification)) ? $meta->calendar_verification : (config('services.smoobu.calendar_verifications')[$id] ?? null)
-            ?? config('services.smoobu.default_calendar_verification');
-
-        // Payload para la vista
-        $property = [
-            '_id'    => $id,
-            'title'  => $title,
-            'gallery' => $gallery,
-            'pictures' => collect($gallery)->map(fn($u) => ['original' => $u, 'thumbnail' => $u])->values()->all(),
-            'address' => [
-                'full'    => trim(($city ?: '') . (($city && $country) ? ', ' : '') . ($country ?: '')),
-                'city'    => $city,
-                'country' => $country,
-            ],
-            'bedrooms'     => $bedrooms,
-            'bathrooms'    => $bathrooms,
-            'beds'         => $beds,
-            'accommodates' => $accommodates,
-            'prices'       => [
-                'basePrice' => (is_numeric($finalPrice) && $finalPrice > 0) ? (int)round($finalPrice) : null,
-                'currency'  => 'EUR', // <<< EUR
-            ],
-            'description'            => $desc,
-            'amenities'              => $detail['amenities'] ?? [],
-            'bookingUrl'             => $bookingUrl,
-            'calendar_verification'  => $calendarVerification,
-        ];
-
-        $reviews = []; // sin Guesty
-
-        return view('properties.show', compact('property', 'reviews'));
-    } catch (\Throwable $e) {
-        Log::error('Error en show() Smoobu: ' . $e->getMessage(), ['id' => $id]);
-        return redirect()->route('properties.index')->with('error', 'No se pudo cargar la propiedad.');
     }
-}
 
 
     /**
