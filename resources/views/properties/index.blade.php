@@ -1,9 +1,3 @@
-@extends('layouts.app')
-
-@section('title', 'Apartamentos - Chuspombo')
-
-@section('content')
-
 @php
 use Illuminate\Support\Arr;
 
@@ -12,93 +6,94 @@ $totalImages = 100;
 $randomNumber = rand(1, $totalImages);
 
 if (!empty($paginapropiedades->card2_image_4)) {
-$bannerImage = asset('images/' . $paginapropiedades->card2_image_4);
+    $bannerImage = asset('images/' . $paginapropiedades->card2_image_4);
 } else {
-$randomImage = "CHUSPOMBO-APARTAMENTOS-{$randomNumber}.png";
-$imagePath = public_path("images/{$randomImage}");
+    $randomImage = "CHUSPOMBO-APARTAMENTOS-{$randomNumber}.png";
+    $imagePath = public_path("images/{$randomImage}");
 
-if (file_exists($imagePath)) {
-$bannerImage = asset("images/{$randomImage}");
-} else {
-$foundImage = null;
-for ($i = 1; $i <= $totalImages; $i++) {
-    $testImage="CHUSPOMBO-APARTAMENTOS-{$i}.png" ;
-    if (file_exists(public_path("images/{$testImage}"))) {
-    $foundImage=asset("images/{$testImage}");
-    break;
+    if (file_exists($imagePath)) {
+        $bannerImage = asset("images/{$randomImage}");
+    } else {
+        $foundImage = null;
+        for ($i = 1; $i <= $totalImages; $i++) {
+            $testImage = "CHUSPOMBO-APARTAMENTOS-{$i}.png";
+            if (file_exists(public_path("images/{$testImage}"))) {
+                $foundImage = asset("images/{$testImage}");
+                break;
+            }
+        }
+        $bannerImage = $foundImage ?? asset('images/property-placeholder.jpg');
     }
-    }
-    $bannerImage=$foundImage ?? asset('images/property-placeholder.jpg');
-    }
-    }
+}
 
-    //=====Helpers para IMÁGENES DE PROPIEDAD=====$validExt='/\.(jpe?g|png|webp|avif)(\?.*)?$/i' ;
-    $skipSubstr=['placeholder','default','noimage','missing','image-not-found','dummy'];
+/* ===== Helpers para IMÁGENES DE PROPIEDAD ===== */
+$validExt = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';   // <<-- DEFINIDA EN SU PROPIA LÍNEA
+$skipSubstr = ['placeholder','default','noimage','missing','image-not-found','dummy'];
 
-    $priorityRank=function (string $u) {
+$priorityRank = function (string $u) {
     if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
-    if (preg_match('/thumb|thumbnail|small|icon/i', $u)) return 2;
+    if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
     return 1;
-    };
+};
 
-    // Extrae posibles URLs del array de la propiedad
-    $extractFromArray=function (array $p) use ($validExt, $skipSubstr, $priorityRank) {
+// Extrae posibles URLs del array de la propiedad
+$extractFromArray = function (array $p) use ($validExt, $skipSubstr, $priorityRank) {
     return collect(Arr::dot($p))
-    ->values()
-    ->filter(fn ($v) => is_string($v))
-    ->map(fn ($u) => trim($u))
-    ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
-    ->reject(function ($u) use ($skipSubstr) {
-    $lu = strtolower($u);
-    foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-    return false;
-    })
-    ->unique()
-    ->sortBy(fn ($u) => $priorityRank($u))
-    ->values();
-    };
+        ->values()
+        ->filter(fn ($v) => is_string($v))
+        ->map(fn ($u) => trim($u))
+        ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
+        ->reject(function ($u) use ($skipSubstr) {
+            $lu = strtolower($u);
+            foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+            return false;
+        })
+        ->unique()
+        ->sortBy(fn ($u) => $priorityRank($u))
+        ->values();
+};
 
-    // Busca en /public/images/smoobu/{ID}/ y variantes directas
-    $findLocalImageCandidates = function ($id) use ($validExt, $priorityRank, $skipSubstr) {
+// Busca en /public/images/smoobu/{ID}/ y variantes directas
+$findLocalImageCandidates = function ($id) use ($validExt, $priorityRank, $skipSubstr) {
     $candidates = collect();
 
     // 1) Carpeta por ID
     $dir = public_path("images/smoobu/{$id}");
     if (is_dir($dir)) {
-    $files = glob($dir . '/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
-    foreach ($files as $abs) {
-    $rel = 'images/smoobu/' . $id . '/' . basename($abs);
-    $candidates->push(asset($rel));
-    }
+        $files = glob($dir . '/*.{webp,avif,jpg,jpeg,png}', GLOB_BRACE) ?: [];
+        foreach ($files as $abs) {
+            $rel = 'images/smoobu/' . $id . '/' . basename($abs);
+            $candidates->push(asset($rel));
+        }
     }
 
     // 2) Archivos sueltos por ID
     foreach (["images/smoobu/{$id}.webp", "images/smoobu/{$id}.avif", "images/smoobu/{$id}.jpg", "images/smoobu/{$id}.jpeg", "images/smoobu/{$id}.png"] as $rel) {
-    if (file_exists(public_path($rel))) {
-    $candidates->push(asset($rel));
-    }
+        if (file_exists(public_path($rel))) {
+            $candidates->push(asset($rel));
+        }
     }
 
     return $candidates
-    ->filter(fn ($u) => is_string($u) && preg_match($validExt, $u))
-    ->reject(function ($u) use ($skipSubstr) {
-    $lu = strtolower($u);
-    foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-    return false;
-    })
-    ->unique()
-    ->sortBy(fn ($u) => $priorityRank($u))
-    ->values();
-    };
+        ->filter(fn ($u) => is_string($u) && preg_match($validExt, $u))
+        ->reject(function ($u) use ($skipSubstr) {
+            $lu = strtolower($u);
+            foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+            return false;
+        })
+        ->unique()
+        ->sortBy(fn ($u) => $priorityRank($u))
+        ->values();
+};
 
-    // Imagen principal para tarjeta
-    $mainImageForProperty = function (array $prop) use ($extractFromArray, $findLocalImageCandidates) {
+// Imagen principal para tarjeta
+$mainImageForProperty = function (array $prop) use ($extractFromArray, $findLocalImageCandidates) {
     $id = $prop['_id'] ?? null;
 
     // 1) Locales
     if ($id) {
-    $local = $findLocalImageCandidates($id);
-    if ($local->isNotEmpty()) return $local->first();
+        $local = $findLocalImageCandidates($id);
+        if ($local->isNotEmpty()) return $local->first();
     }
 
     // 2) URLs que vengan en el array (picture/gallery/…)
@@ -107,8 +102,9 @@ for ($i = 1; $i <= $totalImages; $i++) {
 
     // 3) Fallback
     return asset('images/property-placeholder.jpg');
-    };
-    @endphp
+};
+@endphp
+
 
     <!-- Banner hero -->
     <div class="chuspombo-hero-banner">
