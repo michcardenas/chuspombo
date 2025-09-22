@@ -451,11 +451,59 @@ document.addEventListener('DOMContentLoaded', function() {
   const imageCount = document.getElementById('image-count');
   const clearGallery = document.getElementById('clear-gallery');
 
+  console.log('Gallery elements found:', {
+    galleryUpload: !!galleryUpload,
+    galleryGrid: !!galleryGrid,
+    noImages: !!noImages,
+    imageCount: !!imageCount,
+    clearGallery: !!clearGallery
+  });
+
+  // Función para mostrar mensajes temporales
+  function showTempMessage(message, type = 'info') {
+    console.log('Showing message:', message, type);
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    // Auto-remover después de 4 segundos
+    setTimeout(() => {
+      if (alertDiv.parentNode) {
+        alertDiv.remove();
+      }
+    }, 4000);
+  }
+
   // Actualizar contador de imágenes
   function updateImageCount() {
+    if (!galleryGrid || !imageCount || !noImages) return;
+
     const count = galleryGrid.children.length;
     imageCount.textContent = count;
     noImages.style.display = count === 0 ? 'block' : 'none';
+    console.log('Updated image count:', count);
+  }
+
+  // Actualizar índices después de cambios
+  function updateIndices() {
+    if (!galleryGrid) return;
+
+    const items = galleryGrid.querySelectorAll('.gallery-item');
+    items.forEach((item, index) => {
+      item.setAttribute('data-index', index);
+      const removeBtn = item.querySelector('.remove-image');
+      const badge = item.querySelector('.badge');
+
+      if (removeBtn) removeBtn.setAttribute('data-index', index);
+      if (badge) badge.textContent = index + 1;
+    });
+    console.log('Updated indices for', items.length, 'items');
   }
 
   // Crear elemento de imagen para la galería
@@ -470,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="position-relative">
           <img src="${src}" class="card-img-top" style="height: 100px; object-fit: cover;" alt="Imagen ${index + 1}">
           <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-image"
-                  data-index="${index}" style="padding: 2px 6px;">
+                  data-index="${index}" ${imageName ? `data-image="${imageName}"` : ''} style="padding: 2px 6px;" title="Eliminar imagen">
             <i class="fas fa-times"></i>
           </button>
           <div class="position-absolute bottom-0 start-0 m-1">
@@ -489,129 +537,156 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Manejar selección múltiple de archivos
-  galleryUpload.addEventListener('change', function(e) {
-    const files = Array.from(e.target.files);
+  if (galleryUpload) {
+    galleryUpload.addEventListener('change', function(e) {
+      console.log('Files selected:', e.target.files.length);
+      const files = Array.from(e.target.files);
 
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const imageElement = createImageElement(e.target.result);
-          galleryGrid.appendChild(imageElement);
-          updateImageCount();
-          updateIndices();
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // Limpiar el input para permitir seleccionar los mismos archivos de nuevo
-    e.target.value = '';
-  });
-
-  // Manejar eliminación de imágenes individuales
-  document.addEventListener('click', function(e) {
-    if (e.target.closest('.remove-image')) {
-      e.preventDefault();
-      const button = e.target.closest('.remove-image');
-      const imageName = button.getAttribute('data-image');
-      const galleryItem = button.closest('.gallery-item');
-
-      // Confirmar eliminación individual
-      if (confirm(`¿Eliminar esta imagen?${imageName ? '\n' + imageName : ''}`)) {
-        // Agregar campo hidden para marcar como eliminada en el servidor
-        if (imageName) {
-          const form = document.querySelector('form');
-          const deleteInput = document.createElement('input');
-          deleteInput.type = 'hidden';
-          deleteInput.name = 'delete_images[]';
-          deleteInput.value = imageName;
-          form.appendChild(deleteInput);
-        }
-
-        // Remover visualmente
-        galleryItem.remove();
-        updateImageCount();
-        updateIndices();
-
-        // Mostrar mensaje temporal
-        showTempMessage('Imagen marcada para eliminación', 'warning');
-      }
-    }
-  });
-
-  // Limpiar toda la galería
-  clearGallery.addEventListener('click', function() {
-    const currentCount = galleryGrid.children.length;
-    if (currentCount === 0) {
-      showTempMessage('No hay imágenes para eliminar', 'info');
-      return;
-    }
-
-    if (confirm(`¿Estás seguro de que quieres eliminar todas las ${currentCount} imágenes de la galería?\n\nEsta acción no se puede deshacer.`)) {
-      // Marcar todas las imágenes existentes para eliminación
-      const form = document.querySelector('form');
-      const existingImages = galleryGrid.querySelectorAll('input[name="existing_images[]"]');
-
-      existingImages.forEach(input => {
-        if (input.value) {
-          const deleteInput = document.createElement('input');
-          deleteInput.type = 'hidden';
-          deleteInput.name = 'delete_images[]';
-          deleteInput.value = input.value;
-          form.appendChild(deleteInput);
+      files.forEach(file => {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const imageElement = createImageElement(e.target.result);
+            galleryGrid.appendChild(imageElement);
+            updateImageCount();
+            updateIndices();
+          };
+          reader.readAsDataURL(file);
         }
       });
 
-      // Limpiar visualmente
-      galleryGrid.innerHTML = '';
-      updateImageCount();
-
-      showTempMessage(`${currentCount} imágenes marcadas para eliminación`, 'warning');
-    }
-  });
-
-  // Función para mostrar mensajes temporales
-  function showTempMessage(message, type = 'info') {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    alertDiv.innerHTML = `
-      ${message}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    document.body.appendChild(alertDiv);
-
-    // Auto-remover después de 3 segundos
-    setTimeout(() => {
-      if (alertDiv.parentNode) {
-        alertDiv.remove();
-      }
-    }, 3000);
-  }
-
-  // Actualizar índices después de cambios
-  function updateIndices() {
-    const items = galleryGrid.querySelectorAll('.gallery-item');
-    items.forEach((item, index) => {
-      item.setAttribute('data-index', index);
-      item.querySelector('.remove-image').setAttribute('data-index', index);
-      item.querySelector('.badge').textContent = index + 1;
+      // Limpiar el input para permitir seleccionar los mismos archivos de nuevo
+      e.target.value = '';
     });
   }
 
-  // Hacer la galería sortable (drag & drop)
-  new Sortable(galleryGrid, {
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    onEnd: function() {
-      updateIndices();
-    }
-  });
+  // Limpiar toda la galería
+  if (clearGallery) {
+    clearGallery.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('Clear gallery clicked');
+
+      const currentCount = galleryGrid ? galleryGrid.children.length : 0;
+      console.log('Current count:', currentCount);
+
+      if (currentCount === 0) {
+        showTempMessage('No hay imágenes para eliminar', 'info');
+        return;
+      }
+
+      if (confirm(`¿Estás seguro de que quieres eliminar todas las ${currentCount} imágenes de la galería?\n\nEsta acción no se puede deshacer.`)) {
+        console.log('User confirmed deletion');
+
+        // Marcar todas las imágenes existentes para eliminación
+        const form = document.querySelector('form');
+        const existingImages = galleryGrid.querySelectorAll('input[name="existing_images[]"]');
+
+        console.log('Found existing images:', existingImages.length);
+
+        existingImages.forEach(input => {
+          if (input.value) {
+            const deleteInput = document.createElement('input');
+            deleteInput.type = 'hidden';
+            deleteInput.name = 'delete_images[]';
+            deleteInput.value = input.value;
+            form.appendChild(deleteInput);
+            console.log('Marked for deletion:', input.value);
+          }
+        });
+
+        // Limpiar visualmente
+        galleryGrid.innerHTML = '';
+        updateImageCount();
+
+        showTempMessage(`${currentCount} imágenes marcadas para eliminación`, 'warning');
+      }
+    });
+  }
 
   // Inicializar contador
   updateImageCount();
+
+  // Hacer la galería sortable (drag & drop) - solo si SortableJS está disponible
+  if (typeof Sortable !== 'undefined' && galleryGrid) {
+    new Sortable(galleryGrid, {
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: function() {
+        updateIndices();
+      }
+    });
+  }
+});
+
+// Manejar eliminación de imágenes individuales (evento global)
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.remove-image')) {
+    e.preventDefault();
+    console.log('Remove image clicked');
+
+    const button = e.target.closest('.remove-image');
+    const imageName = button.getAttribute('data-image');
+    const galleryItem = button.closest('.gallery-item');
+
+    console.log('Image to remove:', imageName);
+
+    // Confirmar eliminación individual
+    if (confirm(`¿Eliminar esta imagen?${imageName ? '\n' + imageName : ''}`)) {
+      console.log('User confirmed individual deletion');
+
+      // Agregar campo hidden para marcar como eliminada en el servidor
+      if (imageName) {
+        const form = document.querySelector('form');
+        const deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete_images[]';
+        deleteInput.value = imageName;
+        form.appendChild(deleteInput);
+        console.log('Marked individual image for deletion:', imageName);
+      }
+
+      // Remover visualmente
+      galleryItem.remove();
+
+      // Actualizar contadores
+      const galleryGrid = document.getElementById('gallery-grid');
+      const imageCount = document.getElementById('image-count');
+      const noImages = document.getElementById('no-images');
+
+      if (galleryGrid && imageCount && noImages) {
+        const count = galleryGrid.children.length;
+        imageCount.textContent = count;
+        noImages.style.display = count === 0 ? 'block' : 'none';
+      }
+
+      // Actualizar índices
+      const items = galleryGrid ? galleryGrid.querySelectorAll('.gallery-item') : [];
+      items.forEach((item, index) => {
+        item.setAttribute('data-index', index);
+        const removeBtn = item.querySelector('.remove-image');
+        const badge = item.querySelector('.badge');
+
+        if (removeBtn) removeBtn.setAttribute('data-index', index);
+        if (badge) badge.textContent = index + 1;
+      });
+
+      // Mostrar mensaje temporal
+      const alertDiv = document.createElement('div');
+      alertDiv.className = 'alert alert-warning alert-dismissible fade show position-fixed';
+      alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+      alertDiv.innerHTML = `
+        Imagen marcada para eliminación
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(alertDiv);
+
+      setTimeout(() => {
+        if (alertDiv.parentNode) {
+          alertDiv.remove();
+        }
+      }, 4000);
+    }
+  }
 });
 
 // Preview para propiedad destacada (mantener funcionalidad existente)
