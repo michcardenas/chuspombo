@@ -21,6 +21,11 @@ class PaginaController extends Controller
         'direccion' => ['nullable', 'string', 'max:255'],
         'email'     => ['nullable', 'email:rfc', 'max:255'],
 
+        // Galería del carrusel
+        'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
+        'gallery_titles.*' => 'nullable|string|max:255',
+        'existing_images.*' => 'nullable|string|max:255',
+
         // Si quieres validar archivos, descomenta:
         // 'logo'            => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
         // 'card1_image_1'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
@@ -39,7 +44,7 @@ class PaginaController extends Controller
         $pagina->id = 1; // Forzamos que siempre sea ID 1
     }
 
-    // Llenamos todos los campos excepto logo e imágenes
+    // Llenamos todos los campos excepto archivos e imágenes
     $pagina->fill($request->except([
         'logo',
         'card1_image_1',
@@ -49,6 +54,9 @@ class PaginaController extends Controller
         'card2_image_5',
         'card2_image_6',
         'card2_image_7',
+        'gallery_images',
+        'gallery_titles',
+        'existing_images',
     ]));
 
     // Ruta de uploads
@@ -81,6 +89,45 @@ class PaginaController extends Controller
             $pagina->{"card2_image_$i"} = $filename;
         }
     }
+
+    // ===== PROCESAR GALERÍA DEL CARRUSEL =====
+    $galleryData = [];
+
+    // Mantener imágenes existentes que no fueron eliminadas
+    $existingImages = $request->input('existing_images', []);
+    $galleryTitles = $request->input('gallery_titles', []);
+
+    // Procesar imágenes existentes
+    foreach ($existingImages as $index => $imageName) {
+        if (!empty($imageName)) {
+            $galleryData[] = [
+                'image' => $imageName,
+                'title' => $galleryTitles[$index] ?? ''
+            ];
+        }
+    }
+
+    // Procesar nuevas imágenes subidas
+    if ($request->hasFile('gallery_images')) {
+        $newImages = $request->file('gallery_images');
+        $newTitles = array_slice($galleryTitles, count($existingImages));
+
+        foreach ($newImages as $index => $file) {
+            if ($file && $file->isValid()) {
+                $timestamp = time() + $index; // Evitar nombres duplicados
+                $filename = $timestamp . '_gallery.' . $file->getClientOriginalExtension();
+                $file->move($diskPath, $filename);
+
+                $galleryData[] = [
+                    'image' => $filename,
+                    'title' => $newTitles[$index] ?? ''
+                ];
+            }
+        }
+    }
+
+    // Guardar en JSON
+    $pagina->gallery_images = json_encode($galleryData, JSON_UNESCAPED_UNICODE);
 
     $pagina->save();
 
@@ -260,6 +307,7 @@ public function updateContacto(Request $request)
         'banner_image'       => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
 
         'is_active'          => 'nullable|boolean',
+        'is_24_hours'        => 'nullable|boolean',
 
         // ===== FAQs =====
         'faq1_q' => 'nullable|string|max:255',
@@ -324,6 +372,7 @@ public function updateContacto(Request $request)
 
     // Estado
     $contact->is_active = $request->boolean('is_active');
+    $contact->is_24_hours = $request->boolean('is_24_hours');
 
     $contact->save();
 

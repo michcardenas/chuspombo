@@ -200,6 +200,31 @@
                             }
                         @endphp
 
+                        {{-- Checkbox para horario 24 horas --}}
+                        <div class="alert alert-info d-flex align-items-center mb-3">
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" name="is_24_hours" id="is_24_hours" value="1"
+                                       {{ old('is_24_hours', $contact->is_24_hours ?? false) ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold" for="is_24_hours">
+                                    Atención 24 horas
+                                </label>
+                            </div>
+                            <div class="small text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                Si activas esta opción, se mostrará "Lunes-Domingo 24H" en lugar de los horarios individuales.
+                            </div>
+                        </div>
+
+                        {{-- Vista previa de cómo se verá --}}
+                        <div id="hours-preview" class="alert alert-light border mb-3" style="display: none;">
+                            <strong>Vista previa:</strong>
+                            <div class="mt-2">
+                                <span class="badge bg-primary fs-6 px-3 py-2">
+                                    <i class="fas fa-clock me-2"></i>Lunes-Domingo 24H
+                                </span>
+                            </div>
+                        </div>
+
                         <div id="hours-rows" class="mb-3">
                             @foreach($rows as $i => $r)
                                 <div class="row g-2 align-items-end mb-2 hours-row">
@@ -394,6 +419,33 @@ document.addEventListener('change', function (e) {
 document.addEventListener('DOMContentLoaded', () => {
   const box = document.getElementById('hours-rows');
   const addBtn = document.getElementById('add-hour-row');
+  const is24HoursCheckbox = document.getElementById('is_24_hours');
+  const hoursPreview = document.getElementById('hours-preview');
+
+  // Función para mostrar/ocultar elementos según el checkbox 24 horas
+  function toggle24Hours() {
+    const is24Hours = is24HoursCheckbox.checked;
+
+    // Mostrar/ocultar la vista previa
+    hoursPreview.style.display = is24Hours ? 'block' : 'none';
+
+    // Mostrar/ocultar los controles de horarios individuales
+    box.style.display = is24Hours ? 'none' : 'block';
+    addBtn.style.display = is24Hours ? 'none' : 'inline-block';
+
+    // Deshabilitar/habilitar campos de horarios individuales
+    const hourInputs = box.querySelectorAll('input');
+    hourInputs.forEach(input => {
+      input.disabled = is24Hours;
+    });
+  }
+
+  // Event listener para el checkbox 24 horas
+  is24HoursCheckbox?.addEventListener('change', toggle24Hours);
+
+  // Ejecutar al cargar la página
+  toggle24Hours();
+
   const tpl = (i) => `
     <div class="row g-2 align-items-end mb-2 hours-row">
       <div class="col-md-4">
@@ -415,6 +467,8 @@ document.addEventListener('DOMContentLoaded', () => {
   addBtn?.addEventListener('click', () => {
     const idx = box.querySelectorAll('.hours-row').length;
     box.insertAdjacentHTML('beforeend', tpl(idx));
+    // Aplicar el estado del checkbox a los nuevos campos
+    toggle24Hours();
   });
   box?.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-row')) {

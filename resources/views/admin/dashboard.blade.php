@@ -14,14 +14,122 @@
 
         <div class="accordion" id="homeEditor">
 
+            {{-- Galería del Carrusel (Hero) --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-gallery">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sec-gallery" aria-expanded="true" aria-controls="sec-gallery">
+                        Galería del Carrusel (Hero) <span class="badge text-bg-success ms-2">Home</span>
+                    </button>
+                </h2>
+                <div id="sec-gallery" class="accordion-collapse collapse show" aria-labelledby="hdr-gallery" data-bs-parent="#homeEditor">
+                    <div class="accordion-body">
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Galería del carrusel.</strong> Selecciona múltiples imágenes para el fondo del carrusel principal.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-images me-2"></i>Seleccionar imágenes
+                                </label>
+                                <input type="file" name="gallery_images[]" id="gallery-upload"
+                                       class="form-control" accept="image/*" multiple>
+                                <small class="text-muted">Puedes seleccionar múltiples imágenes a la vez</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Acciones</label>
+                                <div class="d-grid gap-2">
+                                    <button type="button" id="clear-gallery" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash me-1"></i>Limpiar todo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Galería actual --}}
+                        @php
+                            $galleryImages = json_decode($pagina->gallery_images ?? '[]', true);
+                            if (!is_array($galleryImages)) $galleryImages = [];
+                        @endphp
+
+                        <div id="gallery-preview" class="mt-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-layer-group me-2"></i>Imágenes actuales
+                                    <span class="badge bg-secondary" id="image-count">{{ count($galleryImages) }}</span>
+                                </h6>
+                                <div class="small text-muted">Arrastra para reordenar</div>
+                            </div>
+
+                            <div id="gallery-grid" class="row g-2">
+                                @foreach($galleryImages as $index => $img)
+                                    <div class="col-md-2 col-4 gallery-item" data-index="{{ $index }}">
+                                        <div class="card h-100">
+                                            <div class="position-relative">
+                                                <img src="{{ asset('images/' . $img['image']) }}"
+                                                     class="card-img-top" style="height: 100px; object-fit: cover;" alt="Imagen {{ $index + 1 }}">
+                                                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-image"
+                                                        data-index="{{ $index }}" style="padding: 2px 6px;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                                <div class="position-absolute bottom-0 start-0 m-1">
+                                                    <span class="badge bg-dark bg-opacity-75">{{ $index + 1 }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-2">
+                                                <input type="text" name="gallery_titles[]" class="form-control form-control-sm"
+                                                       placeholder="Título opcional" value="{{ $img['title'] ?? '' }}">
+                                                <input type="hidden" name="existing_images[]" value="{{ $img['image'] }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div id="no-images" class="text-center py-4 text-muted" style="{{ count($galleryImages) > 0 ? 'display: none;' : '' }}">
+                                <i class="fas fa-image fa-3x mb-3"></i>
+                                <div>No hay imágenes en la galería</div>
+                                <div class="small">Selecciona archivos arriba para comenzar</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <i class="fas fa-expand-arrows-alt text-primary"></i>
+                                    <div class="small"><strong>1920x900px</strong></div>
+                                    <div class="text-muted">Recomendado</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <i class="fas fa-file-image text-success"></i>
+                                    <div class="small"><strong>JPG, PNG, WEBP</strong></div>
+                                    <div class="text-muted">Formatos</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <i class="fas fa-weight-hanging text-warning"></i>
+                                    <div class="small"><strong>Max 4MB</strong></div>
+                                    <div class="text-muted">Por imagen</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <i class="fas fa-sort text-info"></i>
+                                    <div class="small"><strong>Reordenable</strong></div>
+                                    <div class="text-muted">Arrastra y suelta</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Encabezados (Hero) --}}
             <div class="accordion-item">
                 <h2 class="accordion-header" id="hdr-hero">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#sec-hero" aria-expanded="true" aria-controls="sec-hero">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-hero" aria-expanded="false" aria-controls="sec-hero">
                         Encabezados (Hero) <span class="badge text-bg-success ms-2">Home</span>
                     </button>
                 </h2>
-                <div id="sec-hero" class="accordion-collapse collapse show" aria-labelledby="hdr-hero" data-bs-parent="#homeEditor">
+                <div id="sec-hero" class="accordion-collapse collapse" aria-labelledby="hdr-hero" data-bs-parent="#homeEditor">
                     <div class="accordion-body">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -335,6 +443,115 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const galleryUpload = document.getElementById('gallery-upload');
+  const galleryGrid = document.getElementById('gallery-grid');
+  const noImages = document.getElementById('no-images');
+  const imageCount = document.getElementById('image-count');
+  const clearGallery = document.getElementById('clear-gallery');
+
+  // Actualizar contador de imágenes
+  function updateImageCount() {
+    const count = galleryGrid.children.length;
+    imageCount.textContent = count;
+    noImages.style.display = count === 0 ? 'block' : 'none';
+  }
+
+  // Crear elemento de imagen para la galería
+  function createImageElement(src, title = '', isExisting = false, imageName = '') {
+    const index = galleryGrid.children.length;
+    const colDiv = document.createElement('div');
+    colDiv.className = 'col-md-2 col-4 gallery-item';
+    colDiv.setAttribute('data-index', index);
+
+    colDiv.innerHTML = `
+      <div class="card h-100">
+        <div class="position-relative">
+          <img src="${src}" class="card-img-top" style="height: 100px; object-fit: cover;" alt="Imagen ${index + 1}">
+          <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-image"
+                  data-index="${index}" style="padding: 2px 6px;">
+            <i class="fas fa-times"></i>
+          </button>
+          <div class="position-absolute bottom-0 start-0 m-1">
+            <span class="badge bg-dark bg-opacity-75">${index + 1}</span>
+          </div>
+        </div>
+        <div class="card-body p-2">
+          <input type="text" name="gallery_titles[]" class="form-control form-control-sm"
+                 placeholder="Título opcional" value="${title}">
+          ${isExisting ? `<input type="hidden" name="existing_images[]" value="${imageName}">` : ''}
+        </div>
+      </div>
+    `;
+
+    return colDiv;
+  }
+
+  // Manejar selección múltiple de archivos
+  galleryUpload.addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const imageElement = createImageElement(e.target.result);
+          galleryGrid.appendChild(imageElement);
+          updateImageCount();
+          updateIndices();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Limpiar el input para permitir seleccionar los mismos archivos de nuevo
+    e.target.value = '';
+  });
+
+  // Manejar eliminación de imágenes
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-image')) {
+      e.preventDefault();
+      const button = e.target.closest('.remove-image');
+      const galleryItem = button.closest('.gallery-item');
+      galleryItem.remove();
+      updateImageCount();
+      updateIndices();
+    }
+  });
+
+  // Limpiar toda la galería
+  clearGallery.addEventListener('click', function() {
+    if (confirm('¿Estás seguro de que quieres eliminar todas las imágenes?')) {
+      galleryGrid.innerHTML = '';
+      updateImageCount();
+    }
+  });
+
+  // Actualizar índices después de cambios
+  function updateIndices() {
+    const items = galleryGrid.querySelectorAll('.gallery-item');
+    items.forEach((item, index) => {
+      item.setAttribute('data-index', index);
+      item.querySelector('.remove-image').setAttribute('data-index', index);
+      item.querySelector('.badge').textContent = index + 1;
+    });
+  }
+
+  // Hacer la galería sortable (drag & drop)
+  new Sortable(galleryGrid, {
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd: function() {
+      updateIndices();
+    }
+  });
+
+  // Inicializar contador
+  updateImageCount();
+});
+
+// Preview para propiedad destacada (mantener funcionalidad existente)
 document.addEventListener('change', function(e){
   if (e.target && e.target.id === 'featured_property_id') {
     const opt = e.target.options[e.target.selectedIndex];
@@ -344,4 +561,19 @@ document.addEventListener('change', function(e){
   }
 });
 </script>
+
+{{-- Incluir SortableJS para drag & drop --}}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style>
+.sortable-ghost {
+  opacity: 0.4;
+}
+.gallery-item {
+  cursor: move;
+}
+.gallery-item:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+</style>
 @endpush

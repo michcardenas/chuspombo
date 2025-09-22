@@ -51,108 +51,163 @@
     use Illuminate\Support\Arr;
     use Illuminate\Support\Facades\DB;
 
-    $imagesPerProperty = 3;
+    // ===== PRIORIZAR GALERÍA INDEPENDIENTE =====
+    $carouselImages = collect();
 
-    // Extensiones válidas y strings a evitar (placeholders)
-    $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
-    $skipSubstr = ['placeholder','default','noimage','missing','image-not-found'];
+    // 1. Intentar usar la galería independiente del home
+    if (!empty($pagina->gallery_images)) {
+        $galleryData = is_string($pagina->gallery_images)
+            ? json_decode($pagina->gallery_images, true)
+            : $pagina->gallery_images;
 
-    // Ranking: banner/hero/cover/main/original/large primero; thumbs al final
-    $priorityRank = function (string $u) {
-        if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
-        if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
-        return 1;
-    };
-
-    // Extraer URLs con extensión desde cualquier nivel del array de la propiedad
-    $extractFromArray = function ($p) use ($validExt, $skipSubstr, $priorityRank) {
-        $flat = collect(Arr::dot((array) $p))
-            ->filter(fn ($v) => is_string($v))
-            ->map(fn ($v) => trim($v))
-            ->values();
-
-        return $flat
-            ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
-            ->reject(function ($u) use ($skipSubstr) {
-                $lu = strtolower($u);
-                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-                return false;
-            })
-            ->unique()
-            ->sortBy(fn ($u) => $priorityRank($u))
-            ->values();
-    };
-
-    // IDs de propiedades para consultar galería en DB
-    $apartmentIds = collect($featuredProperties ?? [])->pluck('_id')->filter()->unique()->values();
-
-    // Galería por propiedad desde DB
-    $galleryByApartment = collect();
-    if ($apartmentIds->isNotEmpty()) {
-        $rows = DB::table('smoobu_apartment_images')
-            ->select('apartment_id', 'path', 'sort_order', 'is_active')
-            ->whereIn('apartment_id', $apartmentIds)
-            ->where('is_active', 1)
-            ->orderBy('apartment_id')
-            ->orderBy('sort_order')
-            ->get();
-
-        $galleryByApartment = collect($rows)->groupBy('apartment_id')->map(function ($rows) use ($validExt, $skipSubstr) {
-            return collect($rows)->pluck('path')->map(function ($p) {
-                $p = is_string($p) ? trim($p) : '';
-                if ($p === '') return null;
-                // Si es relativo, conviértelo a URL absoluta
-                return str_starts_with($p, 'http') ? $p : asset($p);
-            })
-            ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)(\?.*)?$/i', $u))
-            ->reject(function ($u) use ($skipSubstr) {
-                $lu = strtolower($u);
-                foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
-                return false;
-            })
-            ->values();
-        });
+        if (is_array($galleryData) && count($galleryData) > 0) {
+            $carouselImages = collect($galleryData)->map(function ($item) {
+                return [
+                    'url' => asset('images/' . $item['image']),
+                    'title' => $item['title'] ?? '',
+                    'type' => 'gallery'
+                ];
+            });
+        }
     }
 
-    // Hasta 3 imágenes por propiedad (array + DB). Omitir propiedades sin fotos.
-    $randomImages = collect($featuredProperties ?? [])
-        ->flatMap(function ($p) use ($extractFromArray, $galleryByApartment, $imagesPerProperty, $priorityRank) {
-            $pid     = $p['_id'] ?? null;
-            $arrImgs = $extractFromArray($p);
-            $dbImgs  = ($pid !== null && $galleryByApartment->has($pid)) ? $galleryByApartment->get($pid) : collect();
+    // 2. Fallback: usar imágenes de propiedades (código original)
+    if ($carouselImages->isEmpty()) {
+        $imagesPerProperty = 3;
 
-            $merged = $arrImgs
-                ->merge($dbImgs)
-                ->unique()
-                ->sortBy(fn ($u) => $priorityRank($u))
-                ->take($imagesPerProperty)
+        // Extensiones válidas y strings a evitar (placeholders)
+        $validExt   = '/\.(jpe?g|png|webp|avif)(\?.*)?$/i';
+        $skipSubstr = ['placeholder','default','noimage','missing','image-not-found'];
+
+        // Ranking: banner/hero/cover/main/original/large primero; thumbs al final
+        $priorityRank = function (string $u) {
+            if (preg_match('/banner|hero|cover|main|original|large/i', $u)) return 0;
+            if (preg_match('/thumb|thumbnail|small|icon/i', $u))       return 2;
+            return 1;
+        };
+
+        // Extraer URLs con extensión desde cualquier nivel del array de la propiedad
+        $extractFromArray = function ($p) use ($validExt, $skipSubstr, $priorityRank) {
+            $flat = collect(Arr::dot((array) $p))
+                ->filter(fn ($v) => is_string($v))
+                ->map(fn ($v) => trim($v))
                 ->values();
 
-            return $merged;
-        })
-        ->unique()
-        ->values();
+            return $flat
+                ->filter(fn ($u) => $u !== '' && !str_starts_with($u, 'data:') && preg_match($validExt, $u))
+                ->reject(function ($u) use ($skipSubstr) {
+                    $lu = strtolower($u);
+                    foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+                    return false;
+                })
+                ->unique()
+                ->sortBy(fn ($u) => $priorityRank($u))
+                ->values();
+        };
+
+        // IDs de propiedades para consultar galería en DB
+        $apartmentIds = collect($featuredProperties ?? [])->pluck('_id')->filter()->unique()->values();
+
+        // Galería por propiedad desde DB
+        $galleryByApartment = collect();
+        if ($apartmentIds->isNotEmpty()) {
+            $rows = DB::table('smoobu_apartment_images')
+                ->select('apartment_id', 'path', 'sort_order', 'is_active')
+                ->whereIn('apartment_id', $apartmentIds)
+                ->where('is_active', 1)
+                ->orderBy('apartment_id')
+                ->orderBy('sort_order')
+                ->get();
+
+            $galleryByApartment = collect($rows)->groupBy('apartment_id')->map(function ($rows) use ($validExt, $skipSubstr) {
+                return collect($rows)->pluck('path')->map(function ($p) {
+                    $p = is_string($p) ? trim($p) : '';
+                    if ($p === '') return null;
+                    // Si es relativo, conviértelo a URL absoluta
+                    return str_starts_with($p, 'http') ? $p : asset($p);
+                })
+                ->filter(fn ($u) => is_string($u) && preg_match('/\.(jpe?g|png|webp|avif)(\?.*)?$/i', $u))
+                ->reject(function ($u) use ($skipSubstr) {
+                    $lu = strtolower($u);
+                    foreach ($skipSubstr as $s) { if (str_contains($lu, $s)) return true; }
+                    return false;
+                })
+                ->values();
+            });
+        }
+
+        // Hasta 3 imágenes por propiedad (array + DB). Omitir propiedades sin fotos.
+        $randomImages = collect($featuredProperties ?? [])
+            ->flatMap(function ($p) use ($extractFromArray, $galleryByApartment, $imagesPerProperty, $priorityRank) {
+                $pid     = $p['_id'] ?? null;
+                $arrImgs = $extractFromArray($p);
+                $dbImgs  = ($pid !== null && $galleryByApartment->has($pid)) ? $galleryByApartment->get($pid) : collect();
+
+                $merged = $arrImgs
+                    ->merge($dbImgs)
+                    ->unique()
+                    ->sortBy(fn ($u) => $priorityRank($u))
+                    ->take($imagesPerProperty)
+                    ->values();
+
+                return $merged;
+            })
+            ->unique()
+            ->values();
+
+        // Convertir a formato consistente
+        $carouselImages = $randomImages->map(function ($url) {
+            return [
+                'url' => $url,
+                'title' => '',
+                'type' => 'property'
+            ];
+        });
+    }
 @endphp
 
-@if($randomImages->count() > 0)
+@if($carouselImages->count() > 0)
     <div class="carousel-container position-relative">
         <!-- Carrusel -->
         <div id="carouselProperties" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
-                @foreach($randomImages as $index => $image)
+                @foreach($carouselImages as $index => $imageData)
                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                        <img src="{{ $image }}" class="d-block w-100 carousel-image" alt="Chuspombo Apartamentos">
+                        <img src="{{ $imageData['url'] }}" class="d-block w-100 carousel-image"
+                             alt="{{ $imageData['title'] ?: 'Chuspombo Apartamentos' }}">
+                        @if(!empty($imageData['title']) && $imageData['type'] === 'gallery')
+                            <div class="carousel-caption d-none d-md-block">
+                                <p class="fs-5 fw-semibold">{{ $imageData['title'] }}</p>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             </div>
-            <button class="carousel-control-prev" type="button" data-bs-target="#carouselProperties" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Anterior</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#carouselProperties" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Siguiente</span>
-            </button>
+
+            {{-- Solo mostrar controles si hay más de una imagen --}}
+            @if($carouselImages->count() > 1)
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselProperties" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselProperties" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Siguiente</span>
+                </button>
+            @endif
+
+            {{-- Indicadores solo si hay más de una imagen --}}
+            @if($carouselImages->count() > 1)
+                <div class="carousel-indicators">
+                    @foreach($carouselImages as $index => $imageData)
+                        <button type="button" data-bs-target="#carouselProperties"
+                                data-bs-slide-to="{{ $index }}"
+                                class="{{ $index === 0 ? 'active' : '' }}"
+                                aria-current="{{ $index === 0 ? 'true' : 'false' }}"
+                                aria-label="Slide {{ $index + 1 }}"></button>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <!-- Contenido superpuesto -->
@@ -164,6 +219,15 @@
             <h2 class="lead text-white">
                 {{ $pagina->h2_1 ?? 'Explora apartamentos de lujo en Galicia, España' }}
             </h2>
+
+            {{-- Badge informativo sobre el tipo de galería --}}
+            @if($carouselImages->first()['type'] === 'gallery')
+                <div class="d-none d-lg-block mb-3">
+                    <span class="badge bg-secondary bg-opacity-75 fs-6 px-3 py-2">
+                        <i class="fas fa-images me-2"></i>Galería personalizada ({{ $carouselImages->count() }} imágenes)
+                    </span>
+                </div>
+            @endif
 
             <div class="search-box-overlay">
                 <div class="container">

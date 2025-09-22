@@ -63,6 +63,13 @@ class Pagina extends Model
         'featured_property_id',
         'direccion',
         'email',
+
+        // Galería del carrusel
+        'gallery_images',
+    ];
+
+    protected $casts = [
+        'gallery_images' => 'array',
     ];
 
     /**

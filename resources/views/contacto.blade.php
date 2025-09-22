@@ -292,7 +292,14 @@
 
             <div>
               <div class="text-muted small mb-1">{{ $hoursTitle }}</div>
-              @if($hoursList)
+              @if($contact->is_24_hours ?? false)
+                {{-- Mostrar horario 24 horas --}}
+                <div class="d-flex align-items-center">
+                  <span class="badge-soft fs-6 px-3 py-2 fw-semibold">
+                    <i class="fas fa-clock me-2"></i>Lunes-Domingo 24H
+                  </span>
+                </div>
+              @elseif($hoursList)
                 <ul class="list-unstyled mb-0">
                   @foreach($hoursList as $h)
                     <li>

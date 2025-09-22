@@ -37,6 +37,7 @@ class ContactPage extends Model
 
         // Estado
         'is_active',
+        'is_24_hours',
 
         // FAQ
         'faq1_q','faq1_a','faq2_q','faq2_a','faq3_q','faq3_a',
@@ -45,6 +46,7 @@ class ContactPage extends Model
     protected $casts = [
         'business_hours' => 'array',
         'is_active'      => 'boolean',
+        'is_24_hours'    => 'boolean',
         'latitude'       => 'float',
         'longitude'      => 'float',
     ];
