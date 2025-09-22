@@ -268,8 +268,8 @@ class PaginaController extends Controller
     }
     $contact->business_hours_array = $hours;
 
-    // Cargar metadatos SEO con pagina_id = 3
-    $meta = PaginaMeta::where('pagina_id', 3)->first() ?? new PaginaMeta(['pagina_id' => 3]);
+    // Cargar metadatos SEO con pagina_id = 4
+    $meta = PaginaMeta::where('pagina_id', 4)->first() ?? new PaginaMeta(['pagina_id' => 4]);
     $contact->setRelation('meta', $meta);
 
     return view('admin.edit-contacto', compact('contact'));
@@ -406,8 +406,14 @@ public function updateContacto(Request $request)
 
     $contact->save();
 
+    // ===== CREAR REGISTRO PAGINA SI NO EXISTE =====
+    Pagina::firstOrCreate(['id' => 4], [
+        'h1' => 'Contacto',
+        'h2_1' => 'Página de contacto'
+    ]);
+
     // ===== GUARDAR METADATOS SEO =====
-    PaginaMeta::updateOrCreate(['pagina_id' => 3], [
+    PaginaMeta::updateOrCreate(['pagina_id' => 4], [
         'meta_title' => $validated['meta_title'] ?? '',
         'meta_description' => $validated['meta_description'] ?? '',
         'meta_keywords' => $validated['meta_keywords'] ?? '',
@@ -427,8 +433,8 @@ public function updateContacto(Request $request)
     {
         $about = AboutPage::first() ?? new AboutPage();
 
-        // Cargar metadatos SEO con pagina_id = 2
-        $meta = PaginaMeta::where('pagina_id', 2)->first() ?? new PaginaMeta(['pagina_id' => 2]);
+        // Cargar metadatos SEO con pagina_id = 3
+        $meta = PaginaMeta::where('pagina_id', 3)->first() ?? new PaginaMeta(['pagina_id' => 3]);
         $about->setRelation('meta', $meta);
 
         // Prefill para los nombres del FORM (h1, h2_1, etc.)
@@ -470,117 +476,124 @@ public function updateContacto(Request $request)
         return view('admin.edit-nosotros', compact('paginaNosotros'));
     }
 
-    public function updateNosotros(Request $request)
-    {
-        // Validación con los NOMBRES DEL FORM
-        $data = $request->validate([
-            // HERO
-            'h1'                      => 'nullable|string|max:255',
-            'h2_1'                    => 'nullable|string|max:255',
-            'cta_primary_text'        => 'nullable|string|max:255',
-            'cta_primary_url'         => 'nullable|string|max:255',
+   public function updateNosotros(Request $request)
+{
+    // Validación con los NOMBRES DEL FORM
+    $data = $request->validate([
+        // HERO
+        'h1'                      => 'nullable|string|max:255',
+        'h2_1'                    => 'nullable|string|max:255',
+        'cta_primary_text'        => 'nullable|string|max:255',
+        'cta_primary_url'         => 'nullable|string|max:255',
 
-            // HISTORIA
-            'h2_historia'             => 'nullable|string|max:255',
-            'p_historia'              => 'nullable|string',
+        // HISTORIA
+        'h2_historia'             => 'nullable|string|max:255',
+        'p_historia'              => 'nullable|string',
 
-            // EXPERIENCIA
-            'h2_experiencia'          => 'nullable|string|max:255',
-            'p_experiencia'           => 'nullable|string',
-            'card1_title_1'           => 'nullable|string|max:255',
-            'card1_content_1'         => 'nullable|string',
-            'card1_title_2'           => 'nullable|string|max:255',
-            'card1_content_2'         => 'nullable|string',
-            'card1_title_3'           => 'nullable|string|max:255',
-            'card1_content_3'         => 'nullable|string',
+        // EXPERIENCIA
+        'h2_experiencia'          => 'nullable|string|max:255',
+        'p_experiencia'           => 'nullable|string',
+        'card1_title_1'           => 'nullable|string|max:255',
+        'card1_content_1'         => 'nullable|string',
+        'card1_title_2'           => 'nullable|string|max:255',
+        'card1_content_2'         => 'nullable|string',
+        'card1_title_3'           => 'nullable|string|max:255',
+        'card1_content_3'         => 'nullable|string',
 
-            // WHY
-            'h2_why'                  => 'nullable|string|max:255',
-            'card2_title_4'           => 'nullable|string|max:255',
-            'card2_content_4'         => 'nullable|string',
-            'card2_title_5'           => 'nullable|string|max:255',
-            'card2_content_5'         => 'nullable|string',
-            'card2_title_6'           => 'nullable|string|max:255',
-            'card2_content_6'         => 'nullable|string',
+        // WHY
+        'h2_why'                  => 'nullable|string|max:255',
+        'card2_title_4'           => 'nullable|string|max:255',
+        'card2_content_4'         => 'nullable|string',
+        'card2_title_5'           => 'nullable|string|max:255',
+        'card2_content_5'         => 'nullable|string',
+        'card2_title_6'           => 'nullable|string|max:255',
+        'card2_content_6'         => 'nullable|string',
 
-            // CTA FINAL
-            'h2_cta'                  => 'nullable|string|max:255',
-            'p_cta'                   => 'nullable|string',
-            'cta_primary_text_final'  => 'nullable|string|max:255',
-            'cta_primary_url_final'   => 'nullable|string|max:255',
-            'cta_secondary_text_final'=> 'nullable|string|max:255',
-            'cta_secondary_url_final' => 'nullable|string|max:255',
+        // CTA FINAL
+        'h2_cta'                  => 'nullable|string|max:255',
+        'p_cta'                   => 'nullable|string',
+        'cta_primary_text_final'  => 'nullable|string|max:255',
+        'cta_primary_url_final'   => 'nullable|string|max:255',
+        'cta_secondary_text_final'=> 'nullable|string|max:255',
+        'cta_secondary_url_final' => 'nullable|string|max:255',
 
-            // ===== SEO =====
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string|max:255',
-            'meta_keywords' => 'nullable|string|max:255',
-            'canonical_url' => 'nullable|string|max:255',
-            'robots' => 'nullable|string|max:255',
-            'author' => 'nullable|string|max:255',
-            'language' => 'nullable|string|max:255',
-            'viewport' => 'nullable|string|max:255',
-            'charset' => 'nullable|string|max:255',
-        ]);
+        // ===== SEO =====
+        'meta_title' => 'nullable|string|max:255',
+        'meta_description' => 'nullable|string|max:255',
+        'meta_keywords' => 'nullable|string|max:255',
+        'canonical_url' => 'nullable|string|max:255',
+        'robots' => 'nullable|string|max:255',
+        'author' => 'nullable|string|max:255',
+        'language' => 'nullable|string|max:255',
+        'viewport' => 'nullable|string|max:255',
+        'charset' => 'nullable|string|max:255',
+    ]);
 
-        // MAPEO a los campos REALES del modelo
-        $mapped = [
-            // HERO
-            'hero_title'          => $data['h1']                      ?? null,
-            'hero_subtitle'       => $data['h2_1']                    ?? null,
-            'hero_cta_text'       => $data['cta_primary_text']        ?? null,
-            'hero_cta_url'        => $data['cta_primary_url']         ?? null,
+    // MAPEO a los campos REALES del modelo
+    $mapped = [
+        // HERO
+        'hero_title'          => $data['h1']                      ?? null,
+        'hero_subtitle'       => $data['h2_1']                    ?? null,
+        'hero_cta_text'       => $data['cta_primary_text']        ?? null,
+        'hero_cta_url'        => $data['cta_primary_url']         ?? null,
 
-            // HISTORIA
-            'story_title'         => $data['h2_historia']             ?? null,
-            'story_text'          => $data['p_historia']              ?? null,
+        // HISTORIA
+        'story_title'         => $data['h2_historia']             ?? null,
+        'story_text'          => $data['p_historia']              ?? null,
 
-            // EXPERIENCIA
-            'exp_title'           => $data['h2_experiencia']          ?? null,
-            'exp_subtitle'        => $data['p_experiencia']           ?? null,
-            'exp_card1_title'     => $data['card1_title_1']           ?? null,
-            'exp_card1_text'      => $data['card1_content_1']         ?? null,
-            'exp_card2_title'     => $data['card1_title_2']           ?? null,
-            'exp_card2_text'      => $data['card1_content_2']         ?? null,
-            'exp_card3_title'     => $data['card1_title_3']           ?? null,
-            'exp_card3_text'      => $data['card1_content_3']         ?? null,
+        // EXPERIENCIA
+        'exp_title'           => $data['h2_experiencia']          ?? null,
+        'exp_subtitle'        => $data['p_experiencia']           ?? null,
+        'exp_card1_title'     => $data['card1_title_1']           ?? null,
+        'exp_card1_text'      => $data['card1_content_1']         ?? null,
+        'exp_card2_title'     => $data['card1_title_2']           ?? null,
+        'exp_card2_text'      => $data['card1_content_2']         ?? null,
+        'exp_card3_title'     => $data['card1_title_3']           ?? null,
+        'exp_card3_text'      => $data['card1_content_3']         ?? null,
 
-            // WHY
-            'why_title'           => $data['h2_why']                  ?? null,
-            'why_item1_title'     => $data['card2_title_4']           ?? null,
-            'why_item1_text'      => $data['card2_content_4']         ?? null,
-            'why_item2_title'     => $data['card2_title_5']           ?? null,
-            'why_item2_text'      => $data['card2_content_5']         ?? null,
-            'why_item3_title'     => $data['card2_title_6']           ?? null,
-            'why_item3_text'      => $data['card2_content_6']         ?? null,
+        // WHY
+        'why_title'           => $data['h2_why']                  ?? null,
+        'why_item1_title'     => $data['card2_title_4']           ?? null,
+        'why_item1_text'      => $data['card2_content_4']         ?? null,
+        'why_item2_title'     => $data['card2_title_5']           ?? null,
+        'why_item2_text'      => $data['card2_content_5']         ?? null,
+        'why_item3_title'     => $data['card2_title_6']           ?? null,
+        'why_item3_text'      => $data['card2_content_6']         ?? null,
 
-            // CTA FINAL
-            'cta_title'           => $data['h2_cta']                  ?? null,
-            'cta_text'            => $data['p_cta']                   ?? null,
-            'cta_button_text'     => $data['cta_primary_text_final']  ?? null,
-            'cta_button_url'      => $data['cta_primary_url_final']   ?? null,
-            'cta_phone_label'     => $data['cta_secondary_text_final']?? null,
-            'cta_phone_number'    => $data['cta_secondary_url_final'] ?? null,
-        ];
+        // CTA FINAL
+        'cta_title'           => $data['h2_cta']                  ?? null,
+        'cta_text'            => $data['p_cta']                   ?? null,
+        'cta_button_text'     => $data['cta_primary_text_final']  ?? null,
+        'cta_button_url'      => $data['cta_primary_url_final']   ?? null,
+        'cta_phone_label'     => $data['cta_secondary_text_final']?? null,
+        'cta_phone_number'    => $data['cta_secondary_url_final'] ?? null,
+    ];
 
-        $about = AboutPage::first() ?? new AboutPage();
-        $about->fill($mapped);
-        $about->save();
+    $about = AboutPage::first() ?? new AboutPage();
+    $about->fill($mapped);
+    $about->save();
 
-        // ===== GUARDAR METADATOS SEO =====
-        PaginaMeta::updateOrCreate(['pagina_id' => 2], [
-            'meta_title' => $data['meta_title'] ?? '',
-            'meta_description' => $data['meta_description'] ?? '',
-            'meta_keywords' => $data['meta_keywords'] ?? '',
-            'canonical_url' => $data['canonical_url'] ?? '',
-            'robots' => $data['robots'] ?? '',
-            'author' => $data['author'] ?? '',
-            'language' => $data['language'] ?? '',
-            'viewport' => $data['viewport'] ?? '',
-            'charset' => $data['charset'] ?? '',
-        ]);
+    // ===== CREAR REGISTRO PAGINA SI NO EXISTE (Nosotros = id 3) =====
+    Pagina::firstOrCreate(['id' => 3], [
+        'h1'   => 'Nosotros',
+        'h2_1' => 'Conoce más sobre nosotros',
+    ]);
 
-        return back()->with('success', 'Contenido de "Nosotros" actualizado correctamente.');
-    }
+    // ===== GUARDAR METADATOS SEO =====
+    PaginaMeta::updateOrCreate(['pagina_id' => 3], [
+        'meta_title'       => $data['meta_title']        ?? '',
+        'meta_description' => $data['meta_description']  ?? '',
+        'meta_keywords'    => $data['meta_keywords']     ?? '',
+        'canonical_url'    => $data['canonical_url']     ?? '',
+        'robots'           => $data['robots']            ?? '',
+        'author'           => $data['author']            ?? '',
+        'language'         => $data['language']          ?? '',
+        'viewport'         => $data['viewport']          ?? '',
+        'charset'          => $data['charset']           ?? '',
+    ]);
+
+    return back()->with('success', 'Contenido de "Nosotros" actualizado correctamente.');
+}
+
 
 }

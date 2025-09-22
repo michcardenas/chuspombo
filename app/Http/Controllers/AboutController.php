@@ -87,8 +87,8 @@ class AboutController extends Controller
                 ?? AboutPage::first()
                 ?? new AboutPage();
 
-            // 5) Cargar metadatos SEO para nosotros (pagina_id = 2)
-            $seo = PaginaMeta::where('pagina_id', 2)->first() ?? new PaginaMeta();
+            // 5) Cargar metadatos SEO para nosotros (pagina_id = 3)
+            $seo = PaginaMeta::where('pagina_id', 3)->first() ?? new PaginaMeta();
 
             return view('about', [
                 'properties' => $properties,
@@ -104,7 +104,7 @@ class AboutController extends Controller
                 ?? new AboutPage();
 
             // Cargar metadatos SEO también en caso de error
-            $seo = PaginaMeta::where('pagina_id', 2)->first() ?? new PaginaMeta();
+            $seo = PaginaMeta::where('pagina_id', 3)->first() ?? new PaginaMeta();
 
             return view('about', [
                 'properties' => [],
@@ -130,8 +130,8 @@ class AboutController extends Controller
         $heroUrl   = $contact->hero_image   ? asset('images/' . $contact->hero_image)   : null;
         $bannerUrl = $contact->banner_image ? asset('images/' . $contact->banner_image) : null;
 
-        // Cargar metadatos SEO para contacto (pagina_id = 3)
-        $seo = PaginaMeta::where('pagina_id', 3)->first() ?? new PaginaMeta();
+        // Cargar metadatos SEO para contacto (pagina_id = 4)
+        $seo = PaginaMeta::where('pagina_id', 4)->first() ?? new PaginaMeta();
 
         return view('contacto', [
             'contact'   => $contact,
