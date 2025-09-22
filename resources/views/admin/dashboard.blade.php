@@ -442,7 +442,7 @@
 </div>
 @endsection
 
-@push('scripts')
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const galleryUpload = document.getElementById('gallery-upload');
@@ -714,4 +714,4 @@ document.addEventListener('change', function(e){
   transition: transform 0.2s ease;
 }
 </style>
-@endpush
+
