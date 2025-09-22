@@ -70,7 +70,8 @@
                                                 <img src="{{ asset('images/' . $img['image']) }}"
                                                      class="card-img-top" style="height: 100px; object-fit: cover;" alt="Imagen {{ $index + 1 }}">
                                                 <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-image"
-                                                        data-index="{{ $index }}" style="padding: 2px 6px;">
+                                                        data-index="{{ $index }}" data-image="{{ $img['image'] }}"
+                                                        style="padding: 2px 6px;" title="Eliminar imagen">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                                 <div class="position-absolute bottom-0 start-0 m-1">
@@ -508,25 +509,87 @@ document.addEventListener('DOMContentLoaded', function() {
     e.target.value = '';
   });
 
-  // Manejar eliminación de imágenes
+  // Manejar eliminación de imágenes individuales
   document.addEventListener('click', function(e) {
     if (e.target.closest('.remove-image')) {
       e.preventDefault();
       const button = e.target.closest('.remove-image');
+      const imageName = button.getAttribute('data-image');
       const galleryItem = button.closest('.gallery-item');
-      galleryItem.remove();
-      updateImageCount();
-      updateIndices();
+
+      // Confirmar eliminación individual
+      if (confirm(`¿Eliminar esta imagen?${imageName ? '\n' + imageName : ''}`)) {
+        // Agregar campo hidden para marcar como eliminada en el servidor
+        if (imageName) {
+          const form = document.querySelector('form');
+          const deleteInput = document.createElement('input');
+          deleteInput.type = 'hidden';
+          deleteInput.name = 'delete_images[]';
+          deleteInput.value = imageName;
+          form.appendChild(deleteInput);
+        }
+
+        // Remover visualmente
+        galleryItem.remove();
+        updateImageCount();
+        updateIndices();
+
+        // Mostrar mensaje temporal
+        showTempMessage('Imagen marcada para eliminación', 'warning');
+      }
     }
   });
 
   // Limpiar toda la galería
   clearGallery.addEventListener('click', function() {
-    if (confirm('¿Estás seguro de que quieres eliminar todas las imágenes?')) {
+    const currentCount = galleryGrid.children.length;
+    if (currentCount === 0) {
+      showTempMessage('No hay imágenes para eliminar', 'info');
+      return;
+    }
+
+    if (confirm(`¿Estás seguro de que quieres eliminar todas las ${currentCount} imágenes de la galería?\n\nEsta acción no se puede deshacer.`)) {
+      // Marcar todas las imágenes existentes para eliminación
+      const form = document.querySelector('form');
+      const existingImages = galleryGrid.querySelectorAll('input[name="existing_images[]"]');
+
+      existingImages.forEach(input => {
+        if (input.value) {
+          const deleteInput = document.createElement('input');
+          deleteInput.type = 'hidden';
+          deleteInput.name = 'delete_images[]';
+          deleteInput.value = input.value;
+          form.appendChild(deleteInput);
+        }
+      });
+
+      // Limpiar visualmente
       galleryGrid.innerHTML = '';
       updateImageCount();
+
+      showTempMessage(`${currentCount} imágenes marcadas para eliminación`, 'warning');
     }
   });
+
+  // Función para mostrar mensajes temporales
+  function showTempMessage(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    // Auto-remover después de 3 segundos
+    setTimeout(() => {
+      if (alertDiv.parentNode) {
+        alertDiv.remove();
+      }
+    }, 3000);
+  }
 
   // Actualizar índices después de cambios
   function updateIndices() {

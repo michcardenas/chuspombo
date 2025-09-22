@@ -25,6 +25,7 @@ class PaginaController extends Controller
         'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
         'gallery_titles.*' => 'nullable|string|max:255',
         'existing_images.*' => 'nullable|string|max:255',
+        'delete_images.*' => 'nullable|string|max:255',
 
         // Si quieres validar archivos, descomenta:
         // 'logo'            => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
@@ -57,6 +58,7 @@ class PaginaController extends Controller
         'gallery_images',
         'gallery_titles',
         'existing_images',
+        'delete_images',
     ]));
 
     // Ruta de uploads
@@ -93,13 +95,26 @@ class PaginaController extends Controller
     // ===== PROCESAR GALERÍA DEL CARRUSEL =====
     $galleryData = [];
 
+    // Obtener imágenes marcadas para eliminación
+    $deleteImages = $request->input('delete_images', []);
+
+    // Eliminar físicamente las imágenes marcadas para eliminación
+    if (!empty($deleteImages)) {
+        foreach ($deleteImages as $imageToDelete) {
+            $fullPath = $diskPath . $imageToDelete;
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
+            }
+        }
+    }
+
     // Mantener imágenes existentes que no fueron eliminadas
     $existingImages = $request->input('existing_images', []);
     $galleryTitles = $request->input('gallery_titles', []);
 
-    // Procesar imágenes existentes
+    // Procesar imágenes existentes (excluyendo las marcadas para eliminación)
     foreach ($existingImages as $index => $imageName) {
-        if (!empty($imageName)) {
+        if (!empty($imageName) && !in_array($imageName, $deleteImages)) {
             $galleryData[] = [
                 'image' => $imageName,
                 'title' => $galleryTitles[$index] ?? ''

@@ -220,15 +220,6 @@
                 {{ $pagina->h2_1 ?? 'Explora apartamentos de lujo en Galicia, España' }}
             </h2>
 
-            {{-- Badge informativo sobre el tipo de galería --}}
-            @if($carouselImages->first()['type'] === 'gallery')
-                <div class="d-none d-lg-block mb-3">
-                    <span class="badge bg-secondary bg-opacity-75 fs-6 px-3 py-2">
-                        <i class="fas fa-images me-2"></i>Galería personalizada ({{ $carouselImages->count() }} imágenes)
-                    </span>
-                </div>
-            @endif
-
             <div class="search-box-overlay">
                 <div class="container">
                     <div class="search-box p-4 shadow rounded">
