@@ -200,6 +200,111 @@
                 </div>
             </div>
 
+            {{-- ===== SEO ===== --}}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="hdr-seo">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sec-seo" aria-expanded="false" aria-controls="sec-seo">
+                        SEO y Metadatos
+                        <span class="badge text-bg-secondary ms-2">Optimización</span>
+                    </button>
+                </h2>
+                <div id="sec-seo" class="accordion-collapse collapse" aria-labelledby="hdr-seo" data-bs-parent="#nosotrosEditor">
+                    <div class="accordion-body">
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-search me-2"></i>
+                            <strong>Optimización SEO:</strong> Estos campos mejoran la visibilidad en buscadores y redes sociales.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="meta_title" class="form-label">
+                                    <i class="fas fa-heading me-1"></i>Meta Title
+                                </label>
+                                <input type="text" name="meta_title" id="meta_title" class="form-control"
+                                       maxlength="60" placeholder="Título optimizado para SEO (max 60 caracteres)"
+                                       value="{{ old('meta_title', $paginaNosotros->meta->meta_title ?? '') }}">
+                                <small class="text-muted">Aparece en pestañas del navegador y resultados de Google</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="meta_description" class="form-label">
+                                    <i class="fas fa-align-left me-1"></i>Meta Description
+                                </label>
+                                <textarea name="meta_description" id="meta_description" class="form-control" rows="3"
+                                          maxlength="160" placeholder="Descripción para resultados de búsqueda (max 160 caracteres)">{{ old('meta_description', $paginaNosotros->meta->meta_description ?? '') }}</textarea>
+                                <small class="text-muted">Descripción que aparece en Google bajo el título</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="meta_keywords" class="form-label">
+                                    <i class="fas fa-tags me-1"></i>Meta Keywords
+                                </label>
+                                <input type="text" name="meta_keywords" id="meta_keywords" class="form-control"
+                                       placeholder="nosotros, apartamentos galicia, quienes somos"
+                                       value="{{ old('meta_keywords', $paginaNosotros->meta->meta_keywords ?? '') }}">
+                                <small class="text-muted">Palabras clave separadas por comas</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="canonical_url" class="form-label">
+                                    <i class="fas fa-link me-1"></i>URL Canónica
+                                </label>
+                                <input type="url" name="canonical_url" id="canonical_url" class="form-control"
+                                       placeholder="https://chuspomboapartamentos.com/nosotros"
+                                       value="{{ old('canonical_url', $paginaNosotros->meta->canonical_url ?? '') }}">
+                                <small class="text-muted">URL principal de esta página</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="robots" class="form-label">
+                                    <i class="fas fa-robot me-1"></i>Robots
+                                </label>
+                                <select name="robots" id="robots" class="form-select">
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="index,follow" {{ old('robots', $paginaNosotros->meta->robots ?? '') === 'index,follow' ? 'selected' : '' }}>index,follow</option>
+                                    <option value="noindex,nofollow" {{ old('robots', $paginaNosotros->meta->robots ?? '') === 'noindex,nofollow' ? 'selected' : '' }}>noindex,nofollow</option>
+                                    <option value="index,nofollow" {{ old('robots', $paginaNosotros->meta->robots ?? '') === 'index,nofollow' ? 'selected' : '' }}>index,nofollow</option>
+                                    <option value="noindex,follow" {{ old('robots', $paginaNosotros->meta->robots ?? '') === 'noindex,follow' ? 'selected' : '' }}>noindex,follow</option>
+                                </select>
+                                <small class="text-muted">Instrucciones para buscadores</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="author" class="form-label">
+                                    <i class="fas fa-user me-1"></i>Autor
+                                </label>
+                                <input type="text" name="author" id="author" class="form-control"
+                                       placeholder="Chuspombo Apartamentos"
+                                       value="{{ old('author', $paginaNosotros->meta->author ?? '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="language" class="form-label">
+                                    <i class="fas fa-language me-1"></i>Idioma
+                                </label>
+                                <select name="language" id="language" class="form-select">
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="es" {{ old('language', $paginaNosotros->meta->language ?? '') === 'es' ? 'selected' : '' }}>Español (es)</option>
+                                    <option value="en" {{ old('language', $paginaNosotros->meta->language ?? '') === 'en' ? 'selected' : '' }}>English (en)</option>
+                                    <option value="pt" {{ old('language', $paginaNosotros->meta->language ?? '') === 'pt' ? 'selected' : '' }}>Português (pt)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="viewport" class="form-label">
+                                    <i class="fas fa-mobile-alt me-1"></i>Viewport
+                                </label>
+                                <input type="text" name="viewport" id="viewport" class="form-control"
+                                       placeholder="width=device-width, initial-scale=1"
+                                       value="{{ old('viewport', $paginaNosotros->meta->viewport ?? 'width=device-width, initial-scale=1') }}">
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <h6 class="mb-2">📊 Consejos SEO:</h6>
+                            <ul class="mb-0 small text-muted">
+                                <li><strong>Meta Title:</strong> Incluye palabras clave principales al inicio</li>
+                                <li><strong>Meta Description:</strong> Escribe una descripción atractiva que invite al clic</li>
+                                <li><strong>Keywords:</strong> Usa términos que tus clientes buscarían</li>
+                                <li><strong>URL Canónica:</strong> Evita contenido duplicado</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
 

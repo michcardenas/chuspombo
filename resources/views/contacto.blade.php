@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@section('title', 'Contacto · Chuspombo')
-@section('meta_description', 'Ponte en contacto con Chuspombo para reservas y consultas sobre apartamentos en Galicia, España.')
-
 @section('content')
 
 @php

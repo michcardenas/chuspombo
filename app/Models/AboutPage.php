@@ -76,4 +76,12 @@ class AboutPage extends Model
         // Por convención guardas solo el nombre; servimos desde /public/images
         return asset('images/' . ltrim($path, '/'));
     }
+
+    /* ===========================
+     |  Relaciones
+     |===========================*/
+    public function meta()
+    {
+        return $this->hasOne(\App\Models\PaginaMeta::class, 'pagina_id');
+    }
 }

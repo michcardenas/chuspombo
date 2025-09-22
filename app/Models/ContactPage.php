@@ -95,4 +95,12 @@ class ContactPage extends Model
 
         return asset('images/' . ltrim($p, '/'));
     }
+
+    /* ----------------------------
+     |  Relaciones
+     * ---------------------------- */
+    public function meta()
+    {
+        return $this->hasOne(\App\Models\PaginaMeta::class, 'pagina_id');
+    }
 }

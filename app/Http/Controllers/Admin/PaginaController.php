@@ -268,6 +268,10 @@ class PaginaController extends Controller
     }
     $contact->business_hours_array = $hours;
 
+    // Cargar metadatos SEO con pagina_id = 3
+    $meta = PaginaMeta::where('pagina_id', 3)->first() ?? new PaginaMeta(['pagina_id' => 3]);
+    $contact->setRelation('meta', $meta);
+
     return view('admin.edit-contacto', compact('contact'));
 }
 
@@ -331,6 +335,17 @@ public function updateContacto(Request $request)
         'faq2_a' => 'nullable|string',
         'faq3_q' => 'nullable|string|max:255',
         'faq3_a' => 'nullable|string',
+
+        // ===== SEO =====
+        'meta_title' => 'nullable|string|max:255',
+        'meta_description' => 'nullable|string|max:255',
+        'meta_keywords' => 'nullable|string|max:255',
+        'canonical_url' => 'nullable|string|max:255',
+        'robots' => 'nullable|string|max:255',
+        'author' => 'nullable|string|max:255',
+        'language' => 'nullable|string|max:255',
+        'viewport' => 'nullable|string|max:255',
+        'charset' => 'nullable|string|max:255',
     ]);
 
     // Obtenemos/creamos el único registro
@@ -391,6 +406,19 @@ public function updateContacto(Request $request)
 
     $contact->save();
 
+    // ===== GUARDAR METADATOS SEO =====
+    PaginaMeta::updateOrCreate(['pagina_id' => 3], [
+        'meta_title' => $validated['meta_title'] ?? '',
+        'meta_description' => $validated['meta_description'] ?? '',
+        'meta_keywords' => $validated['meta_keywords'] ?? '',
+        'canonical_url' => $validated['canonical_url'] ?? '',
+        'robots' => $validated['robots'] ?? '',
+        'author' => $validated['author'] ?? '',
+        'language' => $validated['language'] ?? '',
+        'viewport' => $validated['viewport'] ?? '',
+        'charset' => $validated['charset'] ?? '',
+    ]);
+
     return back()->with('success', 'Página de contacto actualizada correctamente.');
 }
 
@@ -398,6 +426,10 @@ public function updateContacto(Request $request)
   public function editNosotros()
     {
         $about = AboutPage::first() ?? new AboutPage();
+
+        // Cargar metadatos SEO con pagina_id = 2
+        $meta = PaginaMeta::where('pagina_id', 2)->first() ?? new PaginaMeta(['pagina_id' => 2]);
+        $about->setRelation('meta', $meta);
 
         // Prefill para los nombres del FORM (h1, h2_1, etc.)
         $about->setAttribute('h1',                       $about->hero_title            ?? 'Chuspombo');
@@ -478,6 +510,17 @@ public function updateContacto(Request $request)
             'cta_primary_url_final'   => 'nullable|string|max:255',
             'cta_secondary_text_final'=> 'nullable|string|max:255',
             'cta_secondary_url_final' => 'nullable|string|max:255',
+
+            // ===== SEO =====
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:255',
+            'meta_keywords' => 'nullable|string|max:255',
+            'canonical_url' => 'nullable|string|max:255',
+            'robots' => 'nullable|string|max:255',
+            'author' => 'nullable|string|max:255',
+            'language' => 'nullable|string|max:255',
+            'viewport' => 'nullable|string|max:255',
+            'charset' => 'nullable|string|max:255',
         ]);
 
         // MAPEO a los campos REALES del modelo
@@ -524,7 +567,20 @@ public function updateContacto(Request $request)
         $about->fill($mapped);
         $about->save();
 
-        return back()->with('success', 'Contenido de “Nosotros” actualizado correctamente.');
+        // ===== GUARDAR METADATOS SEO =====
+        PaginaMeta::updateOrCreate(['pagina_id' => 2], [
+            'meta_title' => $data['meta_title'] ?? '',
+            'meta_description' => $data['meta_description'] ?? '',
+            'meta_keywords' => $data['meta_keywords'] ?? '',
+            'canonical_url' => $data['canonical_url'] ?? '',
+            'robots' => $data['robots'] ?? '',
+            'author' => $data['author'] ?? '',
+            'language' => $data['language'] ?? '',
+            'viewport' => $data['viewport'] ?? '',
+            'charset' => $data['charset'] ?? '',
+        ]);
+
+        return back()->with('success', 'Contenido de "Nosotros" actualizado correctamente.');
     }
 
 }

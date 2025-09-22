@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Models\ContactPage;
 use App\Models\AboutPage; // <-- USAR EL MODELO DEDICADO
+use App\Models\PaginaMeta;
 
 class AboutController extends Controller
 {
@@ -86,9 +87,13 @@ class AboutController extends Controller
                 ?? AboutPage::first()
                 ?? new AboutPage();
 
+            // 5) Cargar metadatos SEO para nosotros (pagina_id = 2)
+            $seo = PaginaMeta::where('pagina_id', 2)->first() ?? new PaginaMeta();
+
             return view('about', [
                 'properties' => $properties,
                 'about'  => $about, // <-- la vista ya espera $contenido
+                'seo' => $seo,
             ]);
         } catch (\Throwable $e) {
             Log::error('Error en AboutController@index', ['e' => $e->getMessage()]);
@@ -98,9 +103,13 @@ class AboutController extends Controller
                 ?? AboutPage::first()
                 ?? new AboutPage();
 
+            // Cargar metadatos SEO también en caso de error
+            $seo = PaginaMeta::where('pagina_id', 2)->first() ?? new PaginaMeta();
+
             return view('about', [
                 'properties' => [],
                 'about'  => $about,
+                'seo' => $seo,
             ]);
         }
     }
@@ -121,10 +130,14 @@ class AboutController extends Controller
         $heroUrl   = $contact->hero_image   ? asset('images/' . $contact->hero_image)   : null;
         $bannerUrl = $contact->banner_image ? asset('images/' . $contact->banner_image) : null;
 
+        // Cargar metadatos SEO para contacto (pagina_id = 3)
+        $seo = PaginaMeta::where('pagina_id', 3)->first() ?? new PaginaMeta();
+
         return view('contacto', [
             'contact'   => $contact,
             'heroUrl'   => $heroUrl,
             'bannerUrl' => $bannerUrl,
+            'seo'       => $seo,
         ]);
     }
 
