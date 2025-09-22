@@ -18,6 +18,42 @@
 @media (max-width: 576px) {
   .calendarWidget--compact { --cal-scale: .9; max-height: calc(650px * var(--cal-scale)); }
 }
+
+/* ======== Galería - Fix para imágenes verticales ======== */
+.gallery-container {
+  --gallery-height: 400px;
+}
+.gallery-container .row {
+  height: var(--gallery-height);
+}
+.gallery-container .col-md-6 {
+  height: 100%;
+}
+.gallery-container .col-md-3 {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gallery-container .col-md-3 > img:first-child,
+.gallery-container .col-md-3 > img:last-child {
+  flex: 1;
+  min-height: 0;
+}
+.gallery-container img {
+  object-fit: cover;
+  object-position: center;
+  height: 100%;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  .gallery-container {
+    --gallery-height: 300px;
+  }
+  .gallery-container .col-md-3 {
+    margin-top: 8px;
+  }
+}
 </style>
 
 @section('content')
@@ -77,14 +113,14 @@
         <div class="row g-2">
             @if(count($images) >= 4)
                 <div class="col-md-6">
-                    <img src="{{ $images[0] }}" class="img-fluid rounded w-100 h-100 object-fit-cover" alt="Imagen 1">
+                    <img src="{{ $images[0] }}" class="img-fluid rounded" alt="Imagen 1">
                 </div>
                 <div class="col-md-3">
-                    <img src="{{ $images[1] }}" class="img-fluid rounded w-100 mb-2 object-fit-cover" alt="Imagen 2">
-                    <img src="{{ $images[2] }}" class="img-fluid rounded w-100 object-fit-cover" alt="Imagen 3">
+                    <img src="{{ $images[1] }}" class="img-fluid rounded" alt="Imagen 2">
+                    <img src="{{ $images[2] }}" class="img-fluid rounded" alt="Imagen 3">
                 </div>
                 <div class="col-md-3">
-                    <img src="{{ $images[3] }}" class="img-fluid rounded w-100 h-100 object-fit-cover" alt="Imagen 4">
+                    <img src="{{ $images[3] }}" class="img-fluid rounded" alt="Imagen 4">
                 </div>
             @else
                 <div class="col-12">
