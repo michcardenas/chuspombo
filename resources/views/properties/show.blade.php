@@ -252,6 +252,7 @@
                 @csrf
                 <input type="hidden" name="apartment_id"    value="{{ $aptId }}">
                 <input type="hidden" name="apartment_title" value="{{ $property['title'] ?? '' }}">
+                <input type="hidden" name="base_price" value="{{ $price ?? 0 }}">
 
                 <div class="row g-2">
                   <div class="col-6">
@@ -264,6 +265,26 @@
                     <label class="form-label mb-1">Check-out</label>
                     <select id="coSelect" name="checkout" class="form-select" required disabled>
                       <option value="">Selecciona check-in primero</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label mb-1">Hora Check-in</label>
+                    <select id="ciHourSelect" name="checkin_hour" class="form-select">
+                      @for($h = 8; $h <= 22; $h++)
+                        <option value="{{ sprintf('%02d:00', $h) }}" {{ $h == 15 ? 'selected' : '' }}>
+                          {{ sprintf('%02d:00', $h) }}
+                        </option>
+                      @endfor
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label mb-1">Hora Check-out</label>
+                    <select id="coHourSelect" name="checkout_hour" class="form-select">
+                      @for($h = 8; $h <= 22; $h++)
+                        <option value="{{ sprintf('%02d:00', $h) }}" {{ $h == 11 ? 'selected' : '' }}>
+                          {{ sprintf('%02d:00', $h) }}
+                        </option>
+                      @endfor
                     </select>
                   </div>
                   <div class="col-6 mt-2">
@@ -318,6 +339,7 @@
 document.addEventListener('DOMContentLoaded', function () {
   // ===== Referencias UI =====
   const aptId      = {{ (int)($aptId ?? 0) }};
+  const basePrice  = {{ (float)($price ?? 0) }};
   const ciSelect   = document.getElementById('ciSelect');
   const coSelect   = document.getElementById('coSelect');
   const guestsSel  = document.getElementById('guestsSelect');
@@ -447,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function () {
           'Accept': 'application/json',
           'X-CSRF-TOKEN': @json(csrf_token()),
         },
-        body: JSON.stringify({ apartment_id: aptId, checkin, checkout, guests })
+        body: JSON.stringify({ apartment_id: aptId, checkin, checkout, guests, base_price: basePrice })
       });
 
       const data = await res.json();

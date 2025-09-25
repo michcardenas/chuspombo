@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SmoobuClient
 {
@@ -45,6 +46,72 @@ class SmoobuClient
     {
         // DELETE /reservations/{id}
         return $this->client()->delete("/reservations/{$reservationId}")->json();
+    }
+
+    /** Crear una nueva reserva */
+    public function createBooking(array $bookingData): array
+    {
+        // Validar datos requeridos
+        $this->validateBookingData($bookingData);
+
+        // POST /reservations
+        $response = $this->client()->post('/reservations', $bookingData);
+
+        // Log the complete response for debugging
+        Log::info('Smoobu createBooking API call', [
+            'status' => $response->status(),
+            'headers' => $response->headers(),
+            'body' => $response->body(),
+            'request_data' => $bookingData
+        ]);
+
+        if (!$response->successful()) {
+            Log::error('Smoobu booking creation failed', [
+                'status' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->body(),
+                'request_data' => $bookingData
+            ]);
+            throw new \Exception('Smoobu API error: ' . $response->status() . ' - ' . $response->body());
+        }
+
+        $result = $response->json();
+
+        // Verificar que la respuesta tenga el formato esperado
+        if (empty($result) || (!isset($result['id']) && !isset($result['reservation']) && !isset($result['booking']))) {
+            Log::warning('Smoobu response without clear booking ID', [
+                'response' => $result,
+                'request_data' => $bookingData
+            ]);
+        }
+
+        return $result;
+    }
+
+    /** Validar datos de reservación antes de enviar */
+    private function validateBookingData(array $bookingData): void
+    {
+        $requiredFields = ['apartmentId', 'arrivalDate', 'departureDate', 'adults', 'firstName', 'lastName', 'email'];
+
+        foreach ($requiredFields as $field) {
+            if (empty($bookingData[$field])) {
+                throw new \InvalidArgumentException("Campo requerido faltante: {$field}");
+            }
+        }
+
+        // Validar fechas
+        if (!strtotime($bookingData['arrivalDate']) || !strtotime($bookingData['departureDate'])) {
+            throw new \InvalidArgumentException("Fechas de llegada o salida inválidas");
+        }
+
+        if (strtotime($bookingData['arrivalDate']) >= strtotime($bookingData['departureDate'])) {
+            throw new \InvalidArgumentException("Fecha de llegada debe ser anterior a fecha de salida");
+        }
+
+        // Validar email
+        if (!filter_var($bookingData['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException("Email inválido: " . $bookingData['email']);
+        }
     }
 
     /** Tarifas por rango y propiedades */

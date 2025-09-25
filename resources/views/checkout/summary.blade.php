@@ -11,8 +11,8 @@
       <div class="card shadow-sm mb-3">
         <div class="card-body">
           <h4 class="mb-3">{{ $checkout['apartment_title'] }}</h4>
-          <p class="mb-1"><strong>Check-in:</strong> {{ $checkout['checkin'] }}</p>
-          <p class="mb-1"><strong>Check-out:</strong> {{ $checkout['checkout'] }}</p>
+          <p class="mb-1"><strong>Check-in:</strong> {{ $checkout['checkin'] }} a las {{ $checkout['checkin_hour'] }}</p>
+          <p class="mb-1"><strong>Check-out:</strong> {{ $checkout['checkout'] }} a las {{ $checkout['checkout_hour'] }}</p>
           <p class="mb-1"><strong>Noches:</strong> {{ $checkout['nights'] }}</p>
           <p class="mb-1"><strong>Huéspedes:</strong> {{ $checkout['guests'] }}</p>
         </div>
@@ -23,7 +23,7 @@
           <h5 class="mb-3">Detalle de precio</h5>
           <ul class="list-unstyled">
             <li class="d-flex justify-content-between">
-              <span>{{ $checkout['nights'] }} x €{{ $fmt($checkout['price_per_night']) }}</span>
+              <span>{{ $checkout['nights'] }} noche{{ $checkout['nights'] > 1 ? 's' : '' }}</span>
               <strong>€{{ $fmt($checkout['subtotal']) }}</strong>
             </li>
             @if($checkout['tax'] > 0)
@@ -44,7 +44,19 @@
 
           <form action="{{ route('paypal.pay') }}" method="POST" class="mt-3">
             @csrf
-            <button class="btn btn-warning w-100">Pagar con PayPal</button>
+            <input type="hidden" name="apartment_id" value="{{ $checkout['apartment_id'] }}">
+            <input type="hidden" name="apartment_title" value="{{ $checkout['apartment_title'] }}">
+            <input type="hidden" name="checkin" value="{{ $checkout['checkin'] }}">
+            <input type="hidden" name="checkout" value="{{ $checkout['checkout'] }}">
+            <input type="hidden" name="checkin_hour" value="{{ $checkout['checkin_hour'] }}">
+            <input type="hidden" name="checkout_hour" value="{{ $checkout['checkout_hour'] }}">
+            <input type="hidden" name="guests" value="{{ $checkout['guests'] }}">
+            <input type="hidden" name="total" value="{{ $checkout['total'] }}">
+            <input type="hidden" name="currency" value="{{ $checkout['currency'] }}">
+            <button class="btn btn-warning w-100 fw-bold">
+              <i class="fab fa-paypal me-2"></i>
+              Pagar €{{ $fmt($checkout['total']) }} con PayPal
+            </button>
           </form>
 
           <a href="javascript:history.back()" class="btn btn-link mt-2">Cambiar fechas</a>

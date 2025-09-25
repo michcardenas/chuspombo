@@ -113,6 +113,8 @@ Route::get('/stripe/redirect', [StripeController::class, 'handleRedirect'])->nam
 
 Route::prefix('admin/pagos')->name('admin.pagos.')->middleware(['auth'])->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\PagoController::class, 'index'])->name('index');
+    Route::get('/{id}', [App\Http\Controllers\Admin\PagoController::class, 'show'])->name('show');
+    Route::delete('/{id}', [App\Http\Controllers\Admin\PagoController::class, 'destroy'])->name('destroy');
 });
 
 Route::post('/paypal/pay', [PayPalController::class, 'pay'])->name('paypal.pay');

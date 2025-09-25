@@ -111,7 +111,7 @@ class CheckoutController extends Controller
         ]);
     }
 
-    /** Cotización con Smoobu (EUR) */
+    /** Cotización con precio de la página */
     public function quote(Request $request)
     {
         $data = $request->validate([
@@ -119,11 +119,24 @@ class CheckoutController extends Controller
             'checkin'      => 'required|date|after_or_equal:today',
             'checkout'     => 'required|date|after:checkin',
             'guests'       => 'required|integer|min:1|max:50',
+            'base_price'   => 'required|numeric|min:0', // Precio por noche de la página
         ]);
         $ci = Carbon::parse($data['checkin'])->toDateString();
         $co = Carbon::parse($data['checkout'])->toDateString();
 
-        [$nights, $subtotal, $breakdown] = $this->computeWithSmoobu((int)$data['apartment_id'], $ci, $co);
+        $nights = Carbon::parse($ci)->diffInDays(Carbon::parse($co));
+        $basePrice = (float)$data['base_price'];
+
+        // Calcular precio total usando el precio base de la página
+        $subtotal = $nights * $basePrice;
+
+        // Crear breakdown por día
+        $breakdown = [];
+        $cursor = Carbon::parse($ci);
+        for ($i = 0; $i < $nights; $i++) {
+            $d = $cursor->copy()->addDays($i)->toDateString();
+            $breakdown[$d] = $basePrice;
+        }
 
         return response()->json([
             'ok'        => true,
@@ -145,12 +158,26 @@ class CheckoutController extends Controller
             'apartment_title' => 'nullable|string|max:255',
             'checkin'         => 'required|date|after_or_equal:today',
             'checkout'        => 'required|date|after:checkin',
+            'checkin_hour'    => 'nullable|string',
+            'checkout_hour'   => 'nullable|string',
             'guests'          => 'required|integer|min:1|max:50',
+            'base_price'      => 'required|numeric|min:0', // Precio por noche de la página
         ]);
         $ci = Carbon::parse($data['checkin'])->toDateString();
         $co = Carbon::parse($data['checkout'])->toDateString();
 
-        [$nights, $subtotal, $breakdown] = $this->computeWithSmoobu((int)$data['apartment_id'], $ci, $co);
+        $nights = Carbon::parse($ci)->diffInDays(Carbon::parse($co));
+        $basePrice = (float)$data['base_price'];
+        $subtotal = $nights * $basePrice;
+
+        // Crear breakdown por día
+        $breakdown = [];
+        $cursor = Carbon::parse($ci);
+        for ($i = 0; $i < $nights; $i++) {
+            $d = $cursor->copy()->addDays($i)->toDateString();
+            $breakdown[$d] = $basePrice;
+        }
+
         $tax = 0; $fees = 0; $total = max(round($subtotal + $tax + $fees, 2), 1);
 
         $checkout = [
@@ -158,6 +185,8 @@ class CheckoutController extends Controller
             'apartment_title' => $data['apartment_title'] ?? 'Apartamento',
             'checkin'         => $ci,
             'checkout'        => $co,
+            'checkin_hour'    => $data['checkin_hour'] ?? '15:00',
+            'checkout_hour'   => $data['checkout_hour'] ?? '11:00',
             'nights'          => $nights,
             'guests'          => (int)$data['guests'],
             'currency'        => 'EUR',
