@@ -270,7 +270,8 @@
                   <div class="col-6">
                     <label class="form-label mb-1">Hora Check-in</label>
                     <select id="ciHourSelect" name="checkin_hour" class="form-select">
-                      @for($h = 8; $h <= 22; $h++)
+                      {{-- Check-in permitido desde 1 PM (13:00) en adelante --}}
+                      @for($h = 13; $h <= 23; $h++)
                         <option value="{{ sprintf('%02d:00', $h) }}" {{ $h == 15 ? 'selected' : '' }}>
                           {{ sprintf('%02d:00', $h) }}
                         </option>
@@ -280,13 +281,24 @@
                   <div class="col-6">
                     <label class="form-label mb-1">Hora Check-out</label>
                     <select id="coHourSelect" name="checkout_hour" class="form-select">
-                      @for($h = 8; $h <= 22; $h++)
+                      {{-- Check-out permitido hasta 11 AM (11:00) --}}
+                      @for($h = 0; $h <= 11; $h++)
                         <option value="{{ sprintf('%02d:00', $h) }}" {{ $h == 11 ? 'selected' : '' }}>
                           {{ sprintf('%02d:00', $h) }}
                         </option>
                       @endfor
                     </select>
                   </div>
+
+                  {{-- Información de horarios de reserva --}}
+                  <div class="col-12 mt-2">
+                    <div class="alert alert-info py-2 px-3 mb-0" style="font-size: 0.9rem;">
+                      <i class="fas fa-info-circle me-2"></i>
+                      <strong>Información de horarios:</strong> La disponibilidad horaria puede variar según la reserva.
+                      Si necesita horarios diferentes, puede comunicarse con nosotros para coordinar su llegada y salida.
+                    </div>
+                  </div>
+
                   <div class="col-6 mt-2">
                     <label class="form-label mb-1">Huéspedes</label>
                     <select id="guestsSelect" name="guests" class="form-select">

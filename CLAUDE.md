@@ -56,26 +56,33 @@ npm run prod
 ### Core Services
 - **SmoobuClient** (`app/Services/SmoobuClient.php`): Integrates with Smoobu API for apartment and booking data
 - **GuestyService** (`app/Services/GuestyService.php`): Handles Guesty API integration for property management
+- **GuestyTokenService** (`app/Services/GuestyTokenService.php`): Manages Guesty API token refresh
 - **StripePaymentService** (`app/Services/StripePaymentService.php`): Stripe payment processing
 - **PayPalService** (`app/Services/PayPalService.php`): PayPal payment integration
 
 ### Key Controllers
 - **PropertiesController**: Main property listing and booking logic
 - **CheckoutController**: Handles checkout flow and payment processing
+- **ReservationController**: Manages booking creation and reservation flow
 - **Admin/DashboardController**: Admin panel for property management
 - **Admin/PaginaController**: CMS functionality for page content management
+- **Admin/SmoobuApartmentController**: Property management and metadata
+- **StripeController & PayPalController**: Payment webhook handlers
 
 ### Models
 - **SmoobuApartmentMeta**: Property metadata and custom fields
 - **SmoobuApartmentImage**: Property image management
 - **PropertyPayment**: Payment transaction records
+- **PaypalCheckoutSession**: PayPal session tracking
 - **Pagina/PaginaMeta**: CMS page content and SEO metadata
+- **ContactPage/AboutPage**: Specialized page content models
 - **GuestyToken**: API token management for Guesty integration
 
 ### Route Structure
 - `/propiedades`: Property listings and details
 - `/admin`: Administrative interface (requires authentication)
 - `/checkout`: Booking and payment flow
+- `/book/{propertyId}`: Reservation creation
 - Payment endpoints for Stripe and PayPal webhooks
 
 ## External API Integrations
@@ -85,6 +92,14 @@ This application integrates with:
 - **Guesty API**: Alternative property management system
 - **Stripe API**: Credit card payment processing
 - **PayPal API**: PayPal payment processing
+
+## Console Commands
+
+### Custom Artisan Commands
+```bash
+# Refresh Guesty API token (automated via scheduler)
+php artisan guesty:refresh-token
+```
 
 ## Database Considerations
 

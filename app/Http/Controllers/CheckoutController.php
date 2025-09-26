@@ -158,8 +158,24 @@ class CheckoutController extends Controller
             'apartment_title' => 'nullable|string|max:255',
             'checkin'         => 'required|date|after_or_equal:today',
             'checkout'        => 'required|date|after:checkin',
-            'checkin_hour'    => 'nullable|string',
-            'checkout_hour'   => 'nullable|string',
+            'checkin_hour'    => ['nullable', 'string', function ($attribute, $value, $fail) {
+                if ($value) {
+                    $hour = (int) substr($value, 0, 2);
+                    // Check-in permitido desde 13:00 (1 PM) en adelante
+                    if ($hour < 13 || $hour > 23) {
+                        $fail('La hora de check-in debe ser desde las 13:00 (1 PM) en adelante.');
+                    }
+                }
+            }],
+            'checkout_hour'   => ['nullable', 'string', function ($attribute, $value, $fail) {
+                if ($value) {
+                    $hour = (int) substr($value, 0, 2);
+                    // Check-out permitido hasta 11:00 (11 AM)
+                    if ($hour > 11) {
+                        $fail('La hora de check-out debe ser hasta las 11:00 (11 AM).');
+                    }
+                }
+            }],
             'guests'          => 'required|integer|min:1|max:50',
             'base_price'      => 'required|numeric|min:0', // Precio por noche de la página
         ]);
