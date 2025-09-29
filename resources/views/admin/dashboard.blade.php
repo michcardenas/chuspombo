@@ -555,8 +555,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
 
-      // Limpiar el input para permitir seleccionar los mismos archivos de nuevo
-      e.target.value = '';
+
     });
   }
 
