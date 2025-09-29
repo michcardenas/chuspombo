@@ -51,31 +51,24 @@
                         <div class="icon-wrapper">
                             <i class="fas fa-phone"></i>
                         </div>
-                       <span>
-    @if (isset($pagina) && $pagina->whatsapp)
-        @php
-            // Deja solo números
-            $clean = preg_replace('/\D+/', '', $pagina->whatsapp);
-
-            // Si empieza por 34 lo tomamos como España, si no le añadimos 34
-            if (str_starts_with($clean, '34')) {
-                $prefix = '+34';
-                $number = substr($clean, 2); // quita el 34
-            } else {
-                $prefix = '+34';
-                $number = ltrim($clean, '0'); // quita 0 inicial si lo hubiera
-            }
-
-            // Aquí decides cómo mostrarlo: junto o con espacios
-            $formatted = $prefix . ' ' . $number;
-        @endphp
-
-        {{ $formatted }}
-    @else
-        +34 623788330
-    @endif
-</span>
-
+                        <span>
+                            @if (isset($pagina) && $pagina->whatsapp)
+                                @php
+                                    $clean = preg_replace('/\D+/', '', $pagina->whatsapp);
+                                    if (str_starts_with($clean, '34')) {
+                                        $prefix = '+34';
+                                        $number = substr($clean, 2);
+                                    } else {
+                                        $prefix = '+34';
+                                        $number = ltrim($clean, '0');
+                                    }
+                                    $formatted = $prefix . ' ' . $number;
+                                @endphp
+                                {{ $formatted }}
+                            @else
+                                +34 623788330
+                            @endif
+                        </span>
                     </li>
 
                     <li>
@@ -105,6 +98,18 @@
                     @endif
                 </div>
             </div>
+        </div>
+
+        <!-- Logo centrado entre Enlaces y Legal -->
+        <div class="row mt-4">
+            <div class="col-lg-4"></div>
+            <div class="col-lg-4 d-flex justify-content-center">
+                <img src="{{ asset('images/lugo.jpg') }}"
+                     alt="Vía Künig Lugo"
+                     class="footer-logo-secondary"
+                     style="max-height: 80px; object-fit: contain;">
+            </div>
+            <div class="col-lg-4"></div>
         </div>
     </div>
 
