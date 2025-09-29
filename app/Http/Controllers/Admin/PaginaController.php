@@ -7,165 +7,215 @@ use Illuminate\Http\Request;
 use App\Models\Pagina;
 use App\Models\PaginaMeta;
 use App\Models\ContactPage;
+use Illuminate\Support\Facades\Log;
 use App\Models\AboutPage; // <-- agrega este use arriba
 
 class PaginaController extends Controller
 {
-   public function update(Request $request, $id)
-{
-    // Validaciones mínimas
-    $request->validate([
-        'featured_property_id' => 'nullable|string|max:100',
+    public function update(Request $request, $id)
+    {
+        Log::info('[Pagina@update] Inicio', [
+            'id_param' => $id,
+            'ip' => $request->ip(),
+            'user_id' => optional($request->user())->id,
+            // No logueamos archivos; solo flags y counts
+            'has_logo' => $request->hasFile('logo'),
+            'card1_files' => collect([1, 2, 3])->mapWithKeys(fn($i) => ["c1_$i" => $request->hasFile("card1_image_$i")]),
+            'card2_files' => collect([4, 5, 6, 7])->mapWithKeys(fn($i) => ["c2_$i" => $request->hasFile("card2_image_$i")]),
+            'gallery_files_count' => $request->hasFile('gallery_images') ? count($request->file('gallery_images')) : 0,
+        ]);
 
-        // 👇 Nuevos
-        'direccion' => ['nullable', 'string', 'max:255'],
-        'email'     => ['nullable', 'email:rfc', 'max:255'],
+        try {
+            // Validación
+            $validated = $request->validate([
+                'featured_property_id' => 'nullable|string|max:100',
+                'direccion' => ['nullable', 'string', 'max:255'],
+                'email'     => ['nullable', 'email:rfc', 'max:255'],
 
-        // Galería del carrusel
-        'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        'gallery_titles.*' => 'nullable|string|max:255',
-        'existing_images.*' => 'nullable|string|max:255',
-        'delete_images.*' => 'nullable|string|max:255',
+                'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
+                'gallery_titles.*' => 'nullable|string|max:255',
+                'existing_images.*' => 'nullable|string|max:255',
+                'delete_images.*' => 'nullable|string|max:255',
+            ]);
+            Log::info('[Pagina@update] Validación OK');
 
-        // Si quieres validar archivos, descomenta:
-        // 'logo'            => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        // 'card1_image_1'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        // 'card1_image_2'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        // 'card1_image_3'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        // 'card2_image_4'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        // 'card2_image_5'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        // 'card2_image_6'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        // 'card2_image_7'   => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-    ]);
-
-    // Siempre trabajamos sobre ID 1
-    $pagina = \App\Models\Pagina::find($id);
-    if (!$pagina) {
-        $pagina = new \App\Models\Pagina();
-        $pagina->id = 1; // Forzamos que siempre sea ID 1
-    }
-
-    // Llenamos todos los campos excepto archivos e imágenes
-    $pagina->fill($request->except([
-        'logo',
-        'card1_image_1',
-        'card1_image_2',
-        'card1_image_3',
-        'card2_image_4',
-        'card2_image_5',
-        'card2_image_6',
-        'card2_image_7',
-        'gallery_images',
-        'gallery_titles',
-        'existing_images',
-        'delete_images',
-    ]));
-
-    // Ruta de uploads
-    $diskPath = '/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/';
-
-    // Subir logo
-    if ($request->hasFile('logo')) {
-        $file = $request->file('logo');
-        $filename = time() . '_logo.' . $file->getClientOriginalExtension();
-        $file->move($diskPath, $filename);
-        $pagina->logo = $filename;
-    }
-
-    // Subir imágenes de tarjetas sección 1
-    for ($i = 1; $i <= 3; $i++) {
-        if ($request->hasFile("card1_image_$i")) {
-            $file = $request->file("card1_image_$i");
-            $filename = time() . "_card1_$i." . $file->getClientOriginalExtension();
-            $file->move($diskPath, $filename);
-            $pagina->{"card1_image_$i"} = $filename;
-        }
-    }
-
-    // Subir imágenes de tarjetas sección 2 (confianza)
-    for ($i = 4; $i <= 7; $i++) {
-        if ($request->hasFile("card2_image_$i")) {
-            $file = $request->file("card2_image_$i");
-            $filename = time() . "_card2_$i." . $file->getClientOriginalExtension();
-            $file->move($diskPath, $filename);
-            $pagina->{"card2_image_$i"} = $filename;
-        }
-    }
-
-    // ===== PROCESAR GALERÍA DEL CARRUSEL =====
-    $galleryData = [];
-
-    // Obtener imágenes marcadas para eliminación
-    $deleteImages = $request->input('delete_images', []);
-
-    // Eliminar físicamente las imágenes marcadas para eliminación
-    if (!empty($deleteImages)) {
-        foreach ($deleteImages as $imageToDelete) {
-            $fullPath = $diskPath . $imageToDelete;
-            if (file_exists($fullPath)) {
-                unlink($fullPath);
+            // Buscar/crear
+            $pagina = \App\Models\Pagina::find($id);
+            if (!$pagina) {
+                Log::warning('[Pagina@update] Pagina no encontrada, se creará', ['id' => $id]);
+                $pagina = new \App\Models\Pagina();
+                $pagina->id = 1;
             }
-        }
-    }
 
-    // Mantener imágenes existentes que no fueron eliminadas
-    $existingImages = $request->input('existing_images', []);
-    $galleryTitles = $request->input('gallery_titles', []);
-
-    // Procesar imágenes existentes (excluyendo las marcadas para eliminación)
-    foreach ($existingImages as $index => $imageName) {
-        if (!empty($imageName) && !in_array($imageName, $deleteImages)) {
-            $galleryData[] = [
-                'image' => $imageName,
-                'title' => $galleryTitles[$index] ?? ''
+            // Excluir campos de archivos
+            $fillExcludes = [
+                'logo',
+                'card1_image_1',
+                'card1_image_2',
+                'card1_image_3',
+                'card2_image_4',
+                'card2_image_5',
+                'card2_image_6',
+                'card2_image_7',
+                'gallery_images',
+                'gallery_titles',
+                'existing_images',
+                'delete_images',
             ];
-        }
-    }
+            $pagina->fill($request->except($fillExcludes));
 
-    // Procesar nuevas imágenes subidas
-    if ($request->hasFile('gallery_images')) {
-        $newImages = $request->file('gallery_images');
-        $newTitles = array_slice($galleryTitles, count($existingImages));
-
-        foreach ($newImages as $index => $file) {
-            if ($file && $file->isValid()) {
-                $timestamp = time() + $index; // Evitar nombres duplicados
-                $filename = $timestamp . '_gallery.' . $file->getClientOriginalExtension();
-                $file->move($diskPath, $filename);
-
-                $galleryData[] = [
-                    'image' => $filename,
-                    'title' => $newTitles[$index] ?? ''
-                ];
+            // Ruta de uploads (verificar)
+            $diskPath = '/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/';
+            Log::info('[Pagina@update] Ruta uploads', [
+                'diskPath' => $diskPath,
+                'exists' => file_exists($diskPath),
+                'is_writable' => is_writable($diskPath),
+            ]);
+            if (!file_exists($diskPath)) {
+                Log::error('[Pagina@update] Ruta no existe', ['diskPath' => $diskPath]);
             }
+            if (!is_writable($diskPath)) {
+                Log::error('[Pagina@update] Ruta no escribible', ['diskPath' => $diskPath]);
+            }
+
+            // Subir logo
+            if ($request->hasFile('logo')) {
+                $file = $request->file('logo');
+                $filename = time() . '_logo.' . $file->getClientOriginalExtension();
+                $file->move($diskPath, $filename);
+                $pagina->logo = $filename;
+                Log::info('[Pagina@update] Logo subido', ['filename' => $filename]);
+            }
+
+            // Tarjetas sección 1
+            for ($i = 1; $i <= 3; $i++) {
+                if ($request->hasFile("card1_image_$i")) {
+                    $file = $request->file("card1_image_$i");
+                    $filename = time() . "_card1_$i." . $file->getClientOriginalExtension();
+                    $file->move($diskPath, $filename);
+                    $pagina->{"card1_image_$i"} = $filename;
+                    Log::info('[Pagina@update] Card1 subida', ['slot' => $i, 'filename' => $filename]);
+                }
+            }
+
+            // Tarjetas sección 2
+            for ($i = 4; $i <= 7; $i++) {
+                if ($request->hasFile("card2_image_$i")) {
+                    $file = $request->file("card2_image_$i");
+                    $filename = time() . "_card2_$i." . $file->getClientOriginalExtension();
+                    $file->move($diskPath, $filename);
+                    $pagina->{"card2_image_$i"} = $filename;
+                    Log::info('[Pagina@update] Card2 subida', ['slot' => $i, 'filename' => $filename]);
+                }
+            }
+
+            // ===== GALERÍA =====
+            $galleryData = [];
+            $deleteImages = $request->input('delete_images', []);
+            $existingImages = $request->input('existing_images', []);
+            $galleryTitles = $request->input('gallery_titles', []);
+
+            Log::info('[Pagina@update][Galeria] Estado inicial', [
+                'delete_count' => count($deleteImages),
+                'existing_count' => count($existingImages),
+                'titles_count' => count($galleryTitles),
+            ]);
+
+            // Borrados físicos
+            if (!empty($deleteImages)) {
+                foreach ($deleteImages as $imageToDelete) {
+                    $fullPath = $diskPath . $imageToDelete;
+                    if (file_exists($fullPath)) {
+                        if (@unlink($fullPath)) {
+                            Log::info('[Pagina@update][Galeria] Eliminada', ['file' => $imageToDelete]);
+                        } else {
+                            Log::error('[Pagina@update][Galeria] Error al eliminar', ['file' => $imageToDelete]);
+                        }
+                    } else {
+                        Log::warning('[Pagina@update][Galeria] Archivo no encontrado para eliminar', ['file' => $imageToDelete]);
+                    }
+                }
+            }
+
+            // Mantener existentes (no eliminadas)
+            foreach ($existingImages as $index => $imageName) {
+                if (!empty($imageName) && !in_array($imageName, $deleteImages)) {
+                    $galleryData[] = [
+                        'image' => $imageName,
+                        'title' => $galleryTitles[$index] ?? ''
+                    ];
+                }
+            }
+            Log::info('[Pagina@update][Galeria] Conservadas', ['count' => count($galleryData)]);
+
+            // Nuevas subidas
+            if ($request->hasFile('gallery_images')) {
+                $newImages = $request->file('gallery_images');
+                $newTitles = array_slice($galleryTitles, count($existingImages));
+
+                foreach ($newImages as $index => $file) {
+                    if ($file && $file->isValid()) {
+                        $timestamp = time() + $index;
+                        $filename = $timestamp . '_gallery.' . $file->getClientOriginalExtension();
+                        $file->move($diskPath, $filename);
+
+                        $galleryData[] = [
+                            'image' => $filename,
+                            'title' => $newTitles[$index] ?? ''
+                        ];
+                        Log::info('[Pagina@update][Galeria] Nueva subida', [
+                            'filename' => $filename,
+                            'title' => $newTitles[$index] ?? ''
+                        ]);
+                    } else {
+                        Log::error('[Pagina@update][Galeria] Archivo inválido', ['index' => $index]);
+                    }
+                }
+            }
+
+            // Guardar JSON de galería
+            $pagina->gallery_images = json_encode($galleryData, JSON_UNESCAPED_UNICODE);
+            Log::info('[Pagina@update][Galeria] JSON listo', ['items' => count($galleryData)]);
+
+            // Guardar página
+            $pagina->save();
+            Log::info('[Pagina@update] Página guardada', ['pagina_id' => $pagina->id]);
+
+            // Metadatos SEO
+            if ($request->has('meta_title')) {
+                $meta = $pagina->meta ?? new \App\Models\PaginaMeta();
+                $meta->fill($request->only([
+                    'meta_title',
+                    'meta_description',
+                    'meta_keywords',
+                    'canonical_url',
+                    'robots',
+                    'author',
+                    'language',
+                    'viewport',
+                    'charset'
+                ]));
+                $meta->pagina_id = $pagina->id;
+                $meta->save();
+                Log::info('[Pagina@update] Meta guardado', ['pagina_id' => $pagina->id]);
+            } else {
+                Log::info('[Pagina@update] Meta no enviado');
+            }
+
+            Log::info('[Pagina@update] Fin OK');
+            return redirect()->route('admin.dashboard')->with('success', 'Página actualizada con éxito.');
+        } catch (\Throwable $e) {
+            Log::error('[Pagina@update] Excepción', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                // cuidado con datos sensibles; incluimos claves no sensibles:
+                'trace_top' => collect(explode("\n", $e->getTraceAsString()))->take(5)->implode("\n"),
+            ]);
+            return back()->with('error', 'Ocurrió un error al actualizar la página. Revisa los logs.');
         }
     }
 
-    // Guardar en JSON
-    $pagina->gallery_images = json_encode($galleryData, JSON_UNESCAPED_UNICODE);
-
-    $pagina->save();
-
-    // Guardar metadatos SEO
-    if ($request->has('meta_title')) {
-        $meta = $pagina->meta ?? new \App\Models\PaginaMeta();
-        $meta->fill($request->only([
-            'meta_title',
-            'meta_description',
-            'meta_keywords',
-            'canonical_url',
-            'robots',
-            'author',
-            'language',
-            'viewport',
-            'charset'
-        ]));
-        $meta->pagina_id = $pagina->id;
-        $meta->save();
-    }
-
-    return redirect()->route('admin.dashboard')->with('success', 'Página actualizada con éxito.');
-}
 
 
     public function editPropiedades()
@@ -241,195 +291,227 @@ class PaginaController extends Controller
     }
 
     public function editContacto()
-{
-    // Editamos un único registro (el primero activo o el primero)
-    $contact = ContactPage::orderByDesc('is_active')->orderBy('id')->first();
+    {
+        // Editamos un único registro (el primero activo o el primero)
+        $contact = ContactPage::orderByDesc('is_active')->orderBy('id')->first();
 
-    if (!$contact) {
-        $contact = ContactPage::create([
-            'h1' => '',
-            'h2' => '',
-            'intro_text' => '',
-            'side_text'  => '',
-            'is_active'  => 1,
+        if (!$contact) {
+            $contact = ContactPage::create([
+                'h1' => '',
+                'h2' => '',
+                'intro_text' => '',
+                'side_text'  => '',
+                'is_active'  => 1,
 
-            // FAQs por defecto vacíos
-            'faq1_q' => null, 'faq1_a' => null,
-            'faq2_q' => null, 'faq2_a' => null,
-            'faq3_q' => null, 'faq3_a' => null,
-        ]);
-    }
-
-    // Normalizar business_hours a array para el form
-    $hours = [];
-    if ($contact->business_hours) {
-        $decoded = json_decode($contact->business_hours, true);
-        if (is_array($decoded)) $hours = $decoded;
-    }
-    $contact->business_hours_array = $hours;
-
-    // Cargar metadatos SEO con pagina_id = 4
-    $meta = PaginaMeta::where('pagina_id', 4)->first() ?? new PaginaMeta(['pagina_id' => 4]);
-    $contact->setRelation('meta', $meta);
-
-    return view('admin.edit-contacto', compact('contact'));
-}
-
-public function updateContacto(Request $request)
-{
-    // Validación basada en tu esquema (+ FAQs)
-    $validated = $request->validate([
-        'h1'                 => 'nullable|string|max:255',
-        'h2'                 => 'nullable|string|max:255',
-        'intro_text'         => 'nullable|string',
-        'side_text'          => 'nullable|string',
-
-        'email_primary'      => 'nullable|email|max:255',
-        'email_secondary'    => 'nullable|email|max:255',
-        'phone_primary'      => 'nullable|string|max:255',
-        'phone_secondary'    => 'nullable|string|max:255',
-        'whatsapp'           => 'nullable|string|max:255',
-        'website'            => 'nullable|url|max:255',
-
-        'address_line1'      => 'nullable|string|max:255',
-        'address_line2'      => 'nullable|string|max:255',
-        'city'               => 'nullable|string|max:255',
-        'region'             => 'nullable|string|max:255',
-        'postal_code'        => 'nullable|string|max:255',
-        'country'            => 'nullable|string|max:255',
-
-        'map_embed_url'      => 'nullable|string',
-        'latitude'           => 'nullable|numeric',
-        'longitude'          => 'nullable|numeric',
-
-        'facebook_url'       => 'nullable|url|max:255',
-        'instagram_url'      => 'nullable|url|max:255',
-        'twitter_url'        => 'nullable|url|max:255',
-        'tiktok_url'         => 'nullable|url|max:255',
-        'youtube_url'        => 'nullable|url|max:255',
-        'linkedin_url'       => 'nullable|url|max:255',
-
-        'form_recipient'     => 'nullable|email|max:255',
-        'form_cc'            => 'nullable|string|max:255',
-        'success_message'    => 'nullable|string|max:255',
-        'legal_checkbox_label' => 'nullable|string|max:255',
-        'legal_link_url'     => 'nullable|url|max:255',
-
-        // business_hours llega como arreglo de filas [{label,from,to}]
-        'business_hours'         => 'nullable|array',
-        'business_hours.*.label' => 'nullable|string|max:255',
-        'business_hours.*.from'  => 'nullable|string|max:255',
-        'business_hours.*.to'    => 'nullable|string|max:255',
-
-        // Archivos
-        'hero_image'         => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-        'banner_image'       => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
-
-        'is_active'          => 'nullable|boolean',
-        'is_24_hours'        => 'nullable|boolean',
-
-        // ===== FAQs =====
-        'faq1_q' => 'nullable|string|max:255',
-        'faq1_a' => 'nullable|string',
-        'faq2_q' => 'nullable|string|max:255',
-        'faq2_a' => 'nullable|string',
-        'faq3_q' => 'nullable|string|max:255',
-        'faq3_a' => 'nullable|string',
-
-        // ===== SEO =====
-        'meta_title' => 'nullable|string|max:255',
-        'meta_description' => 'nullable|string|max:255',
-        'meta_keywords' => 'nullable|string|max:255',
-        'canonical_url' => 'nullable|string|max:255',
-        'robots' => 'nullable|string|max:255',
-        'author' => 'nullable|string|max:255',
-        'language' => 'nullable|string|max:255',
-        'viewport' => 'nullable|string|max:255',
-        'charset' => 'nullable|string|max:255',
-    ]);
-
-    // Obtenemos/creamos el único registro
-    $contact = ContactPage::orderByDesc('is_active')->orderBy('id')->first();
-    if (!$contact) {
-        $contact = new ContactPage();
-    }
-
-    // Campos directos (todos excepto archivos y business_hours)
-    $fillableKeys = [
-        'h1','h2','intro_text','side_text',
-        'email_primary','email_secondary','phone_primary','phone_secondary','whatsapp','website',
-        'address_line1','address_line2','city','region','postal_code','country',
-        'map_embed_url','latitude','longitude',
-        'facebook_url','instagram_url','twitter_url','tiktok_url','youtube_url','linkedin_url',
-        'form_recipient','form_cc','success_message','legal_checkbox_label','legal_link_url',
-
-        // ===== FAQs =====
-        'faq1_q','faq1_a','faq2_q','faq2_a','faq3_q','faq3_a',
-    ];
-    foreach ($fillableKeys as $key) {
-        $contact->{$key} = $validated[$key] ?? null;
-    }
-
-    // business_hours → JSON (limpieza mínima)
-    $hours = $validated['business_hours'] ?? [];
-    $normalized = [];
-    foreach ($hours as $row) {
-        $label = trim($row['label'] ?? '');
-        $from  = trim($row['from']  ?? '');
-        $to    = trim($row['to']    ?? '');
-        if ($label !== '' || $from !== '' || $to !== '') {
-            $normalized[] = compact('label', 'from', 'to');
+                // FAQs por defecto vacíos
+                'faq1_q' => null,
+                'faq1_a' => null,
+                'faq2_q' => null,
+                'faq2_a' => null,
+                'faq3_q' => null,
+                'faq3_a' => null,
+            ]);
         }
-    }
-    $contact->business_hours = $normalized ? json_encode($normalized, JSON_UNESCAPED_UNICODE) : null;
 
-    // Cargar archivos
-    $diskPath = '/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/';
+        // Normalizar business_hours a array para el form
+        $hours = [];
+        if ($contact->business_hours) {
+            $decoded = json_decode($contact->business_hours, true);
+            if (is_array($decoded)) $hours = $decoded;
+        }
+        $contact->business_hours_array = $hours;
 
-    if ($request->hasFile('hero_image')) {
-        $file = $request->file('hero_image');
-        $filename = time() . '_hero.' . $file->getClientOriginalExtension();
-        $file->move($diskPath, $filename);
-        $contact->hero_image = $filename;
-    }
+        // Cargar metadatos SEO con pagina_id = 4
+        $meta = PaginaMeta::where('pagina_id', 4)->first() ?? new PaginaMeta(['pagina_id' => 4]);
+        $contact->setRelation('meta', $meta);
 
-    if ($request->hasFile('banner_image')) {
-        $file = $request->file('banner_image');
-        $filename = time() . '_banner.' . $file->getClientOriginalExtension();
-        $file->move($diskPath, $filename);
-        $contact->banner_image = $filename;
+        return view('admin.edit-contacto', compact('contact'));
     }
 
-    // Estado
-    $contact->is_active = $request->boolean('is_active');
-    $contact->is_24_hours = $request->boolean('is_24_hours');
+    public function updateContacto(Request $request)
+    {
+        // Validación basada en tu esquema (+ FAQs)
+        $validated = $request->validate([
+            'h1'                 => 'nullable|string|max:255',
+            'h2'                 => 'nullable|string|max:255',
+            'intro_text'         => 'nullable|string',
+            'side_text'          => 'nullable|string',
 
-    $contact->save();
+            'email_primary'      => 'nullable|email|max:255',
+            'email_secondary'    => 'nullable|email|max:255',
+            'phone_primary'      => 'nullable|string|max:255',
+            'phone_secondary'    => 'nullable|string|max:255',
+            'whatsapp'           => 'nullable|string|max:255',
+            'website'            => 'nullable|url|max:255',
 
-    // ===== CREAR REGISTRO PAGINA SI NO EXISTE =====
-    Pagina::firstOrCreate(['id' => 4], [
-        'h1' => 'Contacto',
-        'h2_1' => 'Página de contacto'
-    ]);
+            'address_line1'      => 'nullable|string|max:255',
+            'address_line2'      => 'nullable|string|max:255',
+            'city'               => 'nullable|string|max:255',
+            'region'             => 'nullable|string|max:255',
+            'postal_code'        => 'nullable|string|max:255',
+            'country'            => 'nullable|string|max:255',
 
-    // ===== GUARDAR METADATOS SEO =====
-    PaginaMeta::updateOrCreate(['pagina_id' => 4], [
-        'meta_title' => $validated['meta_title'] ?? '',
-        'meta_description' => $validated['meta_description'] ?? '',
-        'meta_keywords' => $validated['meta_keywords'] ?? '',
-        'canonical_url' => $validated['canonical_url'] ?? '',
-        'robots' => $validated['robots'] ?? '',
-        'author' => $validated['author'] ?? '',
-        'language' => $validated['language'] ?? '',
-        'viewport' => $validated['viewport'] ?? '',
-        'charset' => $validated['charset'] ?? '',
-    ]);
+            'map_embed_url'      => 'nullable|string',
+            'latitude'           => 'nullable|numeric',
+            'longitude'          => 'nullable|numeric',
 
-    return back()->with('success', 'Página de contacto actualizada correctamente.');
-}
+            'facebook_url'       => 'nullable|url|max:255',
+            'instagram_url'      => 'nullable|url|max:255',
+            'twitter_url'        => 'nullable|url|max:255',
+            'tiktok_url'         => 'nullable|url|max:255',
+            'youtube_url'        => 'nullable|url|max:255',
+            'linkedin_url'       => 'nullable|url|max:255',
+
+            'form_recipient'     => 'nullable|email|max:255',
+            'form_cc'            => 'nullable|string|max:255',
+            'success_message'    => 'nullable|string|max:255',
+            'legal_checkbox_label' => 'nullable|string|max:255',
+            'legal_link_url'     => 'nullable|url|max:255',
+
+            // business_hours llega como arreglo de filas [{label,from,to}]
+            'business_hours'         => 'nullable|array',
+            'business_hours.*.label' => 'nullable|string|max:255',
+            'business_hours.*.from'  => 'nullable|string|max:255',
+            'business_hours.*.to'    => 'nullable|string|max:255',
+
+            // Archivos
+            'hero_image'         => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
+            'banner_image'       => 'nullable|image|mimes:jpeg,png,jpg,webp,avif|max:4096',
+
+            'is_active'          => 'nullable|boolean',
+            'is_24_hours'        => 'nullable|boolean',
+
+            // ===== FAQs =====
+            'faq1_q' => 'nullable|string|max:255',
+            'faq1_a' => 'nullable|string',
+            'faq2_q' => 'nullable|string|max:255',
+            'faq2_a' => 'nullable|string',
+            'faq3_q' => 'nullable|string|max:255',
+            'faq3_a' => 'nullable|string',
+
+            // ===== SEO =====
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:255',
+            'meta_keywords' => 'nullable|string|max:255',
+            'canonical_url' => 'nullable|string|max:255',
+            'robots' => 'nullable|string|max:255',
+            'author' => 'nullable|string|max:255',
+            'language' => 'nullable|string|max:255',
+            'viewport' => 'nullable|string|max:255',
+            'charset' => 'nullable|string|max:255',
+        ]);
+
+        // Obtenemos/creamos el único registro
+        $contact = ContactPage::orderByDesc('is_active')->orderBy('id')->first();
+        if (!$contact) {
+            $contact = new ContactPage();
+        }
+
+        // Campos directos (todos excepto archivos y business_hours)
+        $fillableKeys = [
+            'h1',
+            'h2',
+            'intro_text',
+            'side_text',
+            'email_primary',
+            'email_secondary',
+            'phone_primary',
+            'phone_secondary',
+            'whatsapp',
+            'website',
+            'address_line1',
+            'address_line2',
+            'city',
+            'region',
+            'postal_code',
+            'country',
+            'map_embed_url',
+            'latitude',
+            'longitude',
+            'facebook_url',
+            'instagram_url',
+            'twitter_url',
+            'tiktok_url',
+            'youtube_url',
+            'linkedin_url',
+            'form_recipient',
+            'form_cc',
+            'success_message',
+            'legal_checkbox_label',
+            'legal_link_url',
+
+            // ===== FAQs =====
+            'faq1_q',
+            'faq1_a',
+            'faq2_q',
+            'faq2_a',
+            'faq3_q',
+            'faq3_a',
+        ];
+        foreach ($fillableKeys as $key) {
+            $contact->{$key} = $validated[$key] ?? null;
+        }
+
+        // business_hours → JSON (limpieza mínima)
+        $hours = $validated['business_hours'] ?? [];
+        $normalized = [];
+        foreach ($hours as $row) {
+            $label = trim($row['label'] ?? '');
+            $from  = trim($row['from']  ?? '');
+            $to    = trim($row['to']    ?? '');
+            if ($label !== '' || $from !== '' || $to !== '') {
+                $normalized[] = compact('label', 'from', 'to');
+            }
+        }
+        $contact->business_hours = $normalized ? json_encode($normalized, JSON_UNESCAPED_UNICODE) : null;
+
+        // Cargar archivos
+        $diskPath = '/home/u284093604/domains/chuspomboapartamentos.com/public_html/images/';
+
+        if ($request->hasFile('hero_image')) {
+            $file = $request->file('hero_image');
+            $filename = time() . '_hero.' . $file->getClientOriginalExtension();
+            $file->move($diskPath, $filename);
+            $contact->hero_image = $filename;
+        }
+
+        if ($request->hasFile('banner_image')) {
+            $file = $request->file('banner_image');
+            $filename = time() . '_banner.' . $file->getClientOriginalExtension();
+            $file->move($diskPath, $filename);
+            $contact->banner_image = $filename;
+        }
+
+        // Estado
+        $contact->is_active = $request->boolean('is_active');
+        $contact->is_24_hours = $request->boolean('is_24_hours');
+
+        $contact->save();
+
+        // ===== CREAR REGISTRO PAGINA SI NO EXISTE =====
+        Pagina::firstOrCreate(['id' => 4], [
+            'h1' => 'Contacto',
+            'h2_1' => 'Página de contacto'
+        ]);
+
+        // ===== GUARDAR METADATOS SEO =====
+        PaginaMeta::updateOrCreate(['pagina_id' => 4], [
+            'meta_title' => $validated['meta_title'] ?? '',
+            'meta_description' => $validated['meta_description'] ?? '',
+            'meta_keywords' => $validated['meta_keywords'] ?? '',
+            'canonical_url' => $validated['canonical_url'] ?? '',
+            'robots' => $validated['robots'] ?? '',
+            'author' => $validated['author'] ?? '',
+            'language' => $validated['language'] ?? '',
+            'viewport' => $validated['viewport'] ?? '',
+            'charset' => $validated['charset'] ?? '',
+        ]);
+
+        return back()->with('success', 'Página de contacto actualizada correctamente.');
+    }
 
 
-  public function editNosotros()
+    public function editNosotros()
     {
         $about = AboutPage::first() ?? new AboutPage();
 
@@ -476,124 +558,122 @@ public function updateContacto(Request $request)
         return view('admin.edit-nosotros', compact('paginaNosotros'));
     }
 
-   public function updateNosotros(Request $request)
-{
-    // Validación con los NOMBRES DEL FORM
-    $data = $request->validate([
-        // HERO
-        'h1'                      => 'nullable|string|max:255',
-        'h2_1'                    => 'nullable|string|max:255',
-        'cta_primary_text'        => 'nullable|string|max:255',
-        'cta_primary_url'         => 'nullable|string|max:255',
+    public function updateNosotros(Request $request)
+    {
+        // Validación con los NOMBRES DEL FORM
+        $data = $request->validate([
+            // HERO
+            'h1'                      => 'nullable|string|max:255',
+            'h2_1'                    => 'nullable|string|max:255',
+            'cta_primary_text'        => 'nullable|string|max:255',
+            'cta_primary_url'         => 'nullable|string|max:255',
 
-        // HISTORIA
-        'h2_historia'             => 'nullable|string|max:255',
-        'p_historia'              => 'nullable|string',
+            // HISTORIA
+            'h2_historia'             => 'nullable|string|max:255',
+            'p_historia'              => 'nullable|string',
 
-        // EXPERIENCIA
-        'h2_experiencia'          => 'nullable|string|max:255',
-        'p_experiencia'           => 'nullable|string',
-        'card1_title_1'           => 'nullable|string|max:255',
-        'card1_content_1'         => 'nullable|string',
-        'card1_title_2'           => 'nullable|string|max:255',
-        'card1_content_2'         => 'nullable|string',
-        'card1_title_3'           => 'nullable|string|max:255',
-        'card1_content_3'         => 'nullable|string',
+            // EXPERIENCIA
+            'h2_experiencia'          => 'nullable|string|max:255',
+            'p_experiencia'           => 'nullable|string',
+            'card1_title_1'           => 'nullable|string|max:255',
+            'card1_content_1'         => 'nullable|string',
+            'card1_title_2'           => 'nullable|string|max:255',
+            'card1_content_2'         => 'nullable|string',
+            'card1_title_3'           => 'nullable|string|max:255',
+            'card1_content_3'         => 'nullable|string',
 
-        // WHY
-        'h2_why'                  => 'nullable|string|max:255',
-        'card2_title_4'           => 'nullable|string|max:255',
-        'card2_content_4'         => 'nullable|string',
-        'card2_title_5'           => 'nullable|string|max:255',
-        'card2_content_5'         => 'nullable|string',
-        'card2_title_6'           => 'nullable|string|max:255',
-        'card2_content_6'         => 'nullable|string',
+            // WHY
+            'h2_why'                  => 'nullable|string|max:255',
+            'card2_title_4'           => 'nullable|string|max:255',
+            'card2_content_4'         => 'nullable|string',
+            'card2_title_5'           => 'nullable|string|max:255',
+            'card2_content_5'         => 'nullable|string',
+            'card2_title_6'           => 'nullable|string|max:255',
+            'card2_content_6'         => 'nullable|string',
 
-        // CTA FINAL
-        'h2_cta'                  => 'nullable|string|max:255',
-        'p_cta'                   => 'nullable|string',
-        'cta_primary_text_final'  => 'nullable|string|max:255',
-        'cta_primary_url_final'   => 'nullable|string|max:255',
-        'cta_secondary_text_final'=> 'nullable|string|max:255',
-        'cta_secondary_url_final' => 'nullable|string|max:255',
+            // CTA FINAL
+            'h2_cta'                  => 'nullable|string|max:255',
+            'p_cta'                   => 'nullable|string',
+            'cta_primary_text_final'  => 'nullable|string|max:255',
+            'cta_primary_url_final'   => 'nullable|string|max:255',
+            'cta_secondary_text_final' => 'nullable|string|max:255',
+            'cta_secondary_url_final' => 'nullable|string|max:255',
 
-        // ===== SEO =====
-        'meta_title' => 'nullable|string|max:255',
-        'meta_description' => 'nullable|string|max:255',
-        'meta_keywords' => 'nullable|string|max:255',
-        'canonical_url' => 'nullable|string|max:255',
-        'robots' => 'nullable|string|max:255',
-        'author' => 'nullable|string|max:255',
-        'language' => 'nullable|string|max:255',
-        'viewport' => 'nullable|string|max:255',
-        'charset' => 'nullable|string|max:255',
-    ]);
+            // ===== SEO =====
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:255',
+            'meta_keywords' => 'nullable|string|max:255',
+            'canonical_url' => 'nullable|string|max:255',
+            'robots' => 'nullable|string|max:255',
+            'author' => 'nullable|string|max:255',
+            'language' => 'nullable|string|max:255',
+            'viewport' => 'nullable|string|max:255',
+            'charset' => 'nullable|string|max:255',
+        ]);
 
-    // MAPEO a los campos REALES del modelo
-    $mapped = [
-        // HERO
-        'hero_title'          => $data['h1']                      ?? null,
-        'hero_subtitle'       => $data['h2_1']                    ?? null,
-        'hero_cta_text'       => $data['cta_primary_text']        ?? null,
-        'hero_cta_url'        => $data['cta_primary_url']         ?? null,
+        // MAPEO a los campos REALES del modelo
+        $mapped = [
+            // HERO
+            'hero_title'          => $data['h1']                      ?? null,
+            'hero_subtitle'       => $data['h2_1']                    ?? null,
+            'hero_cta_text'       => $data['cta_primary_text']        ?? null,
+            'hero_cta_url'        => $data['cta_primary_url']         ?? null,
 
-        // HISTORIA
-        'story_title'         => $data['h2_historia']             ?? null,
-        'story_text'          => $data['p_historia']              ?? null,
+            // HISTORIA
+            'story_title'         => $data['h2_historia']             ?? null,
+            'story_text'          => $data['p_historia']              ?? null,
 
-        // EXPERIENCIA
-        'exp_title'           => $data['h2_experiencia']          ?? null,
-        'exp_subtitle'        => $data['p_experiencia']           ?? null,
-        'exp_card1_title'     => $data['card1_title_1']           ?? null,
-        'exp_card1_text'      => $data['card1_content_1']         ?? null,
-        'exp_card2_title'     => $data['card1_title_2']           ?? null,
-        'exp_card2_text'      => $data['card1_content_2']         ?? null,
-        'exp_card3_title'     => $data['card1_title_3']           ?? null,
-        'exp_card3_text'      => $data['card1_content_3']         ?? null,
+            // EXPERIENCIA
+            'exp_title'           => $data['h2_experiencia']          ?? null,
+            'exp_subtitle'        => $data['p_experiencia']           ?? null,
+            'exp_card1_title'     => $data['card1_title_1']           ?? null,
+            'exp_card1_text'      => $data['card1_content_1']         ?? null,
+            'exp_card2_title'     => $data['card1_title_2']           ?? null,
+            'exp_card2_text'      => $data['card1_content_2']         ?? null,
+            'exp_card3_title'     => $data['card1_title_3']           ?? null,
+            'exp_card3_text'      => $data['card1_content_3']         ?? null,
 
-        // WHY
-        'why_title'           => $data['h2_why']                  ?? null,
-        'why_item1_title'     => $data['card2_title_4']           ?? null,
-        'why_item1_text'      => $data['card2_content_4']         ?? null,
-        'why_item2_title'     => $data['card2_title_5']           ?? null,
-        'why_item2_text'      => $data['card2_content_5']         ?? null,
-        'why_item3_title'     => $data['card2_title_6']           ?? null,
-        'why_item3_text'      => $data['card2_content_6']         ?? null,
+            // WHY
+            'why_title'           => $data['h2_why']                  ?? null,
+            'why_item1_title'     => $data['card2_title_4']           ?? null,
+            'why_item1_text'      => $data['card2_content_4']         ?? null,
+            'why_item2_title'     => $data['card2_title_5']           ?? null,
+            'why_item2_text'      => $data['card2_content_5']         ?? null,
+            'why_item3_title'     => $data['card2_title_6']           ?? null,
+            'why_item3_text'      => $data['card2_content_6']         ?? null,
 
-        // CTA FINAL
-        'cta_title'           => $data['h2_cta']                  ?? null,
-        'cta_text'            => $data['p_cta']                   ?? null,
-        'cta_button_text'     => $data['cta_primary_text_final']  ?? null,
-        'cta_button_url'      => $data['cta_primary_url_final']   ?? null,
-        'cta_phone_label'     => $data['cta_secondary_text_final']?? null,
-        'cta_phone_number'    => $data['cta_secondary_url_final'] ?? null,
-    ];
+            // CTA FINAL
+            'cta_title'           => $data['h2_cta']                  ?? null,
+            'cta_text'            => $data['p_cta']                   ?? null,
+            'cta_button_text'     => $data['cta_primary_text_final']  ?? null,
+            'cta_button_url'      => $data['cta_primary_url_final']   ?? null,
+            'cta_phone_label'     => $data['cta_secondary_text_final'] ?? null,
+            'cta_phone_number'    => $data['cta_secondary_url_final'] ?? null,
+        ];
 
-    $about = AboutPage::first() ?? new AboutPage();
-    $about->fill($mapped);
-    $about->save();
+        $about = AboutPage::first() ?? new AboutPage();
+        $about->fill($mapped);
+        $about->save();
 
-    // ===== CREAR REGISTRO PAGINA SI NO EXISTE (Nosotros = id 3) =====
-    Pagina::firstOrCreate(['id' => 3], [
-        'h1'   => 'Nosotros',
-        'h2_1' => 'Conoce más sobre nosotros',
-    ]);
+        // ===== CREAR REGISTRO PAGINA SI NO EXISTE (Nosotros = id 3) =====
+        Pagina::firstOrCreate(['id' => 3], [
+            'h1'   => 'Nosotros',
+            'h2_1' => 'Conoce más sobre nosotros',
+        ]);
 
-    // ===== GUARDAR METADATOS SEO =====
-    PaginaMeta::updateOrCreate(['pagina_id' => 3], [
-        'meta_title'       => $data['meta_title']        ?? '',
-        'meta_description' => $data['meta_description']  ?? '',
-        'meta_keywords'    => $data['meta_keywords']     ?? '',
-        'canonical_url'    => $data['canonical_url']     ?? '',
-        'robots'           => $data['robots']            ?? '',
-        'author'           => $data['author']            ?? '',
-        'language'         => $data['language']          ?? '',
-        'viewport'         => $data['viewport']          ?? '',
-        'charset'          => $data['charset']           ?? '',
-    ]);
+        // ===== GUARDAR METADATOS SEO =====
+        PaginaMeta::updateOrCreate(['pagina_id' => 3], [
+            'meta_title'       => $data['meta_title']        ?? '',
+            'meta_description' => $data['meta_description']  ?? '',
+            'meta_keywords'    => $data['meta_keywords']     ?? '',
+            'canonical_url'    => $data['canonical_url']     ?? '',
+            'robots'           => $data['robots']            ?? '',
+            'author'           => $data['author']            ?? '',
+            'language'         => $data['language']          ?? '',
+            'viewport'         => $data['viewport']          ?? '',
+            'charset'          => $data['charset']           ?? '',
+        ]);
 
-    return back()->with('success', 'Contenido de "Nosotros" actualizado correctamente.');
-}
-
-
+        return back()->with('success', 'Contenido de "Nosotros" actualizado correctamente.');
+    }
 }
