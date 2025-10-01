@@ -26,7 +26,7 @@ return [
 
     // Ajustes por defecto (puedes sobreescribirlos en runtime)
     'default_currency'     => env('PAYPAL_CURRENCY', 'EUR'),
-    'brand_name'           => env('PAYPAL_BRAND_NAME', env('APP_NAME', 'Laravel')),
+    'brand_name'           => env('PAYPAL_BRAND_NAME', env('APP_NAME', 'Chuspombo')),
     'return_url'           => env('PAYPAL_RETURN_URL', $appUrl ? $appUrl . '/paypal/success' : null),
     'cancel_url'           => env('PAYPAL_CANCEL_URL', $appUrl ? $appUrl . '/paypal/cancel'  : null),
     'user_action'          => env('PAYPAL_USER_ACTION', 'PAY_NOW'),

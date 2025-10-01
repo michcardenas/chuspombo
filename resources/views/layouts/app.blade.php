@@ -25,6 +25,10 @@
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/home.patch.css') }}">
     @yield('styles')
+
+        {{-- 👇 Stack para inyectar metas/hojas/JS específicos desde vistas hijas --}}
+    @stack('head')
+        
         
     <style>
         html,

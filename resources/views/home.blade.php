@@ -4,6 +4,10 @@
 
 @section('meta_description', 'Descubre apartamentos en Galicia, España con Chuspombo, tu socio confiable para experiencias de lujo inolvidables.')
 
+@push('head')
+    <meta name="google-site-verification" content="2jdAvl84H3j_D5bxpnQr-4fBXKrM4poobpPPTDT5fTU" />
+@endpush
+
 @section('content')
 
 
