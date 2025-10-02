@@ -6,6 +6,7 @@
 
 @push('head')
     <meta name="google-site-verification" content="2jdAvl84H3j_D5bxpnQr-4fBXKrM4poobpPPTDT5fTU" />
+    <meta name="msvalidate.01" content="9F83AEB4C2825B01C4297F2D757C548D" />
 @endpush
 
 @section('content')
